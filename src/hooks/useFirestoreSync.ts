@@ -23,27 +23,17 @@ export function useFirestoreSync(
   loadedBudgetsRef: React.MutableRefObject<Budgets | null>
 ) {
   const {
-    startBalanceUAH,
     setStartBalanceUAH,
-    startBalanceUSD,
     setStartBalanceUSD,
-    startBalanceEUR,
     setStartBalanceEUR,
-    usdRate,
     setUsdRate,
-    eurRate,
     setEurRate,
-    selectedCurrencies,
     setSelectedCurrencies,
-    exchangeRates,
     setExchangeRates,
-    days,
     setDays,
-    activeBudgetId,
     setActiveBudgetId,
     budgets,
     setBudgets,
-    isInitialLoad,
     setIsInitialLoad,
     setSyncStatus
   } = budgetState;
