@@ -29,7 +29,9 @@ export function useBudgetSync(
     activeBudgetId,
     budgets,
     isInitialLoad,
-    setSyncStatus
+    setSyncStatus,
+    encryptionPassword,
+    setIsEncrypted
   } = budgetState;
 
   const latestDataRef = useRef({
@@ -45,7 +47,7 @@ export function useBudgetSync(
   const loadedBudgetsRef = useRef<Budgets | null>(null);
 
   // Завантаження даних з Firestore
-  useFirestoreSync(budgetState, getSyncStatusText, user, authLoading, loadedBudgetsRef);
+  const passwordModal = useFirestoreSync(budgetState, getSyncStatusText, user, authLoading, loadedBudgetsRef);
 
   // Синхронізація стану бюджету
   useBudgetStateSync(budgetState, loadedBudgetsRef);
@@ -102,11 +104,14 @@ export function useBudgetSync(
     authLoading,
     latestDataRef,
     setSyncStatus,
-    getSyncStatusText
+    getSyncStatusText,
+    encryptionPassword,
+    setIsEncrypted
   });
 
   return {
     user,
-    authLoading
+    authLoading,
+    ...passwordModal
   };
 }

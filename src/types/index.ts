@@ -66,5 +66,8 @@ export interface UserData {
   days?: Day[];
   selectedCurrencies?: string[];
   exchangeRates?: ExchangeRates;
+  // Encryption fields
+  isEncrypted?: boolean;
+  encryptedData?: string;
 }
 

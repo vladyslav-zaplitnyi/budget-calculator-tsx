@@ -1,9 +1,10 @@
-import { useCallback } from 'react';
+import { useCallback, useState } from 'react';
 import { useBudgetContext } from '../contexts/BudgetContext';
 import { createEmptyMonthDays } from '../utils/dayHelpers';
 import { validateSelectedCurrencies, getDefaultRate } from '../utils/currencies';
 import { Budgets, ExchangeRates } from '../types';
 import { isExchangeRatePair } from '../utils/typeGuards';
+import { saveToFirestore } from '../utils/storageHelpers';
 
 /**
  * Hook для управління налаштуваннями бюджету (валюти, курси, баланси)
@@ -27,8 +28,19 @@ export function useBudgetSettings() {
     setDays,
     setSaveMessage,
     setLoadMessage,
-    baseCurrency
+    baseCurrency,
+    user,
+    encryptionPassword,
+    setEncryptionPassword,
+    isEncrypted,
+    setIsEncrypted,
+    setSyncStatus,
+    getSyncStatusText
   } = context;
+
+  // Стан для модальних вікон шифрування
+  const [showEnableEncryptionModal, setShowEnableEncryptionModal] = useState(false);
+  const [showDisableEncryptionModal, setShowDisableEncryptionModal] = useState(false);
 
   const handleClearAll = useCallback(() => {
     const confirmed = window.confirm(
@@ -244,11 +256,138 @@ export function useBudgetSettings() {
     }
   }, [activeBudgetId, setStartBalanceUAH, setStartBalanceUSD, setStartBalanceEUR, setBudgets]);
 
+  // Обробники для шифрування
+  const handleEnableEncryptionClick = useCallback(() => {
+    setShowEnableEncryptionModal(true);
+  }, []);
+
+  const handleDisableEncryptionClick = useCallback(() => {
+    setShowDisableEncryptionModal(true);
+  }, []);
+
+  const handleEnableEncryption = useCallback(async (password: string, confirmPassword: string) => {
+    if (password !== confirmPassword) {
+      alert(isUk ? 'Паролі не співпадають!' : 'Passwords do not match!');
+      return;
+    }
+
+    if (!password.trim()) {
+      alert(isUk ? 'Пароль не може бути порожнім!' : 'Password cannot be empty!');
+      return;
+    }
+
+    if (!user) {
+      alert(isUk ? 'Потрібна авторизація для шифрування!' : 'Authentication required for encryption!');
+      return;
+    }
+
+    try {
+      // Встановлюємо пароль
+      setEncryptionPassword(password);
+      
+      // Зберігаємо дані з шифруванням
+      const budgetsToSave = budgets && Object.keys(budgets).length > 0 ? budgets : {
+        [activeBudgetId || 'default']: {
+          name: 'Основний',
+          startBalanceUAH: null,
+          startBalanceUSD: null,
+          startBalanceEUR: null,
+          usdRate: 41.5,
+          eurRate: 45,
+          selectedCurrencies: selectedCurrencies,
+          exchangeRates: exchangeRates,
+          days: []
+        }
+      };
+      
+      await saveToFirestore(
+        user,
+        budgetsToSave,
+        activeBudgetId || 'default',
+        false,
+        setSyncStatus,
+        getSyncStatusText,
+        password,
+        setIsEncrypted
+      );
+      
+      setShowEnableEncryptionModal(false);
+      alert(isUk ? '✅ Шифрування увімкнено!' : '✅ Encryption enabled!');
+    } catch (error) {
+      console.error('Помилка при увімкненні шифрування:', error);
+      alert(isUk ? '❌ Помилка при увімкненні шифрування!' : '❌ Error enabling encryption!');
+    }
+  }, [isUk, user, budgets, activeBudgetId, selectedCurrencies, exchangeRates, setEncryptionPassword, setIsEncrypted, setSyncStatus, getSyncStatusText]);
+
+  const handleDisableEncryption = useCallback(async (password: string) => {
+    if (!password.trim()) {
+      alert(isUk ? 'Введіть пароль!' : 'Enter password!');
+      return;
+    }
+
+    if (!user) {
+      alert(isUk ? 'Потрібна авторизація!' : 'Authentication required!');
+      return;
+    }
+
+    // Перевіряємо пароль, спробувавши розшифрувати дані
+    if (encryptionPassword !== password) {
+      alert(isUk ? 'Невірний пароль!' : 'Wrong password!');
+      return;
+    }
+
+    try {
+      // Очищаємо пароль
+      setEncryptionPassword(null);
+      
+      // Зберігаємо дані без шифрування
+      const budgetsToSave = budgets && Object.keys(budgets).length > 0 ? budgets : {
+        [activeBudgetId || 'default']: {
+          name: 'Основний',
+          startBalanceUAH: null,
+          startBalanceUSD: null,
+          startBalanceEUR: null,
+          usdRate: 41.5,
+          eurRate: 45,
+          selectedCurrencies: selectedCurrencies,
+          exchangeRates: exchangeRates,
+          days: []
+        }
+      };
+      
+      await saveToFirestore(
+        user,
+        budgetsToSave,
+        activeBudgetId || 'default',
+        false,
+        setSyncStatus,
+        getSyncStatusText,
+        null,
+        setIsEncrypted
+      );
+      
+      setShowDisableEncryptionModal(false);
+      alert(isUk ? '✅ Шифрування вимкнено!' : '✅ Encryption disabled!');
+    } catch (error) {
+      console.error('Помилка при вимкненні шифрування:', error);
+      alert(isUk ? '❌ Помилка при вимкненні шифрування!' : '❌ Error disabling encryption!');
+    }
+  }, [isUk, user, budgets, activeBudgetId, selectedCurrencies, exchangeRates, encryptionPassword, setEncryptionPassword, setIsEncrypted, setSyncStatus, getSyncStatusText]);
+
   return {
     handleClearAll,
     handleCurrencyChange,
     handleExchangeRateChange,
-    handleStartBalanceChange
+    handleStartBalanceChange,
+    handleEnableEncryptionClick,
+    handleDisableEncryptionClick,
+    handleEnableEncryption,
+    handleDisableEncryption,
+    showEnableEncryptionModal,
+    showDisableEncryptionModal,
+    setShowEnableEncryptionModal,
+    setShowDisableEncryptionModal,
+    isEncrypted
   };
 }
 

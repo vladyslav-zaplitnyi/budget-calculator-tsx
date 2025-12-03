@@ -5,6 +5,7 @@ import { useBudgetSync } from '../hooks/useBudgetSync';
 import { useCurrencyRates } from '../hooks/useCurrencyRates';
 import { useAuth } from '../hooks/useAuth';
 import { translate } from '../i18n/config';
+import PasswordModal from './PasswordModal';
 
 interface BudgetProviderProps {
   children: ReactNode;
@@ -75,7 +76,7 @@ export function BudgetProvider({ children }: BudgetProviderProps) {
   }), [budgetState, syncStatus, getSyncStatusText]);
 
   // Використовуємо синхронізацію
-  useBudgetSync(budgetStateWithSync, getSyncStatusText, user, authLoading);
+  const { showPasswordModal, passwordError, handlePasswordSubmit, handlePasswordCancel, isUk: passwordModalIsUk } = useBudgetSync(budgetStateWithSync, getSyncStatusText, user, authLoading);
   
   // Використовуємо курси валют
   const currencyRates = useCurrencyRates(budgetStateWithSync);
@@ -104,12 +105,26 @@ export function BudgetProvider({ children }: BudgetProviderProps) {
     authLoading,
     loginWithGoogle,
     logout,
-    deleteUserAccount
-  }), [budgetStateWithSync, currencyRates, user, authLoading, loginWithGoogle, logout, deleteUserAccount]);
+    deleteUserAccount,
+    showPasswordModal,
+    handlePasswordSubmit
+  }), [budgetStateWithSync, currencyRates, user, authLoading, loginWithGoogle, logout, deleteUserAccount, showPasswordModal, handlePasswordSubmit]);
 
   return (
     <BudgetContext.Provider value={value}>
       {children}
+      <PasswordModal
+        isOpen={showPasswordModal}
+        onClose={handlePasswordCancel}
+        onConfirm={handlePasswordSubmit}
+        title={passwordModalIsUk ? 'Введіть пароль для розблокування' : 'Enter password to unlock'}
+        message={passwordModalIsUk 
+          ? 'Ваші дані зашифровані. Введіть пароль для доступу до них.' 
+          : 'Your data is encrypted. Enter your password to access it.'}
+        confirmButtonText={passwordModalIsUk ? 'Розблокувати' : 'Unlock'}
+        cancelButtonText={passwordModalIsUk ? 'Скасувати' : 'Cancel'}
+        errorMessage={passwordError}
+      />
     </BudgetContext.Provider>
   );
 }

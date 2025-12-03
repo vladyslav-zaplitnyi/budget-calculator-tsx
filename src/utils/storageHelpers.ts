@@ -5,6 +5,7 @@ import { User } from 'firebase/auth';
 import { Day, ExchangeRates, Budget, Budgets, UserData } from '../types';
 import { validateUserData, validateBudgets } from '../schemas/budgetSchema';
 import { handleError } from './errorHandler';
+import { encryptData, decryptData, WrongPasswordError } from './encryption';
 
 // Функція для завантаження даних з localStorage
 export const loadFromLocalStorage = (): UserData | null => {
@@ -104,7 +105,9 @@ export const saveToFirestore = async (
   activeId: string, 
   replaceBudgets: boolean = false, 
   setSyncStatus?: (status: string) => void, 
-  getSyncStatusText?: (key: string) => string
+  getSyncStatusText?: (key: string) => string,
+  encryptionPassword?: string | null,
+  setIsEncrypted?: (encrypted: boolean) => void
 ): Promise<void> => {
   if (!user) return;
 
@@ -125,20 +128,56 @@ export const saveToFirestore = async (
     }
 
     const userDocRef = doc(db, 'users', user.uid);
-    // Використовуємо правильний тип для Firestore
-    const data = {
-      activeBudgetId: activeId,
-      budgets: budgetsToSave,
-      savedAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
-    };
-    if (replaceBudgets) {
-      // updateDoc із повною заміною поля budgets, щоб видалені бюджети не залишалися в документі
-      await updateDoc(userDocRef, data);
+    
+    // Перевіряємо, чи потрібно шифрувати дані
+    if (encryptionPassword) {
+      // Шифруємо дані
+      const dataToEncrypt = {
+        activeBudgetId: activeId,
+        budgets: budgetsToSave
+      };
+      const encryptedData = encryptData(dataToEncrypt, encryptionPassword);
+      
+      // Зберігаємо зашифровані дані
+      const data = {
+        isEncrypted: true,
+        encryptedData: encryptedData,
+        savedAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      };
+      
+      if (setIsEncrypted) {
+        setIsEncrypted(true);
+      }
+      
+      if (replaceBudgets) {
+        await updateDoc(userDocRef, data);
+      } else {
+        await setDoc(userDocRef, data, { merge: true });
+      }
     } else {
-      // merge: true — акуратне оновлення без видалення інших полів
-      await setDoc(userDocRef, data, { merge: true });
+      // Зберігаємо дані у відкритому вигляді
+      const data = {
+        activeBudgetId: activeId,
+        budgets: budgetsToSave,
+        savedAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        // Видаляємо поля шифрування, якщо вони були раніше
+        isEncrypted: deleteField(),
+        encryptedData: deleteField()
+      };
+      
+      if (setIsEncrypted) {
+        setIsEncrypted(false);
+      }
+      
+      if (replaceBudgets) {
+        await updateDoc(userDocRef, data);
+      } else {
+        await setDoc(userDocRef, data, { merge: true });
+      }
     }
+    
     if (setSyncStatus && getSyncStatusText) {
       setSyncStatus(getSyncStatusText('saved'));
     }
@@ -154,7 +193,10 @@ export const saveToFirestore = async (
 };
 
 // Функція для завантаження даних з Firestore
-export const loadFromFirestore = async (user: User | null): Promise<UserData | null> => {
+export const loadFromFirestore = async (
+  user: User | null,
+  encryptionPassword?: string | null
+): Promise<UserData | { isEncrypted: true; needsPassword: true } | null> => {
   if (!user) return null;
 
   try {
@@ -163,6 +205,115 @@ export const loadFromFirestore = async (user: User | null): Promise<UserData | n
 
     if (userDoc.exists()) {
       const rawData = userDoc.data();
+
+      // Перевіряємо, чи дані зашифровані
+      if (rawData.isEncrypted === true && rawData.encryptedData) {
+        // Дані зашифровані
+        if (!encryptionPassword) {
+          // Пароль не надано - повертаємо спеціальний об'єкт
+          return { isEncrypted: true, needsPassword: true };
+        }
+
+        // Спробуємо розшифрувати
+        try {
+          const decryptedData = decryptData<{ activeBudgetId?: string; budgets?: Budgets }>(
+            rawData.encryptedData,
+            encryptionPassword
+          );
+
+          // Створюємо UserData з розшифрованих даних
+          const data: UserData = {
+            activeBudgetId: decryptedData.activeBudgetId,
+            budgets: decryptedData.budgets,
+            savedAt: rawData.savedAt,
+            updatedAt: rawData.updatedAt,
+            isEncrypted: true
+          };
+
+          // Продовжуємо обробку як звичайні дані (використовуємо ту саму логіку, що й нижче)
+          // 🔁 Якщо вже є нова multi-budget структура
+          if (data.budgets && typeof data.budgets === 'object' && Object.keys(data.budgets).length > 0) {
+            let activeId = data.activeBudgetId;
+            const budgetKeys = Object.keys(data.budgets);
+
+            if (!activeId || !data.budgets[activeId]) {
+              activeId = budgetKeys[0];
+              try {
+                await updateDoc(userDocRef, {
+                  activeBudgetId: activeId,
+                  updatedAt: new Date().toISOString()
+                });
+              } catch (e) {
+                console.error('Помилка при оновленні activeBudgetId під час міграції:', e);
+              }
+            }
+
+            // 🔄 Міграція: видаляємо зайві поля currency та baseCurrency з бюджетів
+            let needsMigration = false;
+            const migratedBudgets: Budgets = {};
+            for (const [key, budget] of Object.entries(data.budgets as Budgets)) {
+              try {
+                interface BudgetWithLegacyFields extends Budget {
+                  currency?: string;
+                  baseCurrency?: string;
+                }
+                const { currency, baseCurrency, ...budgetCleaned } = budget as BudgetWithLegacyFields;
+                if (currency || baseCurrency) {
+                  migratedBudgets[key] = budgetCleaned;
+                  needsMigration = true;
+                } else {
+                  migratedBudgets[key] = budget;
+                }
+              } catch (error) {
+                handleError(
+                  error instanceof Error ? error : new Error(String(error)),
+                  {
+                    context: 'storageHelpers',
+                    action: 'loadFromFirestore',
+                    details: `Помилка валідації бюджету ${key}`
+                  }
+                );
+                console.warn(`⚠️ Бюджет ${key} не валідний і буде пропущено`);
+              }
+            }
+
+            if (needsMigration) {
+              try {
+                await updateDoc(userDocRef, {
+                  budgets: migratedBudgets,
+                  updatedAt: new Date().toISOString()
+                });
+                console.log('📦 Міграція: видалено зайві поля currency та baseCurrency з бюджетів');
+              } catch (e) {
+                console.error('Помилка при міграції бюджетів:', e);
+              }
+            }
+
+            const activeBudget = migratedBudgets[activeId] || {};
+
+            return {
+              startBalanceUAH: activeBudget.startBalanceUAH ?? null,
+              startBalanceUSD: activeBudget.startBalanceUSD ?? null,
+              startBalanceEUR: activeBudget.startBalanceEUR ?? null,
+              usdRate: activeBudget.usdRate ?? 41.5,
+              eurRate: activeBudget.eurRate ?? 45,
+              days: activeBudget.days || undefined,
+              budgets: migratedBudgets,
+              activeBudgetId: activeId,
+              isEncrypted: true
+            };
+          }
+
+          // Якщо немає budgets, повертаємо базові дані
+          return data;
+        } catch (error) {
+          if (error instanceof WrongPasswordError) {
+            // Невірний пароль - повертаємо спеціальний об'єкт
+            throw error;
+          }
+          throw error;
+        }
+      }
 
       // Валідація даних з Firestore
       const validationResult = validateUserData(rawData);

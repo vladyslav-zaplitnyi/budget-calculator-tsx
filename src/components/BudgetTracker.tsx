@@ -50,7 +50,12 @@ export default function BudgetTracker() {
     loadMessage,
     isUpdatingRates,
     rateUpdateMessage,
-    handleUpdateNbuRates
+    handleUpdateNbuRates,
+    encryptionPassword,
+    setEncryptionPassword,
+    isEncrypted,
+    showPasswordModal,
+    handlePasswordSubmit
   } = context;
 
   const {
@@ -64,7 +69,15 @@ export default function BudgetTracker() {
     handleExportToJsonFile,
     handleImportFromJsonFile,
     handleJsonFileSelected,
-    fileInputRef
+    fileInputRef,
+    handleEnableEncryptionClick,
+    handleDisableEncryptionClick,
+    handleEnableEncryption,
+    handleDisableEncryption,
+    showEnableEncryptionModal,
+    showDisableEncryptionModal,
+    setShowEnableEncryptionModal,
+    setShowDisableEncryptionModal
   } = handlers;
 
   // Створюємо об'єкт початкових балансів для вибраних валют
@@ -163,6 +176,11 @@ export default function BudgetTracker() {
             language={language}
             setLanguage={setLanguage}
             deleteUserAccount={deleteUserAccount}
+            isEncrypted={isEncrypted}
+            encryptionPassword={encryptionPassword}
+            setEncryptionPassword={setEncryptionPassword}
+            showPasswordModal={showPasswordModal}
+            handlePasswordSubmit={handlePasswordSubmit}
           />
 
           <SettingsCard
@@ -201,6 +219,15 @@ export default function BudgetTracker() {
             handleUpdateNbuRates={handleUpdateNbuRates}
             isUpdatingRates={isUpdatingRates}
             rateUpdateMessage={rateUpdateMessage}
+            handleEnableEncryptionClick={handleEnableEncryptionClick}
+            handleDisableEncryptionClick={handleDisableEncryptionClick}
+            handleEnableEncryption={handleEnableEncryption}
+            handleDisableEncryption={handleDisableEncryption}
+            showEnableEncryptionModal={showEnableEncryptionModal}
+            showDisableEncryptionModal={showDisableEncryptionModal}
+            setShowEnableEncryptionModal={setShowEnableEncryptionModal}
+            setShowDisableEncryptionModal={setShowDisableEncryptionModal}
+            isEncrypted={isEncrypted}
           />
 
           <BudgetStatus

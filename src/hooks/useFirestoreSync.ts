@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { loadFromFirestore, loadFromLocalStorage } from '../utils/storageHelpers';
 import { normalizeDaysArray } from '../utils/dayHelpers';
 import { validateSelectedCurrencies, DEFAULT_CURRENCIES, getDefaultRate } from '../utils/currencies';
@@ -8,6 +8,7 @@ import { BudgetStateWithSync } from '../contexts/BudgetContext';
 import { User } from 'firebase/auth';
 import { Budgets, ExchangeRates } from '../types';
 import { isExchangeRatePair, getBuyRate, hasPairStructure } from '../utils/typeGuards';
+import { WrongPasswordError } from '../utils/encryption';
 
 const BASE_CURRENCY = 'UAH';
 
@@ -35,8 +36,18 @@ export function useFirestoreSync(
     budgets,
     setBudgets,
     setIsInitialLoad,
-    setSyncStatus
+    setSyncStatus,
+    encryptionPassword,
+    setEncryptionPassword,
+    isEncrypted,
+    setIsEncrypted,
+    isUk
   } = budgetState;
+
+  // Стан для модального вікна введення пароля
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [passwordError, setPasswordError] = useState<string | undefined>();
+  const [pendingLoad, setPendingLoad] = useState<(() => Promise<void>) | null>(null);
 
   // Допоміжна функція для завантаження даних бюджету
   const loadBudgetData = (budget: typeof budgets[string], budgetId: string, allBudgets: Budgets) => {
@@ -110,11 +121,24 @@ export function useFirestoreSync(
       if (user) {
         setIsInitialLoad(true);
         try {
-          const firestoreData = await loadFromFirestore(user);
+          const firestoreData = await loadFromFirestore(user, encryptionPassword);
           
           if (!isMounted) return;
           
+          // Перевіряємо, чи дані зашифровані і потрібен пароль
+          if (firestoreData && 'isEncrypted' in firestoreData && 'needsPassword' in firestoreData) {
+            // Потрібен пароль - показуємо модальне вікно
+            setPendingLoad(() => loadData);
+            setShowPasswordModal(true);
+            setIsInitialLoad(false);
+            return;
+          }
+          
           if (firestoreData) {
+            // Встановлюємо isEncrypted, якщо дані зашифровані
+            if (firestoreData.isEncrypted) {
+              setIsEncrypted(true);
+            }
             // Завантажуємо базові дані
             setStartBalanceUAH(firestoreData.startBalanceUAH ?? null);
             setStartBalanceUSD(firestoreData.startBalanceUSD ?? null);
@@ -274,10 +298,17 @@ export function useFirestoreSync(
         } catch (error) {
           console.error('Помилка при завантаженні даних з Firestore:', error);
           if (isMounted) {
-            setSyncStatus(getSyncStatusText('error'));
+            if (error instanceof WrongPasswordError) {
+              // Невірний пароль - показуємо помилку в модальному вікні
+              setPasswordError(isUk ? 'Невірний пароль. Спробуйте ще раз.' : 'Wrong password. Please try again.');
+              setShowPasswordModal(true);
+              setPendingLoad(() => loadData);
+            } else {
+              setSyncStatus(getSyncStatusText('error'));
+            }
           }
         } finally {
-          if (isMounted) {
+          if (isMounted && !showPasswordModal) {
             setIsInitialLoad(false);
           }
         }
@@ -365,6 +396,34 @@ export function useFirestoreSync(
       isMounted = false;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user, authLoading]);
+  }, [user, authLoading, encryptionPassword]);
+
+  // Обробка введення пароля
+  const handlePasswordSubmit = async (password: string) => {
+    setPasswordError(undefined);
+    setEncryptionPassword(password);
+    setShowPasswordModal(false);
+    
+    // Перезавантажуємо дані з новим паролем
+    if (pendingLoad) {
+      await pendingLoad();
+      setPendingLoad(null);
+    }
+  };
+
+  const handlePasswordCancel = () => {
+    setShowPasswordModal(false);
+    setPasswordError(undefined);
+    setPendingLoad(null);
+    setIsInitialLoad(false);
+  };
+
+  return {
+    showPasswordModal,
+    passwordError,
+    handlePasswordSubmit,
+    handlePasswordCancel,
+    isUk
+  };
 }
 

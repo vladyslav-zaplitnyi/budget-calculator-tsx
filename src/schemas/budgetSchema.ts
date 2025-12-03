@@ -88,7 +88,10 @@ export const UserDataSchema: z.ZodType<UserData> = z.object({
   eurRate: z.number().positive().optional(),
   days: z.array(DaySchema).optional(),
   selectedCurrencies: z.array(z.string()).optional(),
-  exchangeRates: ExchangeRatesSchema.optional()
+  exchangeRates: ExchangeRatesSchema.optional(),
+  // Encryption fields
+  isEncrypted: z.boolean().optional(),
+  encryptedData: z.string().optional()
 });
 
 /**

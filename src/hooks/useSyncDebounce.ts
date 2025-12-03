@@ -21,6 +21,8 @@ interface UseSyncDebounceParams {
   }>;
   setSyncStatus: (status: string) => void;
   getSyncStatusText: (key: string) => string;
+  encryptionPassword?: string | null;
+  setIsEncrypted?: (encrypted: boolean) => void;
 }
 
 /**
@@ -35,7 +37,9 @@ export function useSyncDebounce({
   authLoading,
   latestDataRef,
   setSyncStatus,
-  getSyncStatusText
+  getSyncStatusText,
+  encryptionPassword,
+  setIsEncrypted
 }: UseSyncDebounceParams) {
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -63,7 +67,7 @@ export function useSyncDebounce({
         }
       };
       const currentId = activeBudgetId || 'default';
-      saveToFirestore(user, safeBudgets, currentId, false, setSyncStatus, getSyncStatusText);
+      saveToFirestore(user, safeBudgets, currentId, false, setSyncStatus, getSyncStatusText, encryptionPassword, setIsEncrypted);
     }, 2000);
 
     return () => {
@@ -71,7 +75,7 @@ export function useSyncDebounce({
         clearTimeout(saveTimeoutRef.current);
       }
     };
-  }, [budgets, activeBudgetId, user, isInitialLoad, authLoading, latestDataRef, setSyncStatus, getSyncStatusText]);
+  }, [budgets, activeBudgetId, user, isInitialLoad, authLoading, latestDataRef, setSyncStatus, getSyncStatusText, encryptionPassword, setIsEncrypted]);
 
   return saveTimeoutRef;
 }

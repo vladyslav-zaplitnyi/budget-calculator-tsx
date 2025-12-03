@@ -15,6 +15,9 @@ export interface BudgetContextValue extends BudgetStateWithSync {
   loginWithGoogle: () => Promise<void>;
   logout: () => Promise<void>;
   deleteUserAccount: () => Promise<void>;
+  // Password modal props
+  showPasswordModal?: boolean;
+  handlePasswordSubmit?: (password: string) => void;
 }
 
 export const BudgetContext = createContext<BudgetContextValue | null>(null);

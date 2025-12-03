@@ -23,6 +23,17 @@ export function useBudgetHandlers() {
     handleExchangeRateChange: budgetSettings.handleExchangeRateChange,
     handleStartBalanceChange: budgetSettings.handleStartBalanceChange,
     
+    // Encryption
+    handleEnableEncryptionClick: budgetSettings.handleEnableEncryptionClick,
+    handleDisableEncryptionClick: budgetSettings.handleDisableEncryptionClick,
+    handleEnableEncryption: budgetSettings.handleEnableEncryption,
+    handleDisableEncryption: budgetSettings.handleDisableEncryption,
+    showEnableEncryptionModal: budgetSettings.showEnableEncryptionModal,
+    showDisableEncryptionModal: budgetSettings.showDisableEncryptionModal,
+    setShowEnableEncryptionModal: budgetSettings.setShowEnableEncryptionModal,
+    setShowDisableEncryptionModal: budgetSettings.setShowDisableEncryptionModal,
+    isEncrypted: budgetSettings.isEncrypted,
+    
     // Import/Export
     handleExportToJsonFile: budgetImportExport.handleExportToJsonFile,
     handleImportFromJsonFile: budgetImportExport.handleImportFromJsonFile,

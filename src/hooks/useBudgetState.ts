@@ -1,4 +1,4 @@
-import { useReducer, useEffect, useCallback, useMemo, useRef } from 'react';
+import { useReducer, useEffect, useCallback, useMemo, useRef, useState } from 'react';
 import { loadFromLocalStorage } from '../utils/storageHelpers';
 import { normalizeDaysArray, createEmptyMonthDays } from '../utils/dayHelpers';
 import { DEFAULT_CURRENCIES, validateSelectedCurrencies, getDefaultRate } from '../utils/currencies';
@@ -57,6 +57,11 @@ export interface BudgetStateInterface {
   setIsInitialLoad: (loading: boolean) => void;
   baseCurrency: string;
   resetToDefaults: () => void;
+  // Encryption fields
+  encryptionPassword: string | null;
+  setEncryptionPassword: (password: string | null) => void;
+  isEncrypted: boolean;
+  setIsEncrypted: (encrypted: boolean) => void;
 }
 
 export function useBudgetState(): BudgetStateInterface {
@@ -176,6 +181,10 @@ export function useBudgetState(): BudgetStateInterface {
   }));
   const [displayState, displayDispatch] = useReducer(displayReducer, createDisplayInitialState(loadedData));
   const [messageState, messageDispatch] = useReducer(messageReducer, createMessageInitialState());
+  
+  // Encryption state - НЕ зберігається в localStorage, тільки в пам'яті
+  const [encryptionPassword, setEncryptionPasswordState] = useState<string | null>(null);
+  const [isEncrypted, setIsEncryptedState] = useState<boolean>(false);
 
   // Використовуємо ref для зберігання поточного стану, щоб уникнути залежностей в useCallback
   const budgetStateRef = useRef(budgetState);
@@ -361,6 +370,15 @@ export function useBudgetState(): BudgetStateInterface {
     messageDispatch({ type: messageActions.SET_IS_INITIAL_LOAD, payload: loading });
   }, []);
 
+  // Encryption setters
+  const setEncryptionPassword = useCallback((password: string | null) => {
+    setEncryptionPasswordState(password);
+  }, []);
+
+  const setIsEncrypted = useCallback((encrypted: boolean) => {
+    setIsEncryptedState(encrypted);
+  }, []);
+
   // Функція для оновлення дня
   const updateDay = useCallback((index: number, field: string, value: any) => {
     budgetDispatch({ 
@@ -533,7 +551,13 @@ export function useBudgetState(): BudgetStateInterface {
     baseCurrency: BASE_CURRENCY,
     
     // Функції
-    resetToDefaults
+    resetToDefaults,
+    
+    // Encryption
+    encryptionPassword,
+    setEncryptionPassword,
+    isEncrypted,
+    setIsEncrypted
   }), [
     displayState.language,
     displayState.displayCurrency,
@@ -575,7 +599,11 @@ export function useBudgetState(): BudgetStateInterface {
     setRateUpdateMessage,
     setIsUpdatingRates,
     setIsInitialLoad,
-    resetToDefaults
+    resetToDefaults,
+    encryptionPassword,
+    setEncryptionPassword,
+    isEncrypted,
+    setIsEncrypted
   ]);
 }
 

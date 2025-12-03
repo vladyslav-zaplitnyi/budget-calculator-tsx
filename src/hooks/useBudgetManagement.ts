@@ -5,7 +5,7 @@ import { validateSelectedCurrencies, DEFAULT_CURRENCIES } from '../utils/currenc
 import { ACTIVE_BUDGET_COOKIE_KEY } from '../utils/constants';
 import { setCookie } from '../utils/cookieHelpers';
 import { saveToFirestore, loadFromFirestore } from '../utils/storageHelpers';
-import { Budgets, Budget } from '../types';
+import { Budgets, Budget, UserData } from '../types';
 import { isExchangeRatePair, hasPairStructure, getBuyRate } from '../utils/typeGuards';
 import { translate } from '../i18n/config';
 
@@ -38,7 +38,9 @@ export function useBudgetManagement() {
     setSyncStatus,
     getSyncStatusText,
     user,
-    baseCurrency
+    baseCurrency,
+    encryptionPassword,
+    setIsEncrypted
   } = context;
 
   const createNewBudget = useCallback((name: string) => {
@@ -131,10 +133,14 @@ export function useBudgetManagement() {
       // Якщо в локальному стані немає потрібного бюджету – пробуємо підвантажити з Firestore
       if ((!currentBudgets || !currentBudgets[newId]) && user) {
         try {
-          const firestoreData = await loadFromFirestore(user);
-          if (firestoreData?.budgets && firestoreData.budgets[newId]) {
-            currentBudgets = firestoreData.budgets;
-            setBudgets(firestoreData.budgets);
+          const firestoreData = await loadFromFirestore(user, encryptionPassword);
+          // Перевіряємо, чи це не зашифровані дані, що потребують пароля
+          if (firestoreData && !('isEncrypted' in firestoreData && 'needsPassword' in firestoreData)) {
+            const userData = firestoreData as UserData;
+            if (userData.budgets && userData.budgets[newId]) {
+              currentBudgets = userData.budgets;
+              setBudgets(userData.budgets);
+            }
           }
         } catch (error) {
           console.error('Помилка при підвантаженні бюджету з Firestore:', error);
@@ -391,9 +397,9 @@ export function useBudgetManagement() {
     }
 
     if (user) {
-      saveToFirestore(user, updatedBudgets, newActiveId, true, setSyncStatus, getSyncStatusText);
+      saveToFirestore(user, updatedBudgets, newActiveId, true, setSyncStatus, getSyncStatusText, encryptionPassword, setIsEncrypted);
     }
-  }, [isUk, user, budgets, activeBudgetId, setBudgets, setActiveBudgetId, setSelectedCurrencies, setExchangeRates, setUsdRate, setEurRate, setStartBalanceUAH, setStartBalanceUSD, setStartBalanceEUR, setDays, setSyncStatus, getSyncStatusText]);
+  }, [isUk, user, budgets, activeBudgetId, setBudgets, setActiveBudgetId, setSelectedCurrencies, setExchangeRates, setUsdRate, setEurRate, setStartBalanceUAH, setStartBalanceUSD, setStartBalanceEUR, setDays, setSyncStatus, getSyncStatusText, encryptionPassword, setIsEncrypted]);
 
   return {
     createNewBudget,

@@ -4,6 +4,7 @@ import { AVAILABLE_CURRENCIES, getCurrencyName } from '../utils/currencies';
 import { User } from 'firebase/auth';
 import { Budgets, ExchangeRates } from '../types';
 import { isExchangeRatePair, getBuyRate } from '../utils/typeGuards';
+import PasswordModal from './PasswordModal';
 
 interface SettingsCardProps {
   isUk: boolean;
@@ -41,6 +42,16 @@ interface SettingsCardProps {
   handleUpdateNbuRates: () => Promise<void>;
   isUpdatingRates: boolean;
   rateUpdateMessage: string;
+  // Encryption props
+  handleEnableEncryptionClick?: () => void;
+  handleDisableEncryptionClick?: () => void;
+  handleEnableEncryption?: (password: string, confirmPassword: string) => void;
+  handleDisableEncryption?: (password: string) => void;
+  showEnableEncryptionModal?: boolean;
+  showDisableEncryptionModal?: boolean;
+  setShowEnableEncryptionModal?: (show: boolean) => void;
+  setShowDisableEncryptionModal?: (show: boolean) => void;
+  isEncrypted?: boolean;
 }
 
 const SettingsCard: React.FC<SettingsCardProps> = ({
@@ -78,7 +89,16 @@ const SettingsCard: React.FC<SettingsCardProps> = ({
   baseCurrency = 'UAH',
   handleUpdateNbuRates,
   isUpdatingRates,
-  rateUpdateMessage
+  rateUpdateMessage,
+  handleEnableEncryptionClick,
+  handleDisableEncryptionClick,
+  handleEnableEncryption,
+  handleDisableEncryption,
+  showEnableEncryptionModal = false,
+  showDisableEncryptionModal = false,
+  setShowEnableEncryptionModal,
+  setShowDisableEncryptionModal,
+  isEncrypted = false
 }) => {
   const { t, i18n: i18nInstance } = useTranslation();
   const handleCurrencySelect = (currencyCode: string, index: number) => {
@@ -443,6 +463,61 @@ const SettingsCard: React.FC<SettingsCardProps> = ({
           </button>
         </div>
       </div>
+
+      {/* Security Section - тільки для авторизованих користувачів */}
+      {user && (
+        <div className="mt-4 sm:mt-6 bg-gradient-to-br from-amber-50 via-yellow-50 to-orange-50 p-4 sm:p-6 rounded-xl border-2 border-amber-200">
+          <h3 className="text-sm sm:text-base font-bold text-gray-800 mb-3 flex items-center">
+            <span className="mr-2">🔒</span> {t('settings.security.title')}
+          </h3>
+          <p className="text-xs sm:text-sm text-gray-600 mb-4">
+            {t('settings.security.description')}
+          </p>
+          
+          {!isEncrypted ? (
+            <button
+              onClick={handleEnableEncryptionClick}
+              className="w-full px-4 sm:px-6 py-3 rounded-xl font-bold transition-all text-sm sm:text-base bg-gradient-to-r from-indigo-500 to-violet-500 hover:from-indigo-600 hover:to-violet-600 text-white shadow-lg hover:shadow-xl active:scale-95"
+            >
+              🔒 {t('settings.security.enable')}
+            </button>
+          ) : (
+            <button
+              onClick={handleDisableEncryptionClick}
+              className="w-full px-4 sm:px-6 py-3 rounded-xl font-bold transition-all text-sm sm:text-base bg-gradient-to-r from-gray-500 to-gray-600 hover:from-gray-600 hover:to-gray-700 text-white shadow-lg hover:shadow-xl active:scale-95"
+            >
+              🔓 {t('settings.security.disable')}
+            </button>
+          )}
+        </div>
+      )}
+
+      {/* Модальні вікна для шифрування */}
+      <PasswordModal
+        isOpen={showEnableEncryptionModal}
+        onClose={() => setShowEnableEncryptionModal?.(false)}
+        onConfirm={() => {}}
+        onConfirmPassword={handleEnableEncryption}
+        title={isUk ? 'Увімкнути шифрування' : 'Enable Encryption'}
+        message={isUk 
+          ? 'Встановіть пароль для шифрування ваших даних. Якщо ви забудете цей пароль, дані відновити неможливо!'
+          : 'Set a password to encrypt your data. If you forget this password, data cannot be recovered!'}
+        confirmButtonText={isUk ? 'Увімкнути' : 'Enable'}
+        cancelButtonText={isUk ? 'Скасувати' : 'Cancel'}
+        isConfirmPassword={true}
+      />
+      
+      <PasswordModal
+        isOpen={showDisableEncryptionModal}
+        onClose={() => setShowDisableEncryptionModal?.(false)}
+        onConfirm={handleDisableEncryption || (() => {})}
+        title={isUk ? 'Вимкнути шифрування' : 'Disable Encryption'}
+        message={isUk 
+          ? 'Введіть поточний пароль для вимкнення шифрування. Після цього дані будуть зберігатися у відкритому вигляді.'
+          : 'Enter your current password to disable encryption. After this, data will be stored in plain text.'}
+        confirmButtonText={isUk ? 'Вимкнути' : 'Disable'}
+        cancelButtonText={isUk ? 'Скасувати' : 'Cancel'}
+      />
     </div>
   );
 };

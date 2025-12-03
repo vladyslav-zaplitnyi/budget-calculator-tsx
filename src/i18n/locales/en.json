@@ -55,6 +55,12 @@
       "importing": "⏳ Importing..."
     },
     "clearAll": "🗑️ Clear all fields",
+    "security": {
+      "title": "Security",
+      "description": "Protect your data with End-to-End encryption. Password is stored only in memory and never sent to the server.",
+      "enable": "Enable Encryption",
+      "disable": "Disable Encryption"
+    },
     "deleteAccount": {
       "dangerZone": "⚠️ Danger Zone",
       "button": "🗑️ Delete account permanently",
@@ -124,6 +130,13 @@
     "importError": "❌ Invalid or corrupted JSON file",
     "readError": "❌ Error reading file",
     "fileSaved": "✅ File saved to disk"
+  },
+  "encryption": {
+    "password": "Password",
+    "passwordPlaceholder": "Enter password",
+    "confirmPassword": "Confirm Password",
+    "confirmPasswordPlaceholder": "Enter password again",
+    "passwordsDoNotMatch": "Passwords do not match"
   }
 }
 
