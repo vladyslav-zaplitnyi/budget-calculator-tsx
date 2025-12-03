@@ -1,3 +1,5 @@
+import { LANGUAGE_STORAGE_KEY } from '../utils/constants';
+
 export const displayActions = {
   SET_DISPLAY_CURRENCY: 'SET_DISPLAY_CURRENCY',
   SET_DISPLAY_CURRENCY_INDEX: 'SET_DISPLAY_CURRENCY_INDEX',
@@ -67,9 +69,18 @@ export function createDisplayInitialState(loadedData: unknown): DisplayState {
 
   let language = 'uk';
   try {
-    const savedLang = localStorage.getItem('language');
+    // Спочатку шукаємо в правильному ключі
+    const savedLang = localStorage.getItem(LANGUAGE_STORAGE_KEY);
     if (savedLang === 'uk' || savedLang === 'en') {
       language = savedLang;
+    } else {
+      // Для зворотної сумісності перевіряємо старий ключ
+      const oldLang = localStorage.getItem('language');
+      if (oldLang === 'uk' || oldLang === 'en') {
+        language = oldLang;
+        // Мігруємо в новий ключ
+        localStorage.setItem(LANGUAGE_STORAGE_KEY, oldLang);
+      }
     }
   } catch (error) {
     console.error('Помилка при завантаженні мови:', error);

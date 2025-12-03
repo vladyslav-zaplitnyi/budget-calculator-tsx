@@ -10,6 +10,7 @@ import { displayReducer, createDisplayInitialState, displayActions } from '../re
 import { messageReducer, createMessageInitialState, messageActions } from '../reducers/messageReducer';
 import { Day, ExchangeRates, Budgets } from '../types';
 import { hasPairStructure, getBuyRate } from '../utils/typeGuards';
+import i18n from '../i18n/config';
 
 const BASE_CURRENCY = 'UAH';
 
@@ -186,6 +187,8 @@ export function useBudgetState(): BudgetStateInterface {
   // Створюємо обгортки для dispatch функцій (для зворотної сумісності)
   const setLanguage = useCallback((lang: string) => {
     displayDispatch({ type: displayActions.SET_LANGUAGE, payload: lang });
+    // Синхронізуємо з i18next
+    i18n.changeLanguage(lang);
   }, []);
 
   const setSelectedCurrencies = useCallback((currencies: string[]) => {
@@ -371,7 +374,7 @@ export function useBudgetState(): BudgetStateInterface {
     currencyStateRef.current = currencyState;
   }, [currencyState]);
 
-  // Зберігаємо вибір мови
+  // Зберігаємо вибір мови та синхронізуємо з i18next
   useEffect(() => {
     try {
       localStorage.setItem(LANGUAGE_STORAGE_KEY, displayState.language);
@@ -383,6 +386,11 @@ export function useBudgetState(): BudgetStateInterface {
       setCookie(LANGUAGE_COOKIE_KEY, displayState.language, 365);
     } catch (error) {
       console.error('Помилка при збереженні мови в cookie:', error);
+    }
+
+    // Синхронізуємо з i18next при зміні мови (включаючи ініціалізацію)
+    if (i18n.language !== displayState.language) {
+      i18n.changeLanguage(displayState.language);
     }
   }, [displayState.language]);
 

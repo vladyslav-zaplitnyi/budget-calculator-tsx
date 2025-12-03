@@ -3,6 +3,18 @@ import { initReactI18next } from 'react-i18next';
 import LanguageDetector from 'i18next-browser-languagedetector';
 import ukTranslations from './locales/uk.json';
 import enTranslations from './locales/en.json';
+import { LANGUAGE_STORAGE_KEY } from '../utils/constants';
+
+// Завантажуємо збережену мову з localStorage перед ініціалізацією
+let savedLanguage = 'uk';
+try {
+  const stored = localStorage.getItem(LANGUAGE_STORAGE_KEY);
+  if (stored === 'uk' || stored === 'en') {
+    savedLanguage = stored;
+  }
+} catch (error) {
+  console.error('Помилка при завантаженні мови з localStorage:', error);
+}
 
 i18n
   .use(LanguageDetector)
@@ -16,7 +28,7 @@ i18n
         translation: enTranslations
       }
     },
-    lng: 'uk', // Дефолтна мова
+    lng: savedLanguage, // Використовуємо збережену мову
     fallbackLng: 'en',
     defaultNS: 'translation',
     debug: false,
@@ -26,7 +38,7 @@ i18n
     detection: {
       order: ['localStorage', 'navigator'],
       caches: ['localStorage'],
-      lookupLocalStorage: 'i18nextLng'
+      lookupLocalStorage: LANGUAGE_STORAGE_KEY // Використовуємо той самий ключ, що й додаток
     }
   });
 
