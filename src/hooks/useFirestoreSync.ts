@@ -264,7 +264,27 @@ export function useFirestoreSync(
           }
         }
       } else {
-        // Якщо користувач не авторизований, завантажуємо дані з localStorage
+        // Якщо користувач не авторизований, перевіряємо чи є дані в localStorage
+        // Якщо localStorage порожній (після logout/delete), не завантажуємо дані
+        const hasLocalData = localStorage.getItem('budgetTrackerData');
+        if (!hasLocalData) {
+          // localStorage очищено - скидаємо всі дані
+          setStartBalanceUAH(null);
+          setStartBalanceUSD(null);
+          setStartBalanceEUR(null);
+          setSelectedCurrencies(DEFAULT_CURRENCIES);
+          setExchangeRates({});
+          setUsdRate(41.5);
+          setEurRate(45);
+          setDays([]);
+          setBudgets({});
+          setActiveBudgetId('default');
+          setSyncStatus(getSyncStatusText('local'));
+          setIsInitialLoad(false);
+          return;
+        }
+        
+        // Завантажуємо дані з localStorage тільки якщо вони є
         const localData = loadFromLocalStorage();
         if (localData) {
           if (localData.budgets && Object.keys(localData.budgets).length > 0) {

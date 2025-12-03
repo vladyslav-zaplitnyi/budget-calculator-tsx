@@ -1,8 +1,9 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { User } from 'firebase/auth';
 import { useTranslation } from 'react-i18next';
 import { translate } from '../i18n/config';
 import i18n from '../i18n/config';
+import DeleteAccountModal from './DeleteAccountModal';
 
 interface HeaderProps {
   isUk: boolean;
@@ -13,6 +14,7 @@ interface HeaderProps {
   logout: () => Promise<void>;
   language: string;
   setLanguage: (lang: string) => void;
+  deleteUserAccount: () => Promise<void>;
 }
 
 const GoogleIcon = () => (
@@ -60,8 +62,10 @@ const Header: React.FC<HeaderProps> = ({
   loginWithGoogle,
   logout,
   language,
-  setLanguage
+  setLanguage,
+  deleteUserAccount
 }) => {
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const { t } = useTranslation();
   return (
     <div className="bg-gradient-to-r from-indigo-600 via-blue-600 to-indigo-700 rounded-2xl shadow-2xl p-4 sm:p-6 md:p-8 mb-4 sm:mb-6 text-white">
@@ -123,6 +127,13 @@ const Header: React.FC<HeaderProps> = ({
                     {t('header.signedIn')}
                   </span>
                 </div>
+                <button
+                  onClick={() => setIsDeleteModalOpen(true)}
+                  className="text-[11px] sm:text-xs font-semibold bg-red-600/90 hover:bg-red-700 px-2.5 py-1 rounded-full shadow-sm transition-all"
+                  title={t('settings.deleteAccount.button')}
+                >
+                  🗑️
+                </button>
                 <button
                   onClick={logout}
                   className="text-[11px] sm:text-xs font-semibold bg-red-500/90 hover:bg-red-600 px-2.5 py-1 rounded-full shadow-sm transition-all"
@@ -257,25 +268,32 @@ const Header: React.FC<HeaderProps> = ({
                 {t('header.loading')}
               </div>
             ) : user ? (
-              <div className="flex items-center gap-2 bg-white/10 backdrop-blur-xl rounded-full px-3 py-1.5 w-full justify-center shadow-lg border border-white/20">
+              <div className="flex items-center gap-2 bg-white/10 backdrop-blur-xl rounded-full px-3 sm:px-4 py-1.5 w-full sm:w-auto justify-center shadow-lg border border-white/20">
                 {user.photoURL ? (
                   <img
                     src={user.photoURL}
                     alt={user.displayName || 'User Avatar'}
                     referrerPolicy="no-referrer"
-                    className="w-7 h-7 rounded-full border border-white/70 object-cover"
+                    className="w-7 h-7 rounded-full border border-white/70 object-cover flex-shrink-0"
                   />
                 ) : (
-                  <div className="w-7 h-7 rounded-full border border-white/70 bg-indigo-500/50 flex items-center justify-center text-white text-xs font-semibold">
+                  <div className="w-7 h-7 rounded-full border border-white/70 bg-indigo-500/50 flex items-center justify-center text-white text-xs font-semibold flex-shrink-0">
                     {user.displayName ? user.displayName.charAt(0).toUpperCase() : user.email?.charAt(0).toUpperCase() || 'U'}
                   </div>
                 )}
-                <span className="text-xs sm:text-sm font-semibold text-white truncate max-w-[140px]">
+                <span className="text-xs sm:text-sm font-semibold text-white truncate max-w-[120px] sm:max-w-[200px]">
                   {user.displayName || user.email}
                 </span>
                 <button
+                  onClick={() => setIsDeleteModalOpen(true)}
+                  className="text-[11px] sm:text-xs font-semibold bg-red-600/90 hover:bg-red-700 px-2.5 sm:px-3 py-1 rounded-full transition-all flex-shrink-0"
+                  title={t('settings.deleteAccount.button')}
+                >
+                  🗑️
+                </button>
+                <button
                   onClick={logout}
-                  className="text-[11px] sm:text-xs font-semibold bg-red-500/90 hover:bg-red-600 px-2.5 py-1 rounded-full transition-all"
+                  className="text-[11px] sm:text-xs font-semibold bg-red-500/90 hover:bg-red-600 px-2.5 sm:px-3 py-1 rounded-full transition-all flex-shrink-0 whitespace-nowrap"
                 >
                   {t('header.logout')}
                 </button>
@@ -292,6 +310,14 @@ const Header: React.FC<HeaderProps> = ({
           </div>
         </div>
       </div>
+
+      {/* Модальне вікно видалення акаунту */}
+      <DeleteAccountModal
+        isOpen={isDeleteModalOpen}
+        onClose={() => setIsDeleteModalOpen(false)}
+        onConfirm={deleteUserAccount}
+        isUk={isUk}
+      />
     </div>
   );
 };

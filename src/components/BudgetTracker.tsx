@@ -23,6 +23,7 @@ export default function BudgetTracker() {
     user,
     loginWithGoogle,
     logout,
+    deleteUserAccount,
     selectedCurrencies,
     exchangeRates,
     startBalanceUAH,
@@ -161,6 +162,7 @@ export default function BudgetTracker() {
             logout={logout}
             language={language}
             setLanguage={setLanguage}
+            deleteUserAccount={deleteUserAccount}
           />
 
           <SettingsCard

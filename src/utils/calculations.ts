@@ -126,7 +126,23 @@ export const convertCurrency = (amount: number, fromCurrency: string, toCurrency
 };
 
 // Обчислює суми з транзакцій для дня (універсальна функція)
-export const calculateDayAmountsFromTransactions = (day: Day, selectedCurrencies: string[] = ['UAH', 'USD', 'EUR']): Record<string, number> => {
+export const calculateDayAmountsFromTransactions = (day: Day | null | undefined, selectedCurrencies: string[] = ['UAH', 'USD', 'EUR']): Record<string, number> => {
+  if (!day) {
+    // Якщо day не визначений, повертаємо порожні суми
+    const amounts: Record<string, number> = {};
+    selectedCurrencies.forEach(code => {
+      amounts[`income${code}`] = 0;
+      amounts[`expense${code}`] = 0;
+    });
+    amounts.incomeUAH = 0;
+    amounts.expenseUAH = 0;
+    amounts.incomeUSD = 0;
+    amounts.expenseUSD = 0;
+    amounts.incomeEUR = 0;
+    amounts.expenseEUR = 0;
+    return amounts;
+  }
+  
   const transactions = Array.isArray(day.transactions) ? day.transactions : [];
   
   // Створюємо об'єкт для всіх вибраних валют
@@ -164,7 +180,8 @@ export const calculateDayAmountsFromTransactions = (day: Day, selectedCurrencies
 };
 
 // Обчислює баланс дня з транзакцій або старих полів (backward compatibility)
-export const calculateDayBalanceUAH = (day: Day): number => {
+export const calculateDayBalanceUAH = (day: Day | null | undefined): number => {
+  if (!day) return 0;
   const amounts = calculateDayAmountsFromTransactions(day);
   // Якщо є транзакції, використовуємо їх, інакше старі поля
   if (amounts.incomeUAH > 0 || amounts.expenseUAH > 0) {
@@ -173,7 +190,8 @@ export const calculateDayBalanceUAH = (day: Day): number => {
   return (parseFloat(String(day.incomeUAH)) || 0) - (parseFloat(String(day.expenseUAH)) || 0);
 };
 
-export const calculateDayBalanceUSD = (day: Day): number => {
+export const calculateDayBalanceUSD = (day: Day | null | undefined): number => {
+  if (!day) return 0;
   const amounts = calculateDayAmountsFromTransactions(day);
   if (amounts.incomeUSD > 0 || amounts.expenseUSD > 0) {
     return amounts.incomeUSD - amounts.expenseUSD;
@@ -181,7 +199,8 @@ export const calculateDayBalanceUSD = (day: Day): number => {
   return (parseFloat(String(day.incomeUSD)) || 0) - (parseFloat(String(day.expenseUSD)) || 0);
 };
 
-export const calculateDayBalanceEUR = (day: Day): number => {
+export const calculateDayBalanceEUR = (day: Day | null | undefined): number => {
+  if (!day) return 0;
   const amounts = calculateDayAmountsFromTransactions(day);
   if (amounts.incomeEUR > 0 || amounts.expenseEUR > 0) {
     return amounts.incomeEUR - amounts.expenseEUR;
@@ -192,7 +211,9 @@ export const calculateDayBalanceEUR = (day: Day): number => {
 export const calculateCumulativeBalanceUAH = (dayIndex: number, days: Day[], startBalanceUAH: number | null): number => {
   let cumulative = parseFloat(String(startBalanceUAH)) || 0;
   for (let i = 0; i <= dayIndex; i++) {
-    cumulative += calculateDayBalanceUAH(days[i]);
+    if (days[i]) {
+      cumulative += calculateDayBalanceUAH(days[i]);
+    }
   }
   return cumulative;
 };
@@ -200,7 +221,9 @@ export const calculateCumulativeBalanceUAH = (dayIndex: number, days: Day[], sta
 export const calculateCumulativeBalanceUSD = (dayIndex: number, days: Day[], startBalanceUSD: number | null): number => {
   let cumulative = parseFloat(String(startBalanceUSD)) || 0;
   for (let i = 0; i <= dayIndex; i++) {
-    cumulative += calculateDayBalanceUSD(days[i]);
+    if (days[i]) {
+      cumulative += calculateDayBalanceUSD(days[i]);
+    }
   }
   return cumulative;
 };
@@ -208,7 +231,9 @@ export const calculateCumulativeBalanceUSD = (dayIndex: number, days: Day[], sta
 export const calculateCumulativeBalanceEUR = (dayIndex: number, days: Day[], startBalanceEUR: number | null): number => {
   let cumulative = parseFloat(String(startBalanceEUR)) || 0;
   for (let i = 0; i <= dayIndex; i++) {
-    cumulative += calculateDayBalanceEUR(days[i]);
+    if (days[i]) {
+      cumulative += calculateDayBalanceEUR(days[i]);
+    }
   }
   return cumulative;
 };
@@ -240,6 +265,7 @@ export const calculateTotals = (days: Day[], selectedCurrencies: string[] = ['UA
   let totalExpenseEUR = 0;
 
   days.forEach(day => {
+    if (!day) return; // Пропускаємо undefined/null дні
     const amounts = calculateDayAmountsFromTransactions(day, selectedCurrencies);
     
     // Обчислюємо totals для всіх обраних валют
@@ -280,7 +306,8 @@ export const calculateTotals = (days: Day[], selectedCurrencies: string[] = ['UA
 };
 
 // Універсальна функція для обчислення балансу дня для будь-якої валюти
-export const calculateDayBalance = (day: Day, currencyCode: string): number => {
+export const calculateDayBalance = (day: Day | null | undefined, currencyCode: string): number => {
+  if (!day) return 0;
   const amounts = calculateDayAmountsFromTransactions(day);
   const incomeKey = `income${currencyCode}`;
   const expenseKey = `expense${currencyCode}`;
@@ -304,7 +331,9 @@ export const calculateDayBalance = (day: Day, currencyCode: string): number => {
 export const calculateCumulativeBalance = (dayIndex: number, days: Day[], startBalance: number | null, currencyCode: string): number => {
   let cumulative = parseFloat(String(startBalance)) || 0;
   for (let i = 0; i <= dayIndex; i++) {
-    cumulative += calculateDayBalance(days[i], currencyCode);
+    if (days[i]) {
+      cumulative += calculateDayBalance(days[i], currencyCode);
+    }
   }
   return cumulative;
 };

@@ -128,18 +128,33 @@ export const createEmptyMonthDays = (): Day[] => {
 export const normalizeDaysArray = (sourceDays: unknown[]): Day[] => {
   if (sourceDays && Array.isArray(sourceDays) && sourceDays.length === 31) {
     return sourceDays.map((day, index) => {
+      // Якщо day є null або undefined, створюємо порожній день
+      if (!day || typeof day !== 'object') {
+        return migrateDayToTransactions({
+          day: index + 1,
+          transactions: [],
+          description: '',
+          incomeUAH: 0,
+          expenseUAH: 0,
+          incomeUSD: 0,
+          expenseUSD: 0,
+          incomeEUR: 0,
+          expenseEUR: 0
+        });
+      }
+      
       const normalizedDay: Day = {
-        day: day.day || index + 1,
-        transactions: Array.isArray(day.transactions) ? day.transactions : [],
-        description: String(day.description || ''),
+        day: (day as any).day || index + 1,
+        transactions: Array.isArray((day as any).transactions) ? (day as any).transactions : [],
+        description: String((day as any).description || ''),
         // Залишаємо для backward compatibility
-        incomeUAH: Number(day.incomeUAH) || 0,
-        expenseUAH: Number(day.expenseUAH) || 0,
-        incomeUSD: Number(day.incomeUSD) || 0,
-        expenseUSD: Number(day.expenseUSD) || 0,
-        incomeEUR: Number(day.incomeEUR) || 0,
-        expenseEUR: Number(day.expenseEUR) || 0,
-        ...day
+        incomeUAH: Number((day as any).incomeUAH) || 0,
+        expenseUAH: Number((day as any).expenseUAH) || 0,
+        incomeUSD: Number((day as any).incomeUSD) || 0,
+        expenseUSD: Number((day as any).expenseUSD) || 0,
+        incomeEUR: Number((day as any).incomeEUR) || 0,
+        expenseEUR: Number((day as any).expenseEUR) || 0,
+        ...(day as any)
       };
       
       // Мігруємо старі дані, якщо потрібно

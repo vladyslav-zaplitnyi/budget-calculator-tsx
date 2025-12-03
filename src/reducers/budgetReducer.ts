@@ -86,10 +86,27 @@ export function budgetReducer(state: BudgetState, action: BudgetAction): BudgetS
     
     case budgetActions.UPDATE_DAY: {
       const newDays = [...state.days];
-      newDays[action.payload.index] = {
-        ...newDays[action.payload.index],
-        [action.payload.field]: action.payload.value
-      };
+      const existingDay = newDays[action.payload.index];
+      // Якщо день не існує, створюємо новий день з базовими полями
+      if (!existingDay) {
+        newDays[action.payload.index] = {
+          day: action.payload.index + 1,
+          transactions: [],
+          description: '',
+          incomeUAH: 0,
+          expenseUAH: 0,
+          incomeUSD: 0,
+          expenseUSD: 0,
+          incomeEUR: 0,
+          expenseEUR: 0,
+          [action.payload.field]: action.payload.value
+        };
+      } else {
+        newDays[action.payload.index] = {
+          ...existingDay,
+          [action.payload.field]: action.payload.value
+        };
+      }
       return {
         ...state,
         days: newDays

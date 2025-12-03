@@ -51,6 +51,7 @@ const DaysCards: React.FC<DaysCardsProps> = ({
 
   const handleAddTransaction = (dayIndex: number) => {
     const day = days[dayIndex];
+    if (!day) return;
     const transactionCount = Array.isArray(day.transactions) ? day.transactions.length : 0;
     
     if (transactionCount >= MAX_TRANSACTIONS) {
@@ -75,6 +76,7 @@ const DaysCards: React.FC<DaysCardsProps> = ({
 
   const handleDeleteTransaction = (dayIndex: number, transactionId: string) => {
     const day = days[dayIndex];
+    if (!day) return;
     const updatedTransactions = (day.transactions || []).filter(t => t.id !== transactionId);
     updateDay(dayIndex, 'transactions', updatedTransactions);
   };
@@ -84,6 +86,7 @@ const DaysCards: React.FC<DaysCardsProps> = ({
     if (dayIndex === null) return;
 
     const day = days[dayIndex];
+    if (!day) return;
     const currentTransactions = Array.isArray(day.transactions) ? [...day.transactions] : [];
 
     if (existingTransaction && existingTransaction.id) {
@@ -110,6 +113,7 @@ const DaysCards: React.FC<DaysCardsProps> = ({
   return (
     <div className="block md:hidden space-y-3 mb-4">
       {days.map((day, index) => {
+        if (!day) return null;
         const amounts = calculateDayAmountsFromTransactions(day, selectedCurrencies);
         
         const transactions = Array.isArray(day.transactions) ? day.transactions : [];

@@ -52,7 +52,19 @@
       "import": "⬆️ Import from JSON file",
       "importing": "⏳ Importing..."
     },
-    "clearAll": "🗑️ Clear all fields"
+    "clearAll": "🗑️ Clear all fields",
+    "deleteAccount": {
+      "dangerZone": "⚠️ Danger Zone",
+      "button": "🗑️ Delete account permanently",
+      "title": "Are you sure?",
+      "warning": "This action is irreversible. All your budgets and settings will be deleted from Google servers. If you don't have a local copy (JSON), it will be impossible to recover the data.",
+      "confirmLabel": "Type '{text}' to confirm:",
+      "confirmButton": "Delete permanently",
+      "deleting": "Deleting...",
+      "success": "✅ Account successfully deleted",
+      "error": "❌ Error deleting account. Please try again.",
+      "requiresRecentLogin": "⚠️ For security, recent login is required. Please log out and log in again, then try to delete the account."
+    }
   },
   "budgetStatus": {
     "title": "Current budget status",

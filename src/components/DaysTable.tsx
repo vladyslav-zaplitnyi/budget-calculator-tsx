@@ -51,6 +51,7 @@ const DaysTable: React.FC<DaysTableProps> = ({
 
   const handleAddTransaction = (dayIndex: number) => {
     const day = days[dayIndex];
+    if (!day) return;
     const transactionCount = Array.isArray(day.transactions) ? day.transactions.length : 0;
     
     if (transactionCount >= MAX_TRANSACTIONS) {
@@ -75,6 +76,7 @@ const DaysTable: React.FC<DaysTableProps> = ({
 
   const handleDeleteTransaction = (dayIndex: number, transactionId: string) => {
     const day = days[dayIndex];
+    if (!day) return;
     const updatedTransactions = (day.transactions || []).filter(t => t.id !== transactionId);
     updateDay(dayIndex, 'transactions', updatedTransactions);
   };
@@ -84,6 +86,7 @@ const DaysTable: React.FC<DaysTableProps> = ({
     if (dayIndex === null) return;
 
     const day = days[dayIndex];
+    if (!day) return;
     const currentTransactions = Array.isArray(day.transactions) ? [...day.transactions] : [];
 
     if (existingTransaction && existingTransaction.id) {
@@ -107,7 +110,8 @@ const DaysTable: React.FC<DaysTableProps> = ({
     setModalState({ isOpen: false, dayIndex: null, transaction: null });
   };
 
-  const getTransactionChips = (day: Day) => {
+  const getTransactionChips = (day: Day | null | undefined) => {
+    if (!day) return null;
     const transactions = Array.isArray(day.transactions) ? day.transactions : [];
     if (transactions.length === 0) return null;
 
@@ -191,6 +195,7 @@ const DaysTable: React.FC<DaysTableProps> = ({
           </thead>
           <tbody className="divide-y divide-gray-200">
             {days.map((day, index) => {
+              if (!day) return null;
               const amounts = calculateDayAmountsFromTransactions(day, selectedCurrencies);
               
               const transactions = Array.isArray(day.transactions) ? day.transactions : [];

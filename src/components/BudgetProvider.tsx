@@ -11,7 +11,7 @@ interface BudgetProviderProps {
 
 export function BudgetProvider({ children }: BudgetProviderProps) {
   const budgetState = useBudgetState();
-  const { user, loading: authLoading, loginWithGoogle, logout } = useAuth();
+  const { user, loading: authLoading, loginWithGoogle, logout, deleteUserAccount } = useAuth();
   
   // Функція для отримання тексту статусу синхронізації
   const getSyncStatusText = useCallback((statusType: string) => {
@@ -82,8 +82,9 @@ export function BudgetProvider({ children }: BudgetProviderProps) {
     user,
     authLoading,
     loginWithGoogle,
-    logout
-  }), [budgetStateWithSync, currencyRates, user, authLoading, loginWithGoogle, logout]);
+    logout,
+    deleteUserAccount
+  }), [budgetStateWithSync, currencyRates, user, authLoading, loginWithGoogle, logout, deleteUserAccount]);
 
   return (
     <BudgetContext.Provider value={value}>

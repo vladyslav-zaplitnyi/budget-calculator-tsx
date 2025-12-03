@@ -1,10 +1,10 @@
 import { useCallback, ChangeEvent } from 'react';
 import { useBudgetContext } from '../contexts/BudgetContext';
 import { createEmptyMonthDays, normalizeDaysArray } from '../utils/dayHelpers';
-import { validateSelectedCurrencies } from '../utils/currencies';
+import { validateSelectedCurrencies, DEFAULT_CURRENCIES } from '../utils/currencies';
 import { ACTIVE_BUDGET_COOKIE_KEY } from '../utils/constants';
 import { setCookie } from '../utils/cookieHelpers';
-import { saveToFirestore } from '../utils/storageHelpers';
+import { saveToFirestore, loadFromFirestore } from '../utils/storageHelpers';
 import { Budgets, Budget } from '../types';
 import { isExchangeRatePair, hasPairStructure, getBuyRate } from '../utils/typeGuards';
 import { translate } from '../i18n/config';
@@ -37,7 +37,8 @@ export function useBudgetManagement() {
     setDays,
     setSyncStatus,
     getSyncStatusText,
-    user
+    user,
+    baseCurrency
   } = context;
 
   const createNewBudget = useCallback((name: string) => {
@@ -121,74 +122,157 @@ export function useBudgetManagement() {
 
   const handleBudgetChange = useCallback((event: ChangeEvent<HTMLSelectElement>) => {
     const newId = event.target.value;
-    if (!newId || !budgets || !budgets[newId]) return;
 
-    const budget = budgets[newId];
-    setActiveBudgetId(newId);
+    const switchBudget = async () => {
+      if (!newId) return;
 
-    try {
-      setCookie(ACTIVE_BUDGET_COOKIE_KEY, newId, 365);
-    } catch (error) {
-      console.error('Помилка при збереженні вибору бюджету в cookie:', error);
-    }
+      let currentBudgets = budgets;
 
-    if (budget.selectedCurrencies) {
-      setSelectedCurrencies(validateSelectedCurrencies(budget.selectedCurrencies));
-    }
-    
-    if (budget.exchangeRates) {
-      const hasNewStructure = hasPairStructure(budget.exchangeRates);
-      if (hasNewStructure) {
-        setExchangeRates(budget.exchangeRates);
-        const uahUsdPair = budget.exchangeRates['UAH_USD'];
-        if (isExchangeRatePair(uahUsdPair)) {
-          setUsdRate(uahUsdPair.buy);
-        } else {
-          setUsdRate(budget.usdRate ?? 41.5);
-        }
-        const uahEurPair = budget.exchangeRates['UAH_EUR'];
-        if (isExchangeRatePair(uahEurPair)) {
-          setEurRate(uahEurPair.buy);
-        } else {
-          setEurRate(budget.eurRate ?? 45);
-        }
-      } else {
-        setExchangeRates(budget.exchangeRates);
-        const usdRateValue = budget.exchangeRates['USD'];
-        if (usdRateValue !== undefined) {
-          setUsdRate(getBuyRate(usdRateValue, budget.usdRate ?? 41.5));
-        } else {
-          setUsdRate(budget.usdRate ?? 41.5);
-        }
-        const eurRateValue = budget.exchangeRates['EUR'];
-        if (eurRateValue !== undefined) {
-          setEurRate(getBuyRate(eurRateValue, budget.eurRate ?? 45));
-        } else {
-          setEurRate(budget.eurRate ?? 45);
+      // Якщо в локальному стані немає потрібного бюджету – пробуємо підвантажити з Firestore
+      if ((!currentBudgets || !currentBudgets[newId]) && user) {
+        try {
+          const firestoreData = await loadFromFirestore(user);
+          if (firestoreData?.budgets && firestoreData.budgets[newId]) {
+            currentBudgets = firestoreData.budgets;
+            setBudgets(firestoreData.budgets);
+          }
+        } catch (error) {
+          console.error('Помилка при підвантаженні бюджету з Firestore:', error);
         }
       }
-    } else {
-      setUsdRate(budget.usdRate ?? 41.5);
-      setEurRate(budget.eurRate ?? 45);
-    }
-    
-    setStartBalanceUAH(budget.startBalanceUAH ?? null);
-    setStartBalanceUSD(budget.startBalanceUSD ?? null);
-    setStartBalanceEUR(budget.startBalanceEUR ?? null);
-    
-    setBudgets((prevBudgets: Budgets) => {
-      const safePrev = prevBudgets || {};
-      return {
-        ...safePrev,
-        [newId]: {
-          ...budget,
-          startBalances: budget.startBalances || {}
+
+      if (!currentBudgets || !currentBudgets[newId]) {
+        console.warn('⚠️ handleBudgetChange: невалідний budget ID або budgets порожній', {
+          newId,
+          budgets: currentBudgets
+        });
+        return;
+      }
+
+      const budget = currentBudgets[newId];
+      console.log('🔄 Перемикання на бюджет:', newId, budget);
+      
+      // Спочатку встановлюємо активний бюджет
+      setActiveBudgetId(newId);
+
+      try {
+        setCookie(ACTIVE_BUDGET_COOKIE_KEY, newId, 365);
+      } catch (error) {
+        console.error('Помилка при збереженні вибору бюджету в cookie:', error);
+      }
+
+      // 1) Визначаємо, які валюти мають бути вибрані для цього бюджету
+      let nextSelected: string[] | null = null;
+
+      if (Array.isArray(budget.selectedCurrencies) && budget.selectedCurrencies.length > 0) {
+        // Використовуємо збережений вибір, якщо він є
+        nextSelected = validateSelectedCurrencies(budget.selectedCurrencies);
+      } else if (budget.exchangeRates) {
+        // Якщо selectedCurrencies немає – пробуємо відновити з exchangeRates
+        const codesSet = new Set<string>();
+        Object.keys(budget.exchangeRates).forEach((key) => {
+          if (!key) return;
+          if (key.includes('_')) {
+            const [from, to] = key.split('_');
+            if (from) codesSet.add(from);
+            if (to) codesSet.add(to);
+          } else {
+            codesSet.add(key);
+          }
+        });
+
+        const inferred = Array.from(codesSet).filter((code) => code !== baseCurrency);
+        // Беремо не більше двох валют + базову, щоб в сумі було 3
+        const limited = [baseCurrency, ...inferred.slice(0, 2)];
+        nextSelected = validateSelectedCurrencies(limited);
+      }
+
+      // Фінальний масив валют без null (для стану та збереження в budgets)
+      const appliedSelected: string[] = nextSelected
+        ? validateSelectedCurrencies(nextSelected)
+        : validateSelectedCurrencies(DEFAULT_CURRENCIES);
+
+      setSelectedCurrencies(appliedSelected);
+      
+      // 2) Завантажуємо курси валют
+      if (budget.exchangeRates) {
+        const hasNewStructure = hasPairStructure(budget.exchangeRates);
+        if (hasNewStructure) {
+          setExchangeRates(budget.exchangeRates);
+          const uahUsdPair = budget.exchangeRates['UAH_USD'];
+          if (isExchangeRatePair(uahUsdPair)) {
+            setUsdRate(uahUsdPair.buy);
+          } else {
+            setUsdRate(budget.usdRate ?? 41.5);
+          }
+          const uahEurPair = budget.exchangeRates['UAH_EUR'];
+          if (isExchangeRatePair(uahEurPair)) {
+            setEurRate(uahEurPair.buy);
+          } else {
+            setEurRate(budget.eurRate ?? 45);
+          }
+        } else {
+          setExchangeRates(budget.exchangeRates);
+          const usdRateValue = budget.exchangeRates['USD'];
+          if (usdRateValue !== undefined) {
+            setUsdRate(getBuyRate(usdRateValue, budget.usdRate ?? 41.5));
+          } else {
+            setUsdRate(budget.usdRate ?? 41.5);
+          }
+          const eurRateValue = budget.exchangeRates['EUR'];
+          if (eurRateValue !== undefined) {
+            setEurRate(getBuyRate(eurRateValue, budget.eurRate ?? 45));
+          } else {
+            setEurRate(budget.eurRate ?? 45);
+          }
         }
-      };
-    });
-    
-    setDays(normalizeDaysArray(budget.days || []));
-  }, [budgets, setActiveBudgetId, setSelectedCurrencies, setExchangeRates, setUsdRate, setEurRate, setStartBalanceUAH, setStartBalanceUSD, setStartBalanceEUR, setBudgets, setDays]);
+      } else {
+        setExchangeRates({});
+        setUsdRate(budget.usdRate ?? 41.5);
+        setEurRate(budget.eurRate ?? 45);
+      }
+      
+      // 3) Завантажуємо початкові баланси
+      // Спочатку з основних полів
+      setStartBalanceUAH(budget.startBalanceUAH ?? null);
+      setStartBalanceUSD(budget.startBalanceUSD ?? null);
+      setStartBalanceEUR(budget.startBalanceEUR ?? null);
+      
+      // Потім з startBalances (якщо є, перезаписуємо основні поля)
+      if (budget.startBalances) {
+        if (budget.startBalances['UAH'] !== undefined) {
+          setStartBalanceUAH(budget.startBalances['UAH']);
+        }
+        if (budget.startBalances['USD'] !== undefined) {
+          setStartBalanceUSD(budget.startBalances['USD']);
+        }
+        if (budget.startBalances['EUR'] !== undefined) {
+          setStartBalanceEUR(budget.startBalances['EUR']);
+        }
+      }
+      
+      // 4) Завантажуємо дні - обов'язково нормалізуємо масив
+      const normalizedDays = normalizeDaysArray(budget.days || []);
+      console.log('📅 Завантажено днів:', normalizedDays.length, 'з бюджету', newId);
+      setDays(normalizedDays);
+      
+      // 5) Оновлюємо budgets, щоб зберегти поточний стан
+      setBudgets((prevBudgets: Budgets) => {
+        const safePrev = prevBudgets || {};
+        return {
+          ...safePrev,
+          [newId]: {
+            ...budget,
+            startBalances: budget.startBalances || {},
+            selectedCurrencies: appliedSelected
+          }
+        };
+      });
+    };
+
+    // Викликаємо асинхронну функцію, але не чекаємо її в самому хендлері
+    switchBudget();
+  }, [budgets, user, baseCurrency, setActiveBudgetId, setSelectedCurrencies, setExchangeRates, setUsdRate, setEurRate, setStartBalanceUAH, setStartBalanceUSD, setStartBalanceEUR, setBudgets, setDays]);
 
   const handleAddBudgetClick = useCallback(() => {
     if (!user) {
