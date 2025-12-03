@@ -251,6 +251,24 @@ export function useFirestoreSync(
             
             setSyncStatus(getSyncStatusText('saved'));
           } else {
+            // Новий користувач - очищаємо стан і ініціалізуємо з порожніми даними
+            console.log('📦 Новий користувач - ініціалізація порожнього стану');
+            
+            // Очищаємо cookies від попереднього користувача
+            document.cookie = 'budgetTrackerActiveBudgetId=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
+            document.cookie = 'budgetTrackerLanguage=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
+            
+            setStartBalanceUAH(null);
+            setStartBalanceUSD(null);
+            setStartBalanceEUR(null);
+            setSelectedCurrencies(DEFAULT_CURRENCIES);
+            setExchangeRates({});
+            setUsdRate(41.5);
+            setEurRate(45);
+            setDays([]);
+            setBudgets({});
+            loadedBudgetsRef.current = {};
+            setActiveBudgetId('default');
             setSyncStatus(getSyncStatusText('local'));
           }
         } catch (error) {

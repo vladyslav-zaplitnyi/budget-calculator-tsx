@@ -327,63 +327,15 @@ export const loadFromFirestore = async (user: User | null): Promise<UserData | n
         };
       }
     } else {
-      // Якщо документа немає, мігруємо дані з LocalStorage
-      const localData = loadFromLocalStorage();
-      if (localData && (localData.startBalanceUAH !== null || localData.days)) {
-        console.log('📦 Міграція дані з LocalStorage в Firestore (створення multi-budget)');
-
-        // Отримуємо мову з localStorage для правильного іменування бюджету
-        let currentLang = 'uk';
-        try {
-          const savedLang = localStorage.getItem(LANGUAGE_STORAGE_KEY);
-          if (savedLang === 'uk' || savedLang === 'en') {
-            currentLang = savedLang;
-          }
-        } catch (e) {
-          console.error('Помилка при отриманні мови з localStorage:', e);
-        }
-
-        // Створюємо бюджет з тимчасовими полями для міграції
-        interface BudgetWithLegacyFields extends Budget {
-          baseCurrency?: string;
-        }
-        const defaultBudget: BudgetWithLegacyFields = {
-          name: currentLang === 'en' ? 'Main' : 'Основний',
-          baseCurrency: 'UAH', // Це поле буде видалено під час міграції
-          startBalanceUAH: localData.startBalanceUAH ?? null,
-          startBalanceUSD: localData.startBalanceUSD ?? null,
-          startBalanceEUR: localData.startBalanceEUR ?? null,
-          usdRate: localData.usdRate ?? 41.5,
-          eurRate: localData.eurRate ?? 45,
-          days: localData.days || undefined
-        };
-
-        const newBudgets: Budgets = {
-          default: defaultBudget
-        };
-
-        try {
-          await setDoc(
-            userDocRef,
-            {
-              activeBudgetId: 'default',
-              budgets: newBudgets,
-              savedAt: new Date().toISOString(),
-              updatedAt: new Date().toISOString()
-            },
-            { merge: true }
-          );
-        } catch (e) {
-          console.error('Помилка при створенні документа multi-budget з LocalStorage:', e);
-        }
-
-        return {
-          ...localData,
-          budgets: newBudgets,
-          activeBudgetId: 'default',
-          days: localData.days || undefined
-        };
-      }
+      // Якщо документа немає - це новий користувач
+      // НЕ завантажуємо дані з localStorage, щоб не копіювати дані попереднього користувача
+      console.log('📦 Новий користувач - документ не знайдено в Firestore');
+      
+      // Очищаємо localStorage від даних попереднього користувача
+      localStorage.removeItem('budgetTrackerData');
+      
+      // Повертаємо null, щоб система ініціалізувала порожній стан
+      return null;
     }
   } catch (error) {
     handleError(
