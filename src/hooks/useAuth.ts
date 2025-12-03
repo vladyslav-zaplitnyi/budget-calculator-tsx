@@ -30,32 +30,27 @@ export function useAuth() {
   }, []);
 
   const logout = useCallback(async () => {
-    try {
-      // Спочатку виходимо з акаунту
-      await signOut(auth);
-      
-      // Після успішного виходу очищаємо localStorage
-      // Чекаємо трохи, щоб переконатися, що signOut завершився
-      await new Promise(resolve => setTimeout(resolve, 100));
-      
-      // Очищаємо всі дані користувача з localStorage
-      localStorage.removeItem('budgetTrackerData');
-      localStorage.removeItem('budgetTrackerLanguage');
-      localStorage.removeItem('displayCurrency');
-      localStorage.removeItem('displayCurrencyIndex');
-      localStorage.removeItem('nbu_rates_cache');
-      localStorage.removeItem('app_errors');
-      
-      // Очищаємо cookies
-      document.cookie = 'budgetTrackerLanguage=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
-      document.cookie = 'budgetTrackerActiveBudgetId=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
-    } catch (error) {
-      handleError(
-        error instanceof Error ? error : new Error(String(error)),
-        { context: 'useAuth', action: 'logout' }
-      );
-      throw error;
-    }
+    // КРОК 1: Виходимо з акаунту
+    await signOut(auth);
+    
+    // КРОК 2: Тільки якщо крок 1 успішний - очищаємо localStorage
+    // Чекаємо трохи, щоб переконатися, що signOut завершився
+    await new Promise(resolve => setTimeout(resolve, 100));
+    
+    // Очищаємо всі дані користувача з localStorage
+    localStorage.removeItem('budgetTrackerData');
+    localStorage.removeItem('budgetTrackerLanguage');
+    localStorage.removeItem('displayCurrency');
+    localStorage.removeItem('displayCurrencyIndex');
+    localStorage.removeItem('nbu_rates_cache');
+    localStorage.removeItem('app_errors');
+    
+    // Очищаємо cookies
+    document.cookie = 'budgetTrackerLanguage=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
+    document.cookie = 'budgetTrackerActiveBudgetId=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
+    
+    // Якщо signOut впав з помилкою, вона буде викинута автоматично
+    // і не дійдемо до очищення localStorage
   }, []);
 
   const deleteUserAccount = useCallback(async () => {

@@ -4,6 +4,7 @@ import { useBudgetState } from '../hooks/useBudgetState';
 import { useBudgetSync } from '../hooks/useBudgetSync';
 import { useCurrencyRates } from '../hooks/useCurrencyRates';
 import { useAuth } from '../hooks/useAuth';
+import { translate } from '../i18n/config';
 
 interface BudgetProviderProps {
   children: ReactNode;
@@ -11,7 +12,27 @@ interface BudgetProviderProps {
 
 export function BudgetProvider({ children }: BudgetProviderProps) {
   const budgetState = useBudgetState();
-  const { user, loading: authLoading, loginWithGoogle, logout, deleteUserAccount } = useAuth();
+  const { user, loading: authLoading, loginWithGoogle, logout: logoutFromAuth, deleteUserAccount } = useAuth();
+  
+  // Обгортка для logout з м'яким скиданням стану
+  const logout = useCallback(async () => {
+    try {
+      // КРОК 1: Викликаємо logout з useAuth
+      await logoutFromAuth();
+      
+      // КРОК 2: Тільки якщо крок 1 успішний
+      // Викликаємо resetToDefaults для м'якого скидання стану
+      budgetState.resetToDefaults();
+      
+      // Показуємо повідомлення про успіх
+      alert(translate('header.logoutSuccess'));
+    } catch (error) {
+      // КРОК 3: Обробка помилок - НЕ очищаємо дані, показуємо повідомлення про помилку
+      alert(translate('header.logoutError'));
+      // Прокидаємо помилку далі, щоб обробник знав про невдачу
+      throw error;
+    }
+  }, [logoutFromAuth, budgetState]);
   
   // Функція для отримання тексту статусу синхронізації
   const getSyncStatusText = useCallback((statusType: string) => {

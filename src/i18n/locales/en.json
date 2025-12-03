@@ -6,6 +6,8 @@
     "loading": "Loading...",
     "signedIn": "Signed in with Google",
     "logout": "Logout",
+    "logoutSuccess": "✅ Successfully logged out",
+    "logoutError": "❌ Logout error. Please try again.",
     "signIn": "Sign in with Google",
     "language": "Language",
     "languageShort": "Lang",

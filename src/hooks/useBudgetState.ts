@@ -1,6 +1,6 @@
 import { useReducer, useEffect, useCallback, useMemo, useRef } from 'react';
 import { loadFromLocalStorage } from '../utils/storageHelpers';
-import { normalizeDaysArray } from '../utils/dayHelpers';
+import { normalizeDaysArray, createEmptyMonthDays } from '../utils/dayHelpers';
 import { DEFAULT_CURRENCIES, validateSelectedCurrencies, getDefaultRate } from '../utils/currencies';
 import { LANGUAGE_STORAGE_KEY, LANGUAGE_COOKIE_KEY } from '../utils/constants';
 import { setCookie } from '../utils/cookieHelpers';
@@ -56,6 +56,7 @@ export interface BudgetStateInterface {
   isInitialLoad: boolean;
   setIsInitialLoad: (loading: boolean) => void;
   baseCurrency: string;
+  resetToDefaults: () => void;
 }
 
 export function useBudgetState(): BudgetStateInterface {
@@ -367,6 +368,72 @@ export function useBudgetState(): BudgetStateInterface {
       payload: { index, field, value } 
     });
   }, []);
+
+  // Функція для скидання всіх стейтів до дефолтних значень
+  const resetToDefaults = useCallback(() => {
+    // Скидаємо дні
+    setDays(createEmptyMonthDays());
+    
+    // Скидаємо бюджети
+    setBudgets({});
+    
+    // Скидаємо активний бюджет
+    setActiveBudgetId('default');
+    
+    // Скидаємо вибрані валюти
+    setSelectedCurrencies(DEFAULT_CURRENCIES);
+    
+    // Створюємо дефолтні курси обміну
+    const defaultRates: ExchangeRates = {};
+    DEFAULT_CURRENCIES.forEach((code) => {
+      if (code === BASE_CURRENCY) return;
+      let rate: number;
+      if (code === 'USD') {
+        rate = 41.5;
+      } else if (code === 'EUR') {
+        rate = 45;
+      } else {
+        rate = getDefaultRate(code);
+      }
+      const pairKey = `${BASE_CURRENCY}_${code}`;
+      const reversePairKey = `${code}_${BASE_CURRENCY}`;
+      defaultRates[pairKey] = {
+        buy: rate,
+        sell: rate * 1.005
+      };
+      defaultRates[reversePairKey] = {
+        buy: 1 / (rate * 1.005),
+        sell: 1 / rate
+      };
+    });
+    setExchangeRates(defaultRates);
+    
+    // Скидаємо баланси
+    setStartBalanceUAH(null);
+    setStartBalanceUSD(null);
+    setStartBalanceEUR(null);
+    
+    // Скидаємо курси
+    setUsdRate(41.5);
+    setEurRate(45);
+    
+    // Скидаємо валюту відображення
+    setDisplayCurrency('UAH');
+    setDisplayCurrencyIndex(0);
+  }, [
+    setDays,
+    setBudgets,
+    setActiveBudgetId,
+    setSelectedCurrencies,
+    setExchangeRates,
+    setStartBalanceUAH,
+    setStartBalanceUSD,
+    setStartBalanceEUR,
+    setUsdRate,
+    setEurRate,
+    setDisplayCurrency,
+    setDisplayCurrencyIndex
+  ]);
   
   // Need currencyStateRef for setExchangeRates functional update
   const currencyStateRef = useRef(currencyState);
@@ -463,7 +530,10 @@ export function useBudgetState(): BudgetStateInterface {
     setIsInitialLoad,
     
     // Константи
-    baseCurrency: BASE_CURRENCY
+    baseCurrency: BASE_CURRENCY,
+    
+    // Функції
+    resetToDefaults
   }), [
     displayState.language,
     displayState.displayCurrency,
@@ -504,7 +574,8 @@ export function useBudgetState(): BudgetStateInterface {
     setLoadMessage,
     setRateUpdateMessage,
     setIsUpdatingRates,
-    setIsInitialLoad
+    setIsInitialLoad,
+    resetToDefaults
   ]);
 }
 
