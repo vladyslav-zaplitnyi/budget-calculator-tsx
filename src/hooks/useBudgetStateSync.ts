@@ -145,7 +145,6 @@ export function useBudgetStateSync(
       if (isInitialLoad === false && (currentKeys.length >= refKeys.length || 
           refKeys.every(key => currentKeys.includes(key)))) {
         loadedBudgetsRef.current = currentBudgets;
-        console.log('📦 Оновлено loadedBudgetsRef:', currentKeys.length, 'бюджетів');
       }
     }
   }, [budgetState, isInitialLoad, loadedBudgetsRef]);
