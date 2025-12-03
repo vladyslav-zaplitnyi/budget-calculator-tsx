@@ -1,17 +1,14 @@
 import React from 'react';
+import BudgetTracker from './components/BudgetTracker';
+import { BudgetProvider } from './components/BudgetProvider';
 import './App.css';
 
 function App() {
   return (
-    <div className="App">
-      <header className="App-header">
-        <p>
-          Budget Calculator
-        </p>
-      </header>
-    </div>
+    <BudgetProvider>
+      <BudgetTracker />
+    </BudgetProvider>
   );
 }
 
 export default App;
-
