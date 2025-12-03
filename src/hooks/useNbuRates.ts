@@ -1,3 +1,5 @@
+import { handleError } from '../utils/errorHandler';
+
 /**
  * Константи для кешування курсів НБУ
  */
@@ -50,7 +52,10 @@ const loadRatesFromCache = (): NbuRatesCache | null => {
     const cache: NbuRatesCache = JSON.parse(cached);
     return isCacheValid(cache) ? cache : null;
   } catch (error) {
-    console.error('Помилка при завантаженні кешу курсів НБУ:', error);
+    handleError(
+      error instanceof Error ? error : new Error(String(error)),
+      { context: 'useNbuRates', action: 'loadRatesFromCache' }
+    );
     return null;
   }
 };
@@ -67,7 +72,10 @@ const saveRatesToCache = (rates: Record<string, number>): void => {
     };
     localStorage.setItem(NBU_CACHE_KEY, JSON.stringify(cache));
   } catch (error) {
-    console.error('Помилка при збереженні кешу курсів НБУ:', error);
+    handleError(
+      error instanceof Error ? error : new Error(String(error)),
+      { context: 'useNbuRates', action: 'saveRatesToCache' }
+    );
   }
 };
 
@@ -172,7 +180,10 @@ export function useNbuRates() {
 
       return rates;
     } catch (error) {
-      console.error('Помилка при завантаженні курсів НБУ:', error);
+      handleError(
+        error instanceof Error ? error : new Error(String(error)),
+        { context: 'useNbuRates', action: 'fetchRatesForCurrencies', currencyCodes }
+      );
       
       // Якщо помилка, але є кеш (навіть застарілий) - повертаємо його
       if (cached) {

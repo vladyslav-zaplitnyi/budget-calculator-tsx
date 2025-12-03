@@ -2,6 +2,7 @@ import { useCallback } from 'react';
 import { useNbuRates } from './useNbuRates';
 import { BudgetStateWithSync } from '../contexts/BudgetContext';
 import { ExchangeRates } from '../types';
+import { handleError } from '../utils/errorHandler';
 
 export function useCurrencyRates(budgetState: BudgetStateWithSync) {
   const { fetchRatesForCurrencies } = useNbuRates();
@@ -85,7 +86,10 @@ export function useCurrencyRates(budgetState: BudgetStateWithSync) {
       
       setTimeout(() => setRateUpdateMessage(''), 5000);
     } catch (error) {
-      console.error('Помилка при оновленні курсів НБУ:', error);
+      handleError(
+        error instanceof Error ? error : new Error(String(error)),
+        { context: 'useCurrencyRates', action: 'handleUpdateNbuRates' }
+      );
       
       setRateUpdateMessage(
         isUk

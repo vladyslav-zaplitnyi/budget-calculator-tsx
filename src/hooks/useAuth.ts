@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { onAuthStateChanged, signInWithPopup, signOut, User } from 'firebase/auth';
 import { auth, googleProvider } from '../firebase';
+import { handleError } from '../utils/errorHandler';
 
 export function useAuth() {
   const [user, setUser] = useState<User | null>(null);
@@ -19,7 +20,10 @@ export function useAuth() {
     try {
       await signInWithPopup(auth, googleProvider);
     } catch (error) {
-      console.error('Помилка входу через Google:', error);
+      handleError(
+        error instanceof Error ? error : new Error(String(error)),
+        { context: 'useAuth', action: 'loginWithGoogle' }
+      );
       throw error;
     }
   }, []);
@@ -28,7 +32,10 @@ export function useAuth() {
     try {
       await signOut(auth);
     } catch (error) {
-      console.error('Помилка виходу:', error);
+      handleError(
+        error instanceof Error ? error : new Error(String(error)),
+        { context: 'useAuth', action: 'logout' }
+      );
       throw error;
     }
   }, []);
