@@ -6,7 +6,8 @@ import { validateSelectedCurrencies, getDefaultRate } from '../utils/currencies'
 import { ACTIVE_BUDGET_COOKIE_KEY } from '../utils/constants';
 import { setCookie } from '../utils/cookieHelpers';
 import { calculateTotals, calculateFinalBalances, convertCurrency } from '../utils/calculations';
-import { Budgets, ExchangeRates, Budget, Day } from '../types';
+import { Budgets, ExchangeRates, Budget, Day, Transaction } from '../types';
+import { isExchangeRatePair, hasPairStructure, getBuyRate } from '../utils/typeGuards';
 
 export function useBudgetHandlers() {
   const context = useBudgetContext();
@@ -212,36 +213,32 @@ export function useBudgetHandlers() {
     }
     
     if (budget.exchangeRates) {
-      const hasNewStructure = Object.keys(budget.exchangeRates).some(key => 
-        key.includes('_') && typeof budget.exchangeRates![key] === 'object' && (budget.exchangeRates![key] as any).buy !== undefined
-      );
+      const hasNewStructure = hasPairStructure(budget.exchangeRates);
       if (hasNewStructure) {
         setExchangeRates(budget.exchangeRates);
         const uahUsdPair = budget.exchangeRates['UAH_USD'];
-        if (uahUsdPair && typeof uahUsdPair === 'object' && (uahUsdPair as any).buy) {
-          setUsdRate((uahUsdPair as any).buy);
+        if (isExchangeRatePair(uahUsdPair)) {
+          setUsdRate(uahUsdPair.buy);
         } else {
           setUsdRate(budget.usdRate ?? 41.5);
         }
         const uahEurPair = budget.exchangeRates['UAH_EUR'];
-        if (uahEurPair && typeof uahEurPair === 'object' && (uahEurPair as any).buy) {
-          setEurRate((uahEurPair as any).buy);
+        if (isExchangeRatePair(uahEurPair)) {
+          setEurRate(uahEurPair.buy);
         } else {
           setEurRate(budget.eurRate ?? 45);
         }
       } else {
         setExchangeRates(budget.exchangeRates);
-        // @ts-ignore
-        if (budget.exchangeRates['USD']) {
-          // @ts-ignore
-          setUsdRate(budget.exchangeRates['USD']);
+        const usdRateValue = budget.exchangeRates['USD'];
+        if (usdRateValue !== undefined) {
+          setUsdRate(getBuyRate(usdRateValue, budget.usdRate ?? 41.5));
         } else {
           setUsdRate(budget.usdRate ?? 41.5);
         }
-        // @ts-ignore
-        if (budget.exchangeRates['EUR']) {
-          // @ts-ignore
-          setEurRate(budget.exchangeRates['EUR']);
+        const eurRateValue = budget.exchangeRates['EUR'];
+        if (eurRateValue !== undefined) {
+          setEurRate(getBuyRate(eurRateValue, budget.eurRate ?? 45));
         } else {
           setEurRate(budget.eurRate ?? 45);
         }
@@ -349,20 +346,18 @@ export function useBudgetHandlers() {
       }
       
       if (defaultBudget.exchangeRates) {
-        const hasNewStructure = Object.keys(defaultBudget.exchangeRates).some(key => 
-          key.includes('_') && typeof defaultBudget.exchangeRates![key] === 'object' && (defaultBudget.exchangeRates![key] as any).buy !== undefined
-        );
+        const hasNewStructure = hasPairStructure(defaultBudget.exchangeRates);
         if (hasNewStructure) {
           setExchangeRates(defaultBudget.exchangeRates);
           const uahUsdPair = defaultBudget.exchangeRates['UAH_USD'];
-          if (uahUsdPair && typeof uahUsdPair === 'object' && (uahUsdPair as any).buy) {
-            setUsdRate((uahUsdPair as any).buy);
+          if (isExchangeRatePair(uahUsdPair)) {
+            setUsdRate(uahUsdPair.buy);
           } else {
             setUsdRate(defaultBudget.usdRate ?? 41.5);
           }
           const uahEurPair = defaultBudget.exchangeRates['UAH_EUR'];
-          if (uahEurPair && typeof uahEurPair === 'object' && (uahEurPair as any).buy) {
-            setEurRate((uahEurPair as any).buy);
+          if (isExchangeRatePair(uahEurPair)) {
+            setEurRate(uahEurPair.buy);
           } else {
             setEurRate(defaultBudget.eurRate ?? 45);
           }
@@ -507,14 +502,14 @@ export function useBudgetHandlers() {
     
     if (validated.includes('USD')) {
       const uahUsdPair = newRates[`${baseCurrency}_USD`];
-      if (uahUsdPair && typeof uahUsdPair === 'object' && (uahUsdPair as any).buy) {
-        setUsdRate((uahUsdPair as any).buy);
+      if (isExchangeRatePair(uahUsdPair)) {
+        setUsdRate(uahUsdPair.buy);
       }
     }
     if (validated.includes('EUR')) {
       const uahEurPair = newRates[`${baseCurrency}_EUR`];
-      if (uahEurPair && typeof uahEurPair === 'object' && (uahEurPair as any).buy) {
-        setEurRate((uahEurPair as any).buy);
+      if (isExchangeRatePair(uahEurPair)) {
+        setEurRate(uahEurPair.buy);
       }
     }
   }, [exchangeRates, baseCurrency, setSelectedCurrencies, setExchangeRates, setUsdRate, setEurRate]);
@@ -524,13 +519,16 @@ export function useBudgetHandlers() {
       const newRates = { ...prevRates };
       
       if (pairKey && type && (type === 'buy' || type === 'sell')) {
-        if (!newRates[pairKey] || typeof newRates[pairKey] !== 'object') {
+        const currentValue = newRates[pairKey];
+        if (!isExchangeRatePair(currentValue)) {
           newRates[pairKey] = { buy: 1, sell: 1 };
         }
-        (newRates[pairKey] as any)[type] = rate;
+        const pair = newRates[pairKey];
+        if (isExchangeRatePair(pair)) {
+          pair[type] = rate;
+        }
       } else {
         const currencyCode = pairKey;
-        // @ts-ignore
         newRates[currencyCode] = rate;
       }
       return newRates;
@@ -594,7 +592,7 @@ export function useBudgetHandlers() {
 
   const handleExportToJsonFile = useCallback(() => {
     try {
-      const toNumber = (value: any) => {
+      const toNumber = (value: unknown): number => {
         if (value === '' || value === null || value === undefined) return 0;
         if (typeof value === 'number') return value;
         const num = parseFloat(String(value));
@@ -629,7 +627,7 @@ export function useBudgetHandlers() {
         }
       });
 
-      const settingsToSave: any = {
+      const settingsToSave: Record<string, unknown> = {
         startBalanceUAH: startBalanceUAH !== null ? toNumber(startBalanceUAH) : null,
         startBalanceUSD: startBalanceUSD !== null ? toNumber(startBalanceUSD) : null,
         startBalanceEUR: startBalanceEUR !== null ? toNumber(startBalanceEUR) : null,
@@ -654,15 +652,23 @@ export function useBudgetHandlers() {
       });
 
       if (exchangeRates['UAH_RON']) {
-        const ronPair = exchangeRates['UAH_RON'] as any;
-        settingsToSave.ronRate = ronPair.buy || ronPair.sell || null;
+        const ronPair = exchangeRates['UAH_RON'];
+        if (isExchangeRatePair(ronPair)) {
+          settingsToSave.ronRate = ronPair.buy || ronPair.sell || null;
+        } else if (typeof ronPair === 'number') {
+          settingsToSave.ronRate = ronPair;
+        }
       }
       if (exchangeRates['UAH_PLN']) {
-        const plnPair = exchangeRates['UAH_PLN'] as any;
-        settingsToSave.plnRate = plnPair.buy || plnPair.sell || null;
+        const plnPair = exchangeRates['UAH_PLN'];
+        if (isExchangeRatePair(plnPair)) {
+          settingsToSave.plnRate = plnPair.buy || plnPair.sell || null;
+        } else if (typeof plnPair === 'number') {
+          settingsToSave.plnRate = plnPair;
+        }
       }
 
-      const totalsToSave: any = {};
+      const totalsToSave: Record<string, number> = {};
       selectedCurrencies.forEach(currencyCode => {
         totalsToSave[`totalIncome${currencyCode}`] = toNumber((totals[`totalIncome${currencyCode}`] || 0).toFixed(2));
         totalsToSave[`totalExpense${currencyCode}`] = toNumber((totals[`totalExpense${currencyCode}`] || 0).toFixed(2));
@@ -766,15 +772,15 @@ export function useBudgetHandlers() {
             setExchangeRates(loadedExchangeRates);
             
             const uahUsdPair = loadedExchangeRates['UAH_USD'];
-            if (uahUsdPair && typeof uahUsdPair === 'object' && (uahUsdPair as any).buy) {
-              setUsdRate((uahUsdPair as any).buy);
+            if (isExchangeRatePair(uahUsdPair)) {
+              setUsdRate(uahUsdPair.buy);
             } else {
               setUsdRate(data.settings.usdRate ?? 41.5);
             }
             
             const uahEurPair = loadedExchangeRates['UAH_EUR'];
-            if (uahEurPair && typeof uahEurPair === 'object' && (uahEurPair as any).buy) {
-              setEurRate((uahEurPair as any).buy);
+            if (isExchangeRatePair(uahEurPair)) {
+              setEurRate(uahEurPair.buy);
             } else {
               setEurRate(data.settings.eurRate ?? 45);
             }
@@ -821,14 +827,26 @@ export function useBudgetHandlers() {
 
         let normalizedDays: Day[] | null = null;
         if (data.days && Array.isArray(data.days)) {
-          const toNumber = (value: any) => {
+          const toNumber = (value: unknown): number => {
             if (value === '' || value === null || value === undefined) return 0;
             if (typeof value === 'number') return value;
             const num = parseFloat(String(value));
             return isNaN(num) ? 0 : num;
           };
 
-          const loadedDays = data.days.map((d: any) => ({
+          interface LoadedDay {
+            day?: number;
+            description?: string;
+            transactions?: Transaction[];
+            incomeUAH?: unknown;
+            expenseUAH?: unknown;
+            incomeUSD?: unknown;
+            expenseUSD?: unknown;
+            incomeEUR?: unknown;
+            expenseEUR?: unknown;
+          }
+
+          const loadedDays = (data.days as LoadedDay[]).map((d) => ({
             day: d.day || 0,
             description: String(d.description || '').trim(),
             transactions: Array.isArray(d.transactions) ? d.transactions : [],
@@ -842,7 +860,7 @@ export function useBudgetHandlers() {
 
           const newDays: Day[] = [];
           for (let i = 1; i <= 31; i++) {
-            const loadedDay = loadedDays.find((d: any) => d.day === i);
+            const loadedDay = loadedDays.find((d) => d.day === i);
             if (loadedDay) {
               newDays.push({
                 day: loadedDay.day || i,

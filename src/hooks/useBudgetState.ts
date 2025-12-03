@@ -9,6 +9,7 @@ import { budgetReducer, createBudgetInitialState, budgetActions } from '../reduc
 import { displayReducer, createDisplayInitialState, displayActions } from '../reducers/displayReducer';
 import { messageReducer, createMessageInitialState, messageActions } from '../reducers/messageReducer';
 import { Day, ExchangeRates, Budgets } from '../types';
+import { hasPairStructure, getBuyRate } from '../utils/typeGuards';
 
 const BASE_CURRENCY = 'UAH';
 
@@ -61,11 +62,14 @@ export function useBudgetState(): BudgetStateInterface {
   const loadedData = loadFromLocalStorage();
 
   // Ініціалізуємо курси обміну (потрібно зробити це перед створенням початкового стану)
-  const initializeExchangeRates = (savedRates: any, savedCurrencies: any, savedUsdRate: any, savedEurRate: any): ExchangeRates => {
+  const initializeExchangeRates = (
+    savedRates: ExchangeRates | null | undefined, 
+    savedCurrencies: string[] | null | undefined, 
+    savedUsdRate: number | null | undefined, 
+    savedEurRate: number | null | undefined
+  ): ExchangeRates => {
     if (savedRates && typeof savedRates === 'object') {
-      const hasNewStructure = Object.keys(savedRates).some(key => 
-        key.includes('_') && typeof savedRates[key] === 'object' && savedRates[key].buy !== undefined
-      );
+      const hasNewStructure = hasPairStructure(savedRates);
       if (hasNewStructure) {
         return savedRates;
       }
@@ -74,8 +78,9 @@ export function useBudgetState(): BudgetStateInterface {
       const currencies = validateSelectedCurrencies(savedCurrencies || DEFAULT_CURRENCIES);
       currencies.forEach(code => {
         if (code === BASE_CURRENCY) return;
-        let rate = savedRates[code];
-        if (!rate) {
+        let rateValue = savedRates[code];
+        let rate: number;
+        if (!rateValue) {
           if (code === 'USD') {
             rate = savedUsdRate ?? 41.5;
           } else if (code === 'EUR') {
@@ -83,6 +88,8 @@ export function useBudgetState(): BudgetStateInterface {
           } else {
             rate = getDefaultRate(code);
           }
+        } else {
+          rate = getBuyRate(rateValue, 1);
         }
         const pairKey = `${BASE_CURRENCY}_${code}`;
         const reversePairKey = `${code}_${BASE_CURRENCY}`;
@@ -262,7 +269,6 @@ export function useBudgetState(): BudgetStateInterface {
     // But I don't have `currencyStateRef`. I'll create it.
     
     if (typeof ratesOrUpdater === 'function') {
-       // @ts-ignore
        const newRates = ratesOrUpdater(currencyStateRef.current.exchangeRates);
        currencyDispatch({ type: currencyActions.SET_EXCHANGE_RATES, payload: newRates });
     } else {

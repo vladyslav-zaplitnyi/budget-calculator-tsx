@@ -46,7 +46,7 @@ export function displayReducer(state: DisplayState, action: DisplayAction): Disp
   }
 }
 
-export function createDisplayInitialState(loadedData: any): DisplayState {
+export function createDisplayInitialState(loadedData: unknown): DisplayState {
   // Завантажуємо з localStorage для зворотної сумісності
   let displayCurrency = 'UAH';
   let displayCurrencyIndex = 0;

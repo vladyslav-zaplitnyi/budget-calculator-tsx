@@ -111,16 +111,28 @@ export function currencyReducer(state: CurrencyState, action: CurrencyAction): C
   }
 }
 
-export function createCurrencyInitialState(loadedData: any): CurrencyState {
+export function createCurrencyInitialState(loadedData: unknown): CurrencyState {
+  // Type guard для перевірки структури даних
+  const data = loadedData as Record<string, unknown> | null | undefined;
   return {
     ...initialState,
-    selectedCurrencies: loadedData?.selectedCurrencies || initialState.selectedCurrencies,
-    exchangeRates: loadedData?.exchangeRates || initialState.exchangeRates,
-    startBalanceUAH: loadedData?.startBalanceUAH ?? null,
-    startBalanceUSD: loadedData?.startBalanceUSD ?? null,
-    startBalanceEUR: loadedData?.startBalanceEUR ?? null,
-    usdRate: loadedData?.usdRate ?? initialState.usdRate,
-    eurRate: loadedData?.eurRate ?? initialState.eurRate
+    selectedCurrencies: (data && Array.isArray(data.selectedCurrencies)) 
+      ? data.selectedCurrencies as string[] 
+      : initialState.selectedCurrencies,
+    exchangeRates: (data && typeof data.exchangeRates === 'object' && data.exchangeRates !== null)
+      ? data.exchangeRates as ExchangeRates
+      : initialState.exchangeRates,
+    startBalanceUAH: (data && (typeof data.startBalanceUAH === 'number' || data.startBalanceUAH === null))
+      ? data.startBalanceUAH as number | null
+      : null,
+    startBalanceUSD: (data && (typeof data.startBalanceUSD === 'number' || data.startBalanceUSD === null))
+      ? data.startBalanceUSD as number | null
+      : null,
+    startBalanceEUR: (data && (typeof data.startBalanceEUR === 'number' || data.startBalanceEUR === null))
+      ? data.startBalanceEUR as number | null
+      : null,
+    usdRate: (data && typeof data.usdRate === 'number') ? data.usdRate : initialState.usdRate,
+    eurRate: (data && typeof data.eurRate === 'number') ? data.eurRate : initialState.eurRate
   };
 }
 

@@ -125,7 +125,7 @@ export const createEmptyMonthDays = (): Day[] => {
 };
 
 // Приводить масив днів з бекенду/LocalStorage до очікуваного формату
-export const normalizeDaysArray = (sourceDays: any[]): Day[] => {
+export const normalizeDaysArray = (sourceDays: unknown[]): Day[] => {
   if (sourceDays && Array.isArray(sourceDays) && sourceDays.length === 31) {
     return sourceDays.map((day, index) => {
       const normalizedDay: Day = {

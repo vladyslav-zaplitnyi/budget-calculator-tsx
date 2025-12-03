@@ -47,7 +47,7 @@ export const saveToLocalStorage = (
   activeBudgetId?: string
 ): void => {
   try {
-    const data: any = {
+    const data: Record<string, unknown> = {
       startBalanceUAH,
       startBalanceUSD,
       startBalanceEUR,
@@ -87,7 +87,8 @@ export const saveToFirestore = async (
 
   try {
     const userDocRef = doc(db, 'users', user.uid);
-    const data: any = {
+    // Використовуємо правильний тип для Firestore
+    const data = {
       activeBudgetId: activeId,
       budgets: budgetsToSave,
       savedAt: new Date().toISOString(),
@@ -145,7 +146,12 @@ export const loadFromFirestore = async (user: User | null): Promise<UserData | n
         const migratedBudgets: Budgets = {};
         for (const [key, budget] of Object.entries(data.budgets as Budgets)) {
           // Видаляємо поля currency та baseCurrency, якщо вони є
-          const { currency, baseCurrency, ...budgetCleaned } = budget as any;
+          // Використовуємо тимчасовий інтерфейс для деструктуризації
+          interface BudgetWithLegacyFields extends Budget {
+            currency?: string;
+            baseCurrency?: string;
+          }
+          const { currency, baseCurrency, ...budgetCleaned } = budget as BudgetWithLegacyFields;
           if (currency || baseCurrency) {
             migratedBudgets[key] = budgetCleaned;
             needsMigration = true;
@@ -202,10 +208,13 @@ export const loadFromFirestore = async (user: User | null): Promise<UserData | n
           console.error('Помилка при отриманні мови з localStorage:', e);
         }
         
-        const defaultBudget: Budget = {
+        // Створюємо бюджет з тимчасовими полями для міграції
+        interface BudgetWithLegacyFields extends Budget {
+          baseCurrency?: string;
+        }
+        const defaultBudget: BudgetWithLegacyFields = {
           name: currentLang === 'en' ? 'Main' : 'Основний',
-          // @ts-ignore
-          baseCurrency: 'UAH',
+          baseCurrency: 'UAH', // Це поле буде видалено під час міграції
           startBalanceUAH: data.startBalanceUAH ?? null,
           startBalanceUSD: data.startBalanceUSD ?? null,
           startBalanceEUR: data.startBalanceEUR ?? null,
@@ -263,10 +272,13 @@ export const loadFromFirestore = async (user: User | null): Promise<UserData | n
           console.error('Помилка при отриманні мови з localStorage:', e);
         }
 
-        const defaultBudget: Budget = {
+        // Створюємо бюджет з тимчасовими полями для міграції
+        interface BudgetWithLegacyFields extends Budget {
+          baseCurrency?: string;
+        }
+        const defaultBudget: BudgetWithLegacyFields = {
           name: currentLang === 'en' ? 'Main' : 'Основний',
-          // @ts-ignore
-          baseCurrency: 'UAH',
+          baseCurrency: 'UAH', // Це поле буде видалено під час міграції
           startBalanceUAH: localData.startBalanceUAH ?? null,
           startBalanceUSD: localData.startBalanceUSD ?? null,
           startBalanceEUR: localData.startBalanceEUR ?? null,

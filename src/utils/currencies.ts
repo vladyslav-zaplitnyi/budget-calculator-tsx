@@ -74,7 +74,7 @@ export const getDefaultRate = (code: string): number => {
 };
 
 // Валідація вибраних валют
-export const validateSelectedCurrencies = (selected: any): string[] => {
+export const validateSelectedCurrencies = (selected: unknown): string[] => {
   if (!Array.isArray(selected) || selected.length !== 3) {
     return DEFAULT_CURRENCIES;
   }

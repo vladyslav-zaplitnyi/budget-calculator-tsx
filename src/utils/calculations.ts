@@ -1,4 +1,5 @@
 import { Day, ExchangeRates, Transaction } from '../types';
+import { isExchangeRatePair, isExchangeRateNumber } from './typeGuards';
 
 // Calculation functions for budget tracker
 
@@ -16,10 +17,7 @@ export const convertCurrency = (amount: number, fromCurrency: string, toCurrency
   const hasPairStructure = Object.keys(exchangeRates || {}).some(
     (key) =>
       key.includes('_') &&
-      typeof exchangeRates[key] === 'object' &&
-      exchangeRates[key] !== null &&
-      // @ts-ignore
-      (typeof exchangeRates[key].buy === 'number' || typeof exchangeRates[key].sell === 'number')
+      isExchangeRatePair(exchangeRates[key])
   );
 
   // Якщо нової структури немає – використовуємо стару логіку (для зворотної сумісності)
@@ -30,19 +28,23 @@ export const convertCurrency = (amount: number, fromCurrency: string, toCurrency
 
     if (to === 'UAH') {
       // Продаємо from-валюту за гривню
-      const rateToUAH = (exchangeRates[from] as number) || 1;
+      const rateValue = exchangeRates[from];
+      const rateToUAH = isExchangeRateNumber(rateValue) ? rateValue : 1;
       return safeAmount * rateToUAH;
     }
 
     if (from === 'UAH') {
       // Купуємо to-валюту за гривню
-      const rateFromUAH = (exchangeRates[to] as number) || 1;
+      const rateValue = exchangeRates[to];
+      const rateFromUAH = isExchangeRateNumber(rateValue) ? rateValue : 1;
       return rateFromUAH ? safeAmount / rateFromUAH : safeAmount;
     }
 
     // Конвертація між двома не-UAH валютами через гривню
-    const rateFromToUAH = (exchangeRates[from] as number) || 1;
-    const rateUAHToTo = (exchangeRates[to] as number) || 1;
+    const rateFromValue = exchangeRates[from];
+    const rateToValue = exchangeRates[to];
+    const rateFromToUAH = isExchangeRateNumber(rateFromValue) ? rateFromValue : 1;
+    const rateUAHToTo = isExchangeRateNumber(rateToValue) ? rateToValue : 1;
     const amountInUAH = safeAmount * rateFromToUAH;
     return rateUAHToTo ? amountInUAH / rateUAHToTo : safeAmount;
   }
@@ -211,7 +213,17 @@ export const calculateCumulativeBalanceEUR = (dayIndex: number, days: Day[], sta
   return cumulative;
 };
 
-export const calculateTotals = (days: Day[], selectedCurrencies: string[] = ['UAH', 'USD', 'EUR']): any => {
+export interface Totals {
+  [key: string]: number;
+  totalIncomeUAH: number;
+  totalExpenseUAH: number;
+  totalIncomeUSD: number;
+  totalExpenseUSD: number;
+  totalIncomeEUR: number;
+  totalExpenseEUR: number;
+}
+
+export const calculateTotals = (days: Day[], selectedCurrencies: string[] = ['UAH', 'USD', 'EUR']): Totals => {
   // Створюємо об'єкт для totals всіх валют
   const totals: Record<string, number> = {};
   selectedCurrencies.forEach(code => {

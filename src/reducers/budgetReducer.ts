@@ -107,12 +107,14 @@ export function budgetReducer(state: BudgetState, action: BudgetAction): BudgetS
   }
 }
 
-export function createBudgetInitialState(loadedData: any): BudgetState {
+export function createBudgetInitialState(loadedData: unknown): BudgetState {
+  // Type guard для перевірки структури даних
+  const data = loadedData as Record<string, unknown> | null | undefined;
   return {
     ...initialState,
-    activeBudgetId: loadedData?.activeBudgetId || initialState.activeBudgetId,
-    budgets: loadedData?.budgets || initialState.budgets,
-    days: loadedData?.days || initialState.days
+    activeBudgetId: (data && typeof data.activeBudgetId === 'string') ? data.activeBudgetId : initialState.activeBudgetId,
+    budgets: (data && typeof data.budgets === 'object' && data.budgets !== null) ? data.budgets as Budgets : initialState.budgets,
+    days: (data && Array.isArray(data.days)) ? data.days as Day[] : initialState.days
   };
 }
 

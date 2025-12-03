@@ -67,8 +67,9 @@ const BudgetStatus: React.FC<BudgetStatusProps> = ({
           
           const finalBalance = finalBalances[`finalBalance${currencyCode}`] || 0;
           const startBalance = startBalances[currencyCode] ?? null;
-          // @ts-ignore
-          const startBalanceValue = parseFloat(startBalance) || 0;
+          const startBalanceValue = startBalance !== null && startBalance !== undefined 
+            ? parseFloat(String(startBalance)) || 0 
+            : 0;
           const isPositive = finalBalance >= startBalanceValue;
           
           return (

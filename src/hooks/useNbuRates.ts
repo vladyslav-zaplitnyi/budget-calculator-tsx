@@ -135,7 +135,11 @@ export function useNbuRates() {
           return;
         }
 
-        const rateData = data.find((item: any) => item.cc === currencyCode);
+        interface NbuRateItem {
+          cc: string;
+          rate: number;
+        }
+        const rateData = data.find((item: NbuRateItem) => item.cc === currencyCode);
         
         if (rateData) {
           // Округлюємо до 2 знаків після коми
@@ -153,7 +157,11 @@ export function useNbuRates() {
       // Зберігаємо всі отримані курси в кеш (не тільки запитувані)
       // Це дозволить використовувати кеш для інших валют теж
       const allRates: Record<string, number> = { UAH: 1 };
-      data.forEach((item: any) => {
+      interface NbuRateItem {
+        cc: string;
+        rate: number;
+      }
+      data.forEach((item: NbuRateItem) => {
         if (item.cc && item.rate !== undefined) {
           allRates[item.cc] = Math.round(item.rate * 100) / 100;
         }

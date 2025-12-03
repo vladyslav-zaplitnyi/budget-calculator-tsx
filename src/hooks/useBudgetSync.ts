@@ -7,6 +7,7 @@ import { getCookie } from '../utils/cookieHelpers';
 import { BudgetStateWithSync } from '../contexts/BudgetContext';
 import { User } from 'firebase/auth';
 import { Budgets, ExchangeRates } from '../types';
+import { isExchangeRatePair, getBuyRate, hasPairStructure } from '../utils/typeGuards';
 
 const BASE_CURRENCY = 'UAH';
 
@@ -79,21 +80,19 @@ export function useBudgetSync(
             setSelectedCurrencies(validateSelectedCurrencies(firestoreData.selectedCurrencies));
           }
           if (firestoreData.exchangeRates) {
-            const hasNewStructure = Object.keys(firestoreData.exchangeRates).some(key => 
-              key.includes('_') && typeof firestoreData.exchangeRates![key] === 'object' && (firestoreData.exchangeRates![key] as any).buy !== undefined
-            );
+            const hasNewStructure = hasPairStructure(firestoreData.exchangeRates);
             
             if (hasNewStructure) {
               setExchangeRates(firestoreData.exchangeRates);
               const uahUsdPair = firestoreData.exchangeRates['UAH_USD'];
-              if (uahUsdPair && typeof uahUsdPair === 'object' && (uahUsdPair as any).buy) {
-                setUsdRate((uahUsdPair as any).buy);
+              if (isExchangeRatePair(uahUsdPair)) {
+                setUsdRate(uahUsdPair.buy);
               } else {
                 setUsdRate(firestoreData.usdRate ?? 41.5);
               }
               const uahEurPair = firestoreData.exchangeRates['UAH_EUR'];
-              if (uahEurPair && typeof uahEurPair === 'object' && (uahEurPair as any).buy) {
-                setEurRate((uahEurPair as any).buy);
+              if (isExchangeRatePair(uahEurPair)) {
+                setEurRate(uahEurPair.buy);
               } else {
                 setEurRate(firestoreData.eurRate ?? 45);
               }
@@ -114,8 +113,7 @@ export function useBudgetSync(
                 }
                 const pairKey = `${BASE_CURRENCY}_${code}`;
                 const reversePairKey = `${code}_${BASE_CURRENCY}`;
-                // @ts-ignore
-                const rateVal = typeof rate === 'number' ? rate : (rate.buy || 1); 
+                const rateVal = getBuyRate(rate, 1); 
 
                 rates[pairKey] = {
                   buy: rateVal,
@@ -189,36 +187,32 @@ export function useBudgetSync(
                 }
                 
                 if (savedBudget.exchangeRates) {
-                  const hasNewStructure = Object.keys(savedBudget.exchangeRates).some(key => 
-                    key.includes('_') && typeof savedBudget.exchangeRates![key] === 'object' && (savedBudget.exchangeRates![key] as any).buy !== undefined
-                  );
+                  const hasNewStructure = hasPairStructure(savedBudget.exchangeRates);
                   if (hasNewStructure) {
                     setExchangeRates(savedBudget.exchangeRates);
                     const uahUsdPair = savedBudget.exchangeRates['UAH_USD'];
-                    if (uahUsdPair && typeof uahUsdPair === 'object' && (uahUsdPair as any).buy) {
-                      setUsdRate((uahUsdPair as any).buy);
+                    if (isExchangeRatePair(uahUsdPair)) {
+                      setUsdRate(uahUsdPair.buy);
                     } else {
                       setUsdRate(savedBudget.usdRate ?? 41.5);
                     }
                     const uahEurPair = savedBudget.exchangeRates['UAH_EUR'];
-                    if (uahEurPair && typeof uahEurPair === 'object' && (uahEurPair as any).buy) {
-                      setEurRate((uahEurPair as any).buy);
+                    if (isExchangeRatePair(uahEurPair)) {
+                      setEurRate(uahEurPair.buy);
                     } else {
                       setEurRate(savedBudget.eurRate ?? 45);
                     }
                   } else {
                     setExchangeRates(savedBudget.exchangeRates);
-                    // @ts-ignore
-                    if (savedBudget.exchangeRates['USD']) {
-                      // @ts-ignore
-                      setUsdRate(savedBudget.exchangeRates['USD']);
+                    const usdRateValue = savedBudget.exchangeRates['USD'];
+                    if (usdRateValue !== undefined) {
+                      setUsdRate(getBuyRate(usdRateValue, savedBudget.usdRate ?? 41.5));
                     } else {
                       setUsdRate(savedBudget.usdRate ?? 41.5);
                     }
-                    // @ts-ignore
-                    if (savedBudget.exchangeRates['EUR']) {
-                      // @ts-ignore
-                      setEurRate(savedBudget.exchangeRates['EUR']);
+                    const eurRateValue = savedBudget.exchangeRates['EUR'];
+                    if (eurRateValue !== undefined) {
+                      setEurRate(getBuyRate(eurRateValue, savedBudget.eurRate ?? 45));
                     } else {
                       setEurRate(savedBudget.eurRate ?? 45);
                     }
@@ -259,36 +253,32 @@ export function useBudgetSync(
                 }
                 
                 if (activeBudget.exchangeRates) {
-                  const hasNewStructure = Object.keys(activeBudget.exchangeRates).some(key => 
-                    key.includes('_') && typeof activeBudget.exchangeRates![key] === 'object' && (activeBudget.exchangeRates![key] as any).buy !== undefined
-                  );
+                  const hasNewStructure = hasPairStructure(activeBudget.exchangeRates);
                   if (hasNewStructure) {
                     setExchangeRates(activeBudget.exchangeRates);
                     const uahUsdPair = activeBudget.exchangeRates['UAH_USD'];
-                    if (uahUsdPair && typeof uahUsdPair === 'object' && (uahUsdPair as any).buy) {
-                      setUsdRate((uahUsdPair as any).buy);
+                    if (isExchangeRatePair(uahUsdPair)) {
+                      setUsdRate(uahUsdPair.buy);
                     } else {
                       setUsdRate(activeBudget.usdRate ?? 41.5);
                     }
                     const uahEurPair = activeBudget.exchangeRates['UAH_EUR'];
-                    if (uahEurPair && typeof uahEurPair === 'object' && (uahEurPair as any).buy) {
-                      setEurRate((uahEurPair as any).buy);
+                    if (isExchangeRatePair(uahEurPair)) {
+                      setEurRate(uahEurPair.buy);
                     } else {
                       setEurRate(activeBudget.eurRate ?? 45);
                     }
                   } else {
                     setExchangeRates(activeBudget.exchangeRates);
-                     // @ts-ignore
-                    if (activeBudget.exchangeRates['USD']) {
-                       // @ts-ignore
-                      setUsdRate(activeBudget.exchangeRates['USD']);
+                    const usdRateValue = activeBudget.exchangeRates['USD'];
+                    if (usdRateValue !== undefined) {
+                      setUsdRate(getBuyRate(usdRateValue, activeBudget.usdRate ?? 41.5));
                     } else {
                       setUsdRate(activeBudget.usdRate ?? 41.5);
                     }
-                     // @ts-ignore
-                    if (activeBudget.exchangeRates['EUR']) {
-                       // @ts-ignore
-                      setEurRate(activeBudget.exchangeRates['EUR']);
+                    const eurRateValue = activeBudget.exchangeRates['EUR'];
+                    if (eurRateValue !== undefined) {
+                      setEurRate(getBuyRate(eurRateValue, activeBudget.eurRate ?? 45));
                     } else {
                       setEurRate(activeBudget.eurRate ?? 45);
                     }
@@ -318,36 +308,32 @@ export function useBudgetSync(
                   }
                   
                   if (firstBudget.exchangeRates) {
-                    const hasNewStructure = Object.keys(firstBudget.exchangeRates).some(key => 
-                      key.includes('_') && typeof firstBudget.exchangeRates![key] === 'object' && (firstBudget.exchangeRates![key] as any).buy !== undefined
-                    );
+                    const hasNewStructure = hasPairStructure(firstBudget.exchangeRates);
                     if (hasNewStructure) {
                       setExchangeRates(firstBudget.exchangeRates);
                       const uahUsdPair = firstBudget.exchangeRates['UAH_USD'];
-                      if (uahUsdPair && typeof uahUsdPair === 'object' && (uahUsdPair as any).buy) {
-                        setUsdRate((uahUsdPair as any).buy);
+                      if (isExchangeRatePair(uahUsdPair)) {
+                        setUsdRate(uahUsdPair.buy);
                       } else {
                         setUsdRate(firstBudget.usdRate ?? 41.5);
                       }
                       const uahEurPair = firstBudget.exchangeRates['UAH_EUR'];
-                      if (uahEurPair && typeof uahEurPair === 'object' && (uahEurPair as any).buy) {
-                        setEurRate((uahEurPair as any).buy);
+                      if (isExchangeRatePair(uahEurPair)) {
+                        setEurRate(uahEurPair.buy);
                       } else {
                         setEurRate(firstBudget.eurRate ?? 45);
                       }
                     } else {
                       setExchangeRates(firstBudget.exchangeRates);
-                      // @ts-ignore
-                      if (firstBudget.exchangeRates['USD']) {
-                        // @ts-ignore
-                        setUsdRate(firstBudget.exchangeRates['USD']);
+                      const usdRateValue = firstBudget.exchangeRates['USD'];
+                      if (usdRateValue !== undefined) {
+                        setUsdRate(getBuyRate(usdRateValue, firstBudget.usdRate ?? 41.5));
                       } else {
                         setUsdRate(firstBudget.usdRate ?? 41.5);
                       }
-                      // @ts-ignore
-                      if (firstBudget.exchangeRates['EUR']) {
-                        // @ts-ignore
-                        setEurRate(firstBudget.exchangeRates['EUR']);
+                      const eurRateValue = firstBudget.exchangeRates['EUR'];
+                      if (eurRateValue !== undefined) {
+                        setEurRate(getBuyRate(eurRateValue, firstBudget.eurRate ?? 45));
                       } else {
                         setEurRate(firstBudget.eurRate ?? 45);
                       }

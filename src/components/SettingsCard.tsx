@@ -2,6 +2,7 @@ import React, { ChangeEvent, RefObject } from 'react';
 import { AVAILABLE_CURRENCIES, getCurrencyName } from '../utils/currencies';
 import { User } from 'firebase/auth';
 import { Budgets, ExchangeRates } from '../types';
+import { isExchangeRatePair, getBuyRate } from '../utils/typeGuards';
 
 interface SettingsCardProps {
   isUk: boolean;
@@ -264,23 +265,22 @@ const SettingsCard: React.FC<SettingsCardProps> = ({
             const reversePairKey = `${currencyCode}_${baseCurrency}`;
             
             let buyRate, sellRate;
-            if (exchangeRates[pairKey] && typeof exchangeRates[pairKey] === 'object') {
-              // @ts-ignore
-              buyRate = exchangeRates[pairKey].buy || 1;
-              // @ts-ignore
-              sellRate = exchangeRates[pairKey].sell || 1;
-            } else if (exchangeRates[reversePairKey] && typeof exchangeRates[reversePairKey] === 'object') {
-              // @ts-ignore
-              sellRate = exchangeRates[reversePairKey].buy ? 1 / exchangeRates[reversePairKey].buy : 1;
-              // @ts-ignore
-              buyRate = exchangeRates[reversePairKey].sell ? 1 / exchangeRates[reversePairKey].sell : 1;
+            const pairValue = exchangeRates[pairKey];
+            const reversePairValue = exchangeRates[reversePairKey];
+            
+            if (isExchangeRatePair(pairValue)) {
+              buyRate = pairValue.buy || 1;
+              sellRate = pairValue.sell || 1;
+            } else if (isExchangeRatePair(reversePairValue)) {
+              sellRate = reversePairValue.buy ? 1 / reversePairValue.buy : 1;
+              buyRate = reversePairValue.sell ? 1 / reversePairValue.sell : 1;
             } else {
               const rateVal = exchangeRates[currencyCode];
               let oldRate: number;
               if (typeof rateVal === 'number') {
                   oldRate = rateVal;
-              } else if (typeof rateVal === 'object' && rateVal !== null) {
-                  oldRate = rateVal.buy || rateVal.sell || 1;
+              } else if (isExchangeRatePair(rateVal)) {
+                  oldRate = getBuyRate(rateVal, 1);
               } else {
                   oldRate = (currencyCode === 'USD' ? usdRate : currencyCode === 'EUR' ? eurRate : 1);
               }
