@@ -6,6 +6,8 @@ import { validateSelectedCurrencies } from '../utils/currencies';
 import { calculateTotals, calculateFinalBalances, convertCurrency } from '../utils/calculations';
 import { Budgets, Day, Transaction } from '../types';
 import { isExchangeRatePair } from '../utils/typeGuards';
+import { validateDay, validateTransaction } from '../schemas/budgetSchema';
+import { handleError } from '../utils/errorHandler';
 
 /**
  * Hook для імпорту та експорту бюджету в JSON формат
@@ -313,17 +315,65 @@ export function useBudgetImportExport() {
           for (let i = 1; i <= 31; i++) {
             const loadedDay = loadedDays.find((d) => d.day === i);
             if (loadedDay) {
-              newDays.push({
+              // Валідація транзакцій перед додаванням
+              const validatedTransactions: Transaction[] = [];
+              if (Array.isArray(loadedDay.transactions)) {
+                for (const transaction of loadedDay.transactions) {
+                  try {
+                    validatedTransactions.push(validateTransaction(transaction));
+                  } catch (error) {
+                    handleError(
+                      error instanceof Error ? error : new Error(String(error)),
+                      {
+                        context: 'useBudgetImportExport',
+                        action: 'handleJsonFileSelected',
+                        details: `Помилка валідації транзакції в день ${i}`
+                      }
+                    );
+                    // Пропускаємо невалідну транзакцію
+                    console.warn(`⚠️ Транзакція в день ${i} не валідна і буде пропущена`);
+                  }
+                }
+              }
+
+              const dayData: Day = {
                 day: loadedDay.day || i,
                 description: String(loadedDay.description || '').trim(),
-                transactions: Array.isArray(loadedDay.transactions) ? loadedDay.transactions : [],
+                transactions: validatedTransactions,
                 incomeUAH: toNumber(loadedDay.incomeUAH),
                 expenseUAH: toNumber(loadedDay.expenseUAH),
                 incomeUSD: toNumber(loadedDay.incomeUSD),
                 expenseUSD: toNumber(loadedDay.expenseUSD),
                 incomeEUR: toNumber(loadedDay.incomeEUR),
                 expenseEUR: toNumber(loadedDay.expenseEUR)
-              });
+              };
+
+              // Валідація дня
+              try {
+                newDays.push(validateDay(dayData));
+              } catch (error) {
+                handleError(
+                  error instanceof Error ? error : new Error(String(error)),
+                  {
+                    context: 'useBudgetImportExport',
+                    action: 'handleJsonFileSelected',
+                    details: `Помилка валідації дня ${i}`
+                  }
+                );
+                // Додаємо день з базовими значеннями якщо валідація не пройшла
+                newDays.push({
+                  day: i,
+                  transactions: [],
+                  description: '',
+                  incomeUAH: 0,
+                  expenseUAH: 0,
+                  incomeUSD: 0,
+                  expenseUSD: 0,
+                  incomeEUR: 0,
+                  expenseEUR: 0
+                });
+                console.warn(`⚠️ День ${i} не валідний, використано значення за замовчуванням`);
+              }
             } else {
               newDays.push({
                 day: i,

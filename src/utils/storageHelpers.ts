@@ -3,32 +3,55 @@ import { db } from '../firebase';
 import { LANGUAGE_STORAGE_KEY } from './constants';
 import { User } from 'firebase/auth';
 import { Day, ExchangeRates, Budget, Budgets, UserData } from '../types';
+import { validateUserData, validateBudgets } from '../schemas/budgetSchema';
+import { handleError } from './errorHandler';
 
 // Функція для завантаження даних з localStorage
 export const loadFromLocalStorage = (): UserData | null => {
   try {
     const saved = localStorage.getItem('budgetTrackerData');
     if (saved) {
-      const data = JSON.parse(saved);
+      const parsedData = JSON.parse(saved);
 
       // Підтримка як старої (плоскої), так і нової структури з settings
-      const settings = data.settings || data;
+      const settings = parsedData.settings || parsedData;
 
-      return {
+      const data: UserData = {
         startBalanceUAH: settings.startBalanceUAH ?? null,
         startBalanceUSD: settings.startBalanceUSD ?? null,
         startBalanceEUR: settings.startBalanceEUR ?? null,
         usdRate: settings.usdRate ?? 41.5,
         eurRate: settings.eurRate ?? 45,
-        days: data.days || settings.days || undefined,
+        days: parsedData.days || settings.days || undefined,
         selectedCurrencies: settings.selectedCurrencies || null,
         exchangeRates: settings.exchangeRates || null,
-        budgets: data.budgets || null,
-        activeBudgetId: data.activeBudgetId || null
+        budgets: parsedData.budgets || null,
+        activeBudgetId: parsedData.activeBudgetId || null
       };
+
+      // Валідація даних
+      const validationResult = validateUserData(data);
+      if (!validationResult.success) {
+        handleError(
+          new Error('Дані з localStorage не пройшли валідацію'),
+          {
+            context: 'storageHelpers',
+            action: 'loadFromLocalStorage',
+            details: validationResult.error.errors.map(e => `${e.path.join('.')}: ${e.message}`).join(', ')
+          }
+        );
+        console.warn('⚠️ Дані з localStorage не валідні, але використовуються для зворотної сумісності');
+        // Повертаємо дані навіть якщо валідація не пройшла (для зворотної сумісності)
+        return data;
+      }
+
+      return validationResult.data;
     }
   } catch (error) {
-    console.error('Помилка при завантаженні з localStorage:', error);
+    handleError(
+      error instanceof Error ? error : new Error(String(error)),
+      { context: 'storageHelpers', action: 'loadFromLocalStorage' }
+    );
   }
   return null;
 };
@@ -86,6 +109,21 @@ export const saveToFirestore = async (
   if (!user) return;
 
   try {
+    // Валідація даних перед збереженням
+    try {
+      validateBudgets(budgetsToSave);
+    } catch (validationError) {
+      handleError(
+        validationError instanceof Error ? validationError : new Error(String(validationError)),
+        {
+          context: 'storageHelpers',
+          action: 'saveToFirestore',
+          details: 'Дані бюджетів не пройшли валідацію перед збереженням'
+        }
+      );
+      throw new Error('Дані бюджетів не валідні');
+    }
+
     const userDocRef = doc(db, 'users', user.uid);
     // Використовуємо правильний тип для Firestore
     const data = {
@@ -105,7 +143,10 @@ export const saveToFirestore = async (
       setSyncStatus(getSyncStatusText('saved'));
     }
   } catch (error) {
-    console.error('Помилка при збереженні в Firestore:', error);
+    handleError(
+      error instanceof Error ? error : new Error(String(error)),
+      { context: 'storageHelpers', action: 'saveToFirestore' }
+    );
     if (setSyncStatus && getSyncStatusText) {
       setSyncStatus(getSyncStatusText('error'));
     }
@@ -121,7 +162,23 @@ export const loadFromFirestore = async (user: User | null): Promise<UserData | n
     const userDoc = await getDoc(userDocRef);
 
     if (userDoc.exists()) {
-      const data = userDoc.data();
+      const rawData = userDoc.data();
+
+      // Валідація даних з Firestore
+      const validationResult = validateUserData(rawData);
+      if (!validationResult.success) {
+        handleError(
+          new Error('Дані з Firestore не пройшли валідацію'),
+          {
+            context: 'storageHelpers',
+            action: 'loadFromFirestore',
+            details: validationResult.error.errors.map(e => `${e.path.join('.')}: ${e.message}`).join(', ')
+          }
+        );
+        console.warn('⚠️ Дані з Firestore не валідні, але намагаємося обробити для зворотної сумісності');
+      }
+
+      const data = validationResult.success ? validationResult.data : rawData as UserData;
 
       // 🔁 Якщо вже є нова multi-budget структура
       if (data.budgets && typeof data.budgets === 'object' && Object.keys(data.budgets).length > 0) {
@@ -145,18 +202,32 @@ export const loadFromFirestore = async (user: User | null): Promise<UserData | n
         let needsMigration = false;
         const migratedBudgets: Budgets = {};
         for (const [key, budget] of Object.entries(data.budgets as Budgets)) {
-          // Видаляємо поля currency та baseCurrency, якщо вони є
-          // Використовуємо тимчасовий інтерфейс для деструктуризації
-          interface BudgetWithLegacyFields extends Budget {
-            currency?: string;
-            baseCurrency?: string;
-          }
-          const { currency, baseCurrency, ...budgetCleaned } = budget as BudgetWithLegacyFields;
-          if (currency || baseCurrency) {
-            migratedBudgets[key] = budgetCleaned;
-            needsMigration = true;
-          } else {
-            migratedBudgets[key] = budget;
+          // Валідація кожного бюджету
+          try {
+            // Видаляємо поля currency та baseCurrency, якщо вони є
+            // Використовуємо тимчасовий інтерфейс для деструктуризації
+            interface BudgetWithLegacyFields extends Budget {
+              currency?: string;
+              baseCurrency?: string;
+            }
+            const { currency, baseCurrency, ...budgetCleaned } = budget as BudgetWithLegacyFields;
+            if (currency || baseCurrency) {
+              migratedBudgets[key] = budgetCleaned;
+              needsMigration = true;
+            } else {
+              migratedBudgets[key] = budget;
+            }
+          } catch (error) {
+            handleError(
+              error instanceof Error ? error : new Error(String(error)),
+              {
+                context: 'storageHelpers',
+                action: 'loadFromFirestore',
+                details: `Помилка валідації бюджету ${key}`
+              }
+            );
+            // Пропускаємо невалідний бюджет
+            console.warn(`⚠️ Бюджет ${key} не валідний і буде пропущено`);
           }
         }
 
@@ -220,7 +291,7 @@ export const loadFromFirestore = async (user: User | null): Promise<UserData | n
           startBalanceEUR: data.startBalanceEUR ?? null,
           usdRate: data.usdRate ?? 41.5,
           eurRate: data.eurRate ?? 45,
-          days: data.days || null
+          days: data.days || undefined
         };
 
         const newBudgets: Budgets = {
@@ -315,7 +386,10 @@ export const loadFromFirestore = async (user: User | null): Promise<UserData | n
       }
     }
   } catch (error) {
-    console.error('Помилка при завантаженні з Firestore:', error);
+    handleError(
+      error instanceof Error ? error : new Error(String(error)),
+      { context: 'storageHelpers', action: 'loadFromFirestore' }
+    );
   }
   return null;
 };
