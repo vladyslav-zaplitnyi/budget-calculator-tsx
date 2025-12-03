@@ -1,4 +1,5 @@
 import React, { useState, useEffect, FormEvent } from 'react';
+import { useTranslation } from 'react-i18next';
 import { AVAILABLE_CURRENCIES, getCurrencyName } from '../utils/currencies';
 import { Transaction } from '../types';
 
@@ -21,6 +22,7 @@ const TransactionModal: React.FC<TransactionModalProps> = ({
   maxTransactions,
   selectedCurrencies = ['UAH', 'USD', 'EUR']
 }) => {
+  const { t, i18n: i18nInstance } = useTranslation();
   const [type, setType] = useState<'income' | 'expense'>('expense');
   const [amount, setAmount] = useState('');
   const [currency, setCurrency] = useState(selectedCurrencies[0] || 'UAH');
@@ -55,12 +57,12 @@ const TransactionModal: React.FC<TransactionModalProps> = ({
     
     const numAmount = parseFloat(amount);
     if (isNaN(numAmount) || numAmount <= 0) {
-      alert(isUk ? 'Введіть коректну суму більше 0' : 'Enter a valid amount greater than 0');
+      alert(t('transaction.amountError'));
       return;
     }
 
     if (!description.trim()) {
-      alert(isUk ? 'Введіть опис транзакції' : 'Enter transaction description');
+      alert(t('transaction.descriptionError'));
       return;
     }
 
@@ -93,8 +95,8 @@ const TransactionModal: React.FC<TransactionModalProps> = ({
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-xl font-bold text-gray-800">
             {transaction
-              ? isUk ? 'Редагувати операцію' : 'Edit Transaction'
-              : isUk ? 'Додати операцію' : 'Add Transaction'}
+              ? t('transaction.edit')
+              : t('transaction.add')}
           </h2>
           <button
             onClick={onClose}
@@ -108,7 +110,7 @@ const TransactionModal: React.FC<TransactionModalProps> = ({
           {/* Тип транзакції */}
           <div>
             <label className="block text-sm font-semibold text-gray-700 mb-2">
-              {isUk ? 'Тип операції' : 'Transaction Type'}
+              {t('transaction.type')}
             </label>
             <div className="flex gap-2">
               <button
@@ -120,7 +122,7 @@ const TransactionModal: React.FC<TransactionModalProps> = ({
                     : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
                 }`}
               >
-                {isUk ? '❌ Витрата' : '❌ Expense'}
+                {t('transaction.expense')}
               </button>
               <button
                 type="button"
@@ -131,7 +133,7 @@ const TransactionModal: React.FC<TransactionModalProps> = ({
                     : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
                 }`}
               >
-                {isUk ? '✅ Дохід' : '✅ Income'}
+                {t('transaction.income')}
               </button>
             </div>
           </div>
@@ -139,7 +141,7 @@ const TransactionModal: React.FC<TransactionModalProps> = ({
           {/* Сума */}
           <div>
             <label className="block text-sm font-semibold text-gray-700 mb-2">
-              {isUk ? 'Сума' : 'Amount'}
+              {t('transaction.amount')}
             </label>
             <input
               type="number"
@@ -147,7 +149,7 @@ const TransactionModal: React.FC<TransactionModalProps> = ({
               min="0.01"
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
-              placeholder={isUk ? '0.00' : '0.00'}
+              placeholder="0.00"
               className="w-full px-4 py-2 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               required
             />
@@ -156,7 +158,7 @@ const TransactionModal: React.FC<TransactionModalProps> = ({
           {/* Валюта */}
           <div>
             <label className="block text-sm font-semibold text-gray-700 mb-2">
-              {isUk ? 'Валюта' : 'Currency'}
+              {t('transaction.currency')}
             </label>
             <select
               value={currency}
@@ -168,7 +170,7 @@ const TransactionModal: React.FC<TransactionModalProps> = ({
                 if (!curr) return null;
                 return (
                   <option key={code} value={code}>
-                    {curr.emoji} {code} ({getCurrencyName(code, isUk ? 'uk' : 'en')})
+                    {curr.emoji} {code} ({getCurrencyName(code, i18nInstance.language === 'uk' ? 'uk' : 'en')})
                   </option>
                 );
               })}
@@ -178,13 +180,13 @@ const TransactionModal: React.FC<TransactionModalProps> = ({
           {/* Опис */}
           <div>
             <label className="block text-sm font-semibold text-gray-700 mb-2">
-              {isUk ? 'Опис' : 'Description'}
+              {t('transaction.description')}
             </label>
             <input
               type="text"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder={isUk ? 'Короткий опис операції...' : 'Short description...'}
+              placeholder={t('transaction.descriptionPlaceholder')}
               className="w-full px-4 py-2 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               required
               maxLength={100}
@@ -198,7 +200,7 @@ const TransactionModal: React.FC<TransactionModalProps> = ({
               onClick={onClose}
               className="flex-1 py-2 px-4 bg-gray-200 text-gray-700 rounded-lg font-semibold hover:bg-gray-300 transition-colors"
             >
-              {isUk ? 'Скасувати' : 'Cancel'}
+              {t('transaction.cancel')}
             </button>
             <button
               type="submit"
@@ -208,7 +210,7 @@ const TransactionModal: React.FC<TransactionModalProps> = ({
                   : 'bg-rose-500 hover:bg-rose-600'
               }`}
             >
-              {isUk ? 'Зберегти' : 'Save'}
+              {t('transaction.save')}
             </button>
           </div>
         </form>

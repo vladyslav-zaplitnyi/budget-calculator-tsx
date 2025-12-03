@@ -1,5 +1,8 @@
 import React from 'react';
 import { User } from 'firebase/auth';
+import { useTranslation } from 'react-i18next';
+import { translate } from '../i18n/config';
+import i18n from '../i18n/config';
 
 interface HeaderProps {
   isUk: boolean;
@@ -33,26 +36,18 @@ const GoogleIcon = () => (
   </svg>
 );
 
-const getSyncStatusTitle = (syncStatus: string, isUk: boolean) => {
+const getSyncStatusTitle = (syncStatus: string) => {
   if (syncStatus.includes('💾') || syncStatus.includes('Local') || syncStatus.includes('Локально')) {
-    return isUk
-      ? 'Дані зберігаються локально в браузері. Увійдіть через Google для синхронізації в хмарі.'
-      : 'Data is saved locally in the browser. Sign in with Google to sync to the cloud.';
+    return translate('header.syncStatus.local');
   }
   if (syncStatus.includes('☁️') || syncStatus.includes('Saved') || syncStatus.includes('Збережено')) {
-    return isUk
-      ? 'Дані збережено в хмарі. Вони будуть доступні на всіх ваших пристроях.'
-      : 'Data saved to the cloud. It will be available on all your devices.';
+    return translate('header.syncStatus.saved');
   }
   if (syncStatus.includes('⏳') || syncStatus.includes('Syncing') || syncStatus.includes('Синхронізація')) {
-    return isUk
-      ? 'Триває синхронізація даних з хмарою...'
-      : 'Synchronizing data with the cloud...';
+    return translate('header.syncStatus.syncing');
   }
   if (syncStatus.includes('❌') || syncStatus.includes('Error') || syncStatus.includes('Помилка')) {
-    return isUk
-      ? 'Помилка при синхронізації даних.'
-      : 'Error synchronizing data.';
+    return translate('header.syncStatus.error');
   }
   return '';
 };
@@ -67,6 +62,7 @@ const Header: React.FC<HeaderProps> = ({
   language,
   setLanguage
 }) => {
+  const { t } = useTranslation();
   return (
     <div className="bg-gradient-to-r from-indigo-600 via-blue-600 to-indigo-700 rounded-2xl shadow-2xl p-4 sm:p-6 md:p-8 mb-4 sm:mb-6 text-white">
       {/* Десктоп / планшет: заголовок зліва, панель дій справа */}
@@ -75,13 +71,13 @@ const Header: React.FC<HeaderProps> = ({
         <div className="flex flex-col gap-1">
           <span className="inline-flex items-center text-[11px] uppercase tracking-[0.18em] text-indigo-100/90">
             <span className="mr-1">💰</span>
-            {isUk ? 'Фінансовий трекер бюджету' : 'Financial budget tracker'}
+            {t('header.subtitle')}
           </span>
           <h1 className="text-3xl lg:text-4xl font-extrabold leading-tight text-white">
-            {isUk ? 'Бюджетний трекер' : 'Budget Tracker'}
+            {t('header.title')}
           </h1>
           <p className="text-left text-indigo-100 text-sm sm:text-base mt-1">
-            {isUk ? '31 день • 3 валюти' : '31 days • 3 currencies'}
+            {t('header.description')}
           </p>
         </div>
 
@@ -91,7 +87,7 @@ const Header: React.FC<HeaderProps> = ({
             {/* Статус синхронізації */}
             <div
               className="flex items-center gap-1 text-[11px] sm:text-xs font-semibold bg-black/20 px-2 py-1 rounded-full"
-              title={getSyncStatusTitle(syncStatus, isUk)}
+              title={getSyncStatusTitle(syncStatus)}
             >
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-300 animate-pulse" />
               <span>{syncStatus}</span>
@@ -103,7 +99,7 @@ const Header: React.FC<HeaderProps> = ({
             {/* Авторизація */}
             {authLoading ? (
               <div className="text-[11px] sm:text-xs text-blue-50">
-                {isUk ? 'Завантаження...' : 'Loading...'}
+                {t('header.loading')}
               </div>
             ) : user ? (
               <div className="flex items-center gap-2">
@@ -124,14 +120,14 @@ const Header: React.FC<HeaderProps> = ({
                     {user.displayName || user.email}
                   </span>
                   <span className="text-[10px] text-blue-100/80">
-                    {isUk ? 'Увійшли через Google' : 'Signed in with Google'}
+                    {t('header.signedIn')}
                   </span>
                 </div>
                 <button
                   onClick={logout}
                   className="text-[11px] sm:text-xs font-semibold bg-red-500/90 hover:bg-red-600 px-2.5 py-1 rounded-full shadow-sm transition-all"
                 >
-                  {isUk ? 'Вийти' : 'Logout'}
+                  {t('header.logout')}
                 </button>
               </div>
             ) : (
@@ -140,7 +136,7 @@ const Header: React.FC<HeaderProps> = ({
                 className="text-[11px] sm:text-xs font-semibold bg-white text-slate-900 hover:bg-slate-100 px-3 py-1.5 rounded-full transition-all flex items-center gap-1.5 shadow-sm"
               >
                 <GoogleIcon />
-                {isUk ? 'Увійти через Google' : 'Sign in with Google'}
+                {t('header.signIn')}
               </button>
             )}
 
@@ -150,14 +146,17 @@ const Header: React.FC<HeaderProps> = ({
             {/* Перемикач мови */}
             <div className="flex items-center gap-2">
               <span className="hidden lg:inline text-[11px] font-medium text-blue-100/90">
-                {isUk ? 'Мова' : 'Language'}
+                {t('header.language')}
               </span>
               <div className="inline-flex items-center bg-slate-900/40 rounded-full p-0.5 shadow-inner border border-white/10">
                 <button
                   type="button"
-                  onClick={() => setLanguage('uk')}
+                  onClick={() => {
+                    i18n.changeLanguage('uk');
+                    setLanguage('uk');
+                  }}
                   className={`px-2.5 py-1 rounded-full text-[11px] font-semibold flex items-center gap-1 ${
-                    isUk
+                    i18n.language === 'uk'
                       ? 'bg-white text-slate-900 shadow-sm'
                       : 'text-blue-100 hover:bg-white/10'
                   }`}
@@ -167,9 +166,12 @@ const Header: React.FC<HeaderProps> = ({
                 </button>
                 <button
                   type="button"
-                  onClick={() => setLanguage('en')}
+                  onClick={() => {
+                    i18n.changeLanguage('en');
+                    setLanguage('en');
+                  }}
                   className={`px-2.5 py-1 rounded-full text-[11px] font-semibold flex items-center gap-1 ${
-                    !isUk
+                    i18n.language === 'en'
                       ? 'bg-white text-slate-900 shadow-sm'
                       : 'text-blue-100 hover:bg-white/10'
                   }`}
@@ -187,13 +189,13 @@ const Header: React.FC<HeaderProps> = ({
       <div className="flex md:hidden flex-col gap-3 mb-3">
         <div className="flex flex-col items-center text-center gap-1">
           <span className="text-[11px] uppercase tracking-[0.18em] text-indigo-100/90">
-            {isUk ? 'Фінансовий трекер бюджету' : 'Financial budget tracker'}
+            {t('header.subtitle')}
           </span>
           <h1 className="text-2xl sm:text-3xl font-extrabold leading-tight text-white">
-            {isUk ? 'Бюджетний трекер' : 'Budget Tracker'}
+            {t('header.title')}
           </h1>
           <p className="text-center text-indigo-100 text-sm sm:text-base mt-1">
-            {isUk ? '31 день • 3 валюти' : '31 days • 3 currencies'}
+            {t('header.description')}
           </p>
         </div>
 
@@ -202,7 +204,7 @@ const Header: React.FC<HeaderProps> = ({
             {/* Статус синхронізації */}
             <div
               className="flex items-center gap-1 text-[11px] font-semibold bg-black/20 px-2 py-1 rounded-full"
-              title={getSyncStatusTitle(syncStatus, isUk)}
+              title={getSyncStatusTitle(syncStatus)}
             >
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-300 animate-pulse" />
               <span className="truncate max-w-[140px]">{syncStatus}</span>
@@ -211,14 +213,17 @@ const Header: React.FC<HeaderProps> = ({
             {/* Перемикач мови */}
             <div className="flex items-center gap-2">
               <span className="text-[11px] font-medium text-indigo-100/90">
-                {isUk ? 'Мова' : 'Lang'}
+                {t('header.languageShort')}
               </span>
               <div className="inline-flex items-center bg-slate-900/40 rounded-full p-0.5 shadow-inner border border-white/10">
                 <button
                   type="button"
-                  onClick={() => setLanguage('uk')}
+                  onClick={() => {
+                    i18n.changeLanguage('uk');
+                    setLanguage('uk');
+                  }}
                   className={`px-2.5 py-1 rounded-full text-[11px] font-semibold flex items-center gap-1 ${
-                    isUk
+                    i18n.language === 'uk'
                       ? 'bg-white text-slate-900 shadow-sm'
                       : 'text-blue-100 hover:bg-white/10'
                   }`}
@@ -228,9 +233,12 @@ const Header: React.FC<HeaderProps> = ({
                 </button>
                 <button
                   type="button"
-                  onClick={() => setLanguage('en')}
+                  onClick={() => {
+                    i18n.changeLanguage('en');
+                    setLanguage('en');
+                  }}
                   className={`px-2.5 py-1 rounded-full text-[11px] font-semibold flex items-center gap-1 ${
-                    !isUk
+                    i18n.language === 'en'
                       ? 'bg-white text-slate-900 shadow-sm'
                       : 'text-blue-100 hover:bg-white/10'
                   }`}
@@ -246,7 +254,7 @@ const Header: React.FC<HeaderProps> = ({
           <div className="flex items-center justify-center">
             {authLoading ? (
               <div className="text-xs sm:text-sm text-blue-100">
-                {isUk ? 'Завантаження...' : 'Loading...'}
+                {t('header.loading')}
               </div>
             ) : user ? (
               <div className="flex items-center gap-2 bg-white/10 backdrop-blur-xl rounded-full px-3 py-1.5 w-full justify-center shadow-lg border border-white/20">
@@ -269,7 +277,7 @@ const Header: React.FC<HeaderProps> = ({
                   onClick={logout}
                   className="text-[11px] sm:text-xs font-semibold bg-red-500/90 hover:bg-red-600 px-2.5 py-1 rounded-full transition-all"
                 >
-                  {isUk ? 'Вийти' : 'Logout'}
+                  {t('header.logout')}
                 </button>
               </div>
             ) : (
@@ -278,7 +286,7 @@ const Header: React.FC<HeaderProps> = ({
                 className="text-xs sm:text-sm font-semibold bg-white text-slate-900 hover:bg-slate-100 px-4 py-2 rounded-full transition-all flex items-center gap-1.5 shadow-lg"
               >
                 <GoogleIcon />
-                {isUk ? 'Увійти через Google' : 'Sign in with Google'}
+                {t('header.signIn')}
               </button>
             )}
           </div>

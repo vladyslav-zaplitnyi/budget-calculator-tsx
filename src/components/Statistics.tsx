@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { convertCurrency } from '../utils/calculations';
 import { getCurrencyInfo, getCurrencySymbol } from '../utils/currencies';
 import { ExchangeRates } from '../types';
@@ -18,6 +19,7 @@ const Statistics: React.FC<StatisticsProps> = ({
   displayCurrency = 'UAH',
   exchangeRates = {}
 }) => {
+  const { t } = useTranslation();
   const displayInfo = getCurrencyInfo(displayCurrency);
   const displaySymbol = displayInfo ? displayInfo.symbol : displayCurrency;
   const displayEmoji = displayInfo ? displayInfo.emoji : '';
@@ -40,7 +42,7 @@ const Statistics: React.FC<StatisticsProps> = ({
     <div className="bg-white/90 backdrop-blur rounded-2xl shadow-xl p-4 sm:p-6 border border-gray-100">
       <h2 className="text-lg sm:text-xl font-bold text-gray-800 mb-4 flex items-center">
         <span className="mr-2">📈</span>{' '}
-        {isUk ? 'Детальна статистика' : 'Detailed statistics'}
+        {t('statistics.title')}
       </h2>
 
       {/* Income and Expenses Grid - показуємо для кожної обраної валюти */}
@@ -61,7 +63,7 @@ const Statistics: React.FC<StatisticsProps> = ({
               <div className="bg-gradient-to-br from-emerald-50 to-green-100/70 p-3 sm:p-4 rounded-xl border-l-4 border-emerald-500 shadow-md hover:shadow-lg transition-all">
                 <div className="flex items-center justify-between mb-1">
                   <p className="text-[10px] sm:text-xs font-semibold text-gray-600">
-                    {isUk ? 'Надбавки' : 'Income'}
+                    {t('statistics.income')}
                   </p>
                   <span className="text-xs">{currency.emoji}</span>
                 </div>
@@ -75,7 +77,7 @@ const Statistics: React.FC<StatisticsProps> = ({
               <div className="bg-gradient-to-br from-rose-50 to-red-100/70 p-3 sm:p-4 rounded-xl border-l-4 border-rose-500 shadow-md hover:shadow-lg transition-all">
                 <div className="flex items-center justify-between mb-1">
                   <p className="text-[10px] sm:text-xs font-semibold text-gray-600">
-                    {isUk ? 'Витрати' : 'Expenses'}
+                    {t('statistics.expenses')}
                   </p>
                   <span className="text-xs">{currency.emoji}</span>
                 </div>
@@ -106,7 +108,7 @@ const Statistics: React.FC<StatisticsProps> = ({
             <div key={currencyCode} className="bg-gradient-to-br from-indigo-50 to-violet-100/70 p-4 rounded-xl border-2 border-indigo-200 shadow-lg hover:shadow-xl transition-all">
               <div className="flex items-center justify-between mb-2">
                 <p className="text-xs sm:text-sm font-semibold text-gray-700">
-                  {isUk ? `Різниця ${currencyCode} ${currency.emoji}` : `Difference ${currencyCode} ${currency.emoji}`}
+                  {t('statistics.difference')} {currencyCode} {currency.emoji}
                 </p>
               </div>
               <p className={`text-xl sm:text-2xl font-bold ${
@@ -115,7 +117,7 @@ const Statistics: React.FC<StatisticsProps> = ({
                 {symbol}{difference.toFixed(2)}
               </p>
               <p className="text-xs text-gray-500 mt-1">
-                {isUk ? 'надбавки - витрати' : 'income - expenses'}
+                {t('statistics.incomeMinusExpenses')}
               </p>
             </div>
           );
@@ -127,7 +129,7 @@ const Statistics: React.FC<StatisticsProps> = ({
         <div className="bg-gradient-to-br from-indigo-50 to-violet-100/70 p-4 rounded-xl border-2 border-indigo-300 shadow-lg hover:shadow-xl transition-all">
           <div className="flex items-center justify-between mb-2">
             <p className="text-xs sm:text-sm font-semibold text-gray-700">
-              {isUk ? `Загальна різниця ${displayCurrency} ${displayEmoji}` : `Total difference ${displayCurrency} ${displayEmoji}`}
+              {t('statistics.totalDifference')} {displayCurrency} {displayEmoji}
             </p>
           </div>
           <p className={`text-xl sm:text-2xl font-bold ${
@@ -136,7 +138,7 @@ const Statistics: React.FC<StatisticsProps> = ({
             {displaySymbol}{(totalIncomeConverted - totalExpenseConverted).toFixed(2)}
           </p>
           <p className="text-xs text-gray-500 mt-1">
-            {isUk ? 'надбавки - витрати (конвертовано)' : 'income - expenses (converted)'}
+            {t('statistics.incomeMinusExpensesConverted')}
           </p>
         </div>
       </div>

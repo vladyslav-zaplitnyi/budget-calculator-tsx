@@ -1,0 +1,115 @@
+{
+  "header": {
+    "subtitle": "Financial budget tracker",
+    "title": "Budget Tracker",
+    "description": "31 days • 3 currencies",
+    "loading": "Loading...",
+    "signedIn": "Signed in with Google",
+    "logout": "Logout",
+    "signIn": "Sign in with Google",
+    "language": "Language",
+    "languageShort": "Lang",
+    "syncStatus": {
+      "local": "Data is saved locally in the browser. Sign in with Google to sync to the cloud.",
+      "saved": "Data saved to the cloud. It will be available on all your devices.",
+      "syncing": "Synchronizing data with the cloud...",
+      "error": "Error synchronizing data."
+    }
+  },
+  "settings": {
+    "title": "Settings",
+    "budget": {
+      "label": "Budget",
+      "noBudgets": "No budgets yet",
+      "untitled": "Untitled",
+      "add": "Add new budget",
+      "delete": "Delete current budget",
+      "namePrompt": "Enter budget name",
+      "signInRequired": "Sign in with Google to create multiple budgets.",
+      "signInRequiredDelete": "Sign in with Google to delete budgets.",
+      "description": "Free version allows up to 3 budgets. Main budget (Main/Основний) cannot be deleted."
+    },
+    "currency": {
+      "selection": "💱 Currency Selection (3 currencies)",
+      "description": "Select 3 currencies to track. Each currency can only be selected once."
+    },
+    "balances": {
+      "title": "💰 Starting Balances",
+      "startingBudget": "Starting budget"
+    },
+    "exchangeRates": {
+      "title": "💱 Exchange Rates",
+      "buy": "Buy",
+      "sell": "Sell",
+      "description": "Exchange rates for each currency pair. Buy - rate for buying currency, Sell - rate for selling currency.",
+      "update": "🔄 Update rates from NBU",
+      "updating": "⏳ Updating rates..."
+    },
+    "localInteraction": {
+      "title": "For local interaction",
+      "description": "You can save JSON to disk and then import it back at any time.",
+      "export": "📥 Download JSON to disk",
+      "import": "⬆️ Import from JSON file",
+      "importing": "⏳ Importing..."
+    },
+    "clearAll": "🗑️ Clear all fields"
+  },
+  "budgetStatus": {
+    "title": "Current budget status",
+    "balance": "balance",
+    "totalValue": "Total value",
+    "selectDisplayCurrency": "Select display currency"
+  },
+  "transaction": {
+    "add": "Add Transaction",
+    "edit": "Edit Transaction",
+    "type": "Transaction Type",
+    "expense": "❌ Expense",
+    "income": "✅ Income",
+    "amount": "Amount",
+    "currency": "Currency",
+    "description": "Description",
+    "descriptionPlaceholder": "Short description...",
+    "cancel": "Cancel",
+    "save": "Save",
+    "delete": "Delete",
+    "amountError": "Enter a valid amount greater than 0",
+    "descriptionError": "Enter transaction description",
+    "maxTransactions": "Maximum 5 transactions per day",
+    "maxTransactionsShort": "Max 5 transactions"
+  },
+  "days": {
+    "day": "Day",
+    "dayNumber": "Day",
+    "description": "Description",
+    "income": "Income",
+    "expenses": "Expenses",
+    "balance": "Balance",
+    "cumulative": "Cumulative balance",
+    "cumulativeShort": "Cumulative",
+    "cumulativeLabel": "Cum: ",
+    "dayBalance": "Day balance: ",
+    "addTransaction": "+ Add Transaction",
+    "converted": "(Converted)"
+  },
+  "statistics": {
+    "title": "Detailed statistics",
+    "income": "Income",
+    "expenses": "Expenses",
+    "difference": "Difference",
+    "totalDifference": "Total difference",
+    "incomeMinusExpenses": "income - expenses",
+    "incomeMinusExpensesConverted": "income - expenses (converted)"
+  },
+  "footer": {
+    "copyright": "© 2025 Developed by",
+    "by": "Vladyslav Zaplitnyi"
+  },
+  "errors": {
+    "exportError": "❌ Error while exporting JSON",
+    "importError": "❌ Invalid or corrupted JSON file",
+    "readError": "❌ Error reading file",
+    "fileSaved": "✅ File saved to disk"
+  }
+}
+

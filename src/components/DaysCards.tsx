@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   calculateDayBalance,
   calculateCumulativeBalance,
@@ -35,6 +36,7 @@ const DaysCards: React.FC<DaysCardsProps> = ({
   exchangeRates = {},
   startBalances = {}
 }) => {
+  const { t, i18n: i18nInstance } = useTranslation();
   const [modalState, setModalState] = useState<{
     isOpen: boolean;
     dayIndex: number | null;
@@ -52,7 +54,7 @@ const DaysCards: React.FC<DaysCardsProps> = ({
     const transactionCount = Array.isArray(day.transactions) ? day.transactions.length : 0;
     
     if (transactionCount >= MAX_TRANSACTIONS) {
-      alert(isUk ? 'Максимум 5 операцій на день' : 'Maximum 5 transactions per day');
+      alert(t('transaction.maxTransactions'));
       return;
     }
 
@@ -120,11 +122,11 @@ const DaysCards: React.FC<DaysCardsProps> = ({
             <div className="flex items-center justify-between mb-3 pb-3 border-b-2 border-gray-200">
               <div className="flex items-center gap-2">
                 <div className="bg-gradient-to-br from-indigo-500 to-blue-600 text-white font-bold text-lg rounded-lg px-3 py-1">
-                  {isUk ? `День ${day.day}` : `Day ${day.day}`}
+                  {t('days.dayNumber')} {day.day}
                 </div>
               </div>
               <div className="text-xs font-semibold text-gray-500">
-                {isUk ? 'Накопичений баланс' : 'Cumulative balance'}
+                {t('days.cumulative')}
               </div>
             </div>
 
@@ -169,11 +171,11 @@ const DaysCards: React.FC<DaysCardsProps> = ({
                   onClick={() => handleAddTransaction(index)}
                   className="w-full px-3 py-2 text-sm bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors font-semibold"
                 >
-                  {isUk ? '+ Додати операцію' : '+ Add Transaction'}
+                  {t('days.addTransaction')}
                 </button>
               ) : (
                 <div className="w-full px-3 py-2 text-sm bg-gray-200 text-gray-600 rounded-lg text-center">
-                  {isUk ? 'Максимум 5 операцій на день' : 'Maximum 5 transactions per day'}
+                  {t('transaction.maxTransactions')}
                 </div>
               )}
             </div>
@@ -206,10 +208,10 @@ const DaysCards: React.FC<DaysCardsProps> = ({
                 <div key={currencyCode} className={`bg-gradient-to-br ${colorClass} p-3 rounded-lg mb-2 border ${currencyIdx === selectedCurrencies.length - 1 ? '' : 'mb-2'}`}>
                   <div className="flex items-center justify-between mb-2">
                     <h4 className="text-xs font-bold text-gray-700">
-                      {currency.emoji} {getCurrencyName(currencyCode, isUk ? 'uk' : 'en')} ({currencyCode})
+                      {currency.emoji} {getCurrencyName(currencyCode, i18nInstance.language === 'uk' ? 'uk' : 'en')} ({currencyCode})
                     </h4>
                     <div className="text-xs font-semibold text-gray-600">
-                      {isUk ? 'Накоп: ' : 'Cum: '}
+                      {t('days.cumulativeLabel')}
                       <span className={cumulative >= (parseFloat(String(startBalance)) || 0) ? 'text-emerald-600' : 'text-rose-600'}>
                         {symbol}{cumulative.toFixed(2)}
                       </span>
@@ -218,7 +220,7 @@ const DaysCards: React.FC<DaysCardsProps> = ({
                   <div className="grid grid-cols-2 gap-2">
                     <div>
                       <label className="text-xs text-gray-600 block mb-1">
-                        {isUk ? '✅ Надбавки' : '✅ Income'}
+                        ✅ {t('days.income')}
                       </label>
                       <div className="w-full px-2 py-2 text-sm text-right bg-emerald-50 border-2 border-emerald-200 rounded-lg font-semibold text-emerald-700">
                         {income > 0 ? income.toFixed(2) : '0.00'}
@@ -226,7 +228,7 @@ const DaysCards: React.FC<DaysCardsProps> = ({
                     </div>
                     <div>
                       <label className="text-xs text-gray-600 block mb-1">
-                        {isUk ? '❌ Витрати' : '❌ Expenses'}
+                        ❌ {t('days.expenses')}
                       </label>
                       <div className="w-full px-2 py-2 text-sm text-right bg-rose-50 border-2 border-rose-200 rounded-lg font-semibold text-rose-700">
                         {expense > 0 ? expense.toFixed(2) : '0.00'}
@@ -235,7 +237,7 @@ const DaysCards: React.FC<DaysCardsProps> = ({
                   </div>
                   <div className="mt-2 text-center">
                     <span className="text-xs text-gray-600">
-                      {isUk ? 'Баланс дня: ' : 'Day balance: '}
+                      {t('days.dayBalance')}
                     </span>
                     <span className={`text-sm font-bold ${dayBalance > 0 ? 'text-emerald-600' : dayBalance < 0 ? 'text-rose-600' : 'text-gray-600'}`}>
                       {symbol}{dayBalance.toFixed(2)}
@@ -279,10 +281,10 @@ const DaysCards: React.FC<DaysCardsProps> = ({
                 <div className="bg-gradient-to-br from-indigo-50 to-violet-100/70 p-3 rounded-lg border-2 border-indigo-300">
                   <div className="flex items-center justify-between mb-2">
                     <h4 className="text-xs font-bold text-gray-700">
-                      {displayEmoji} {displayCurrency} {isUk ? '(Конвертовано)' : '(Converted)'}
+                      {displayEmoji} {displayCurrency} {t('days.converted')}
                     </h4>
                     <div className="text-xs font-semibold text-gray-600">
-                      {isUk ? 'Накоп: ' : 'Cum: '}
+                      {t('days.cumulativeLabel')}
                       <span className={convertedCumulative >= 0 ? 'text-emerald-600' : 'text-rose-600'}>
                         {displaySymbol}{convertedCumulative.toFixed(2)}
                       </span>
@@ -291,7 +293,7 @@ const DaysCards: React.FC<DaysCardsProps> = ({
                   <div className="grid grid-cols-2 gap-2">
                     <div>
                       <label className="text-xs text-gray-600 block mb-1">
-                        {isUk ? '✅ Надбавки' : '✅ Income'}
+                        ✅ {t('days.income')}
                       </label>
                       <div className="w-full px-2 py-2 text-sm text-right bg-emerald-50 border-2 border-emerald-200 rounded-lg font-semibold text-emerald-700">
                         {convertedIncome > 0 ? convertedIncome.toFixed(2) : '0.00'}
@@ -299,7 +301,7 @@ const DaysCards: React.FC<DaysCardsProps> = ({
                     </div>
                     <div>
                       <label className="text-xs text-gray-600 block mb-1">
-                        {isUk ? '❌ Витрати' : '❌ Expenses'}
+                        ❌ {t('days.expenses')}
                       </label>
                       <div className="w-full px-2 py-2 text-sm text-right bg-rose-50 border-2 border-rose-200 rounded-lg font-semibold text-rose-700">
                         {convertedExpense > 0 ? convertedExpense.toFixed(2) : '0.00'}
@@ -308,7 +310,7 @@ const DaysCards: React.FC<DaysCardsProps> = ({
                   </div>
                   <div className="mt-2 text-center">
                     <span className="text-xs text-gray-600">
-                      {isUk ? 'Баланс дня: ' : 'Day balance: '}
+                      {t('days.dayBalance')}
                     </span>
                     <span className={`text-sm font-bold ${convertedDayBalance > 0 ? 'text-emerald-600' : convertedDayBalance < 0 ? 'text-rose-600' : 'text-gray-600'}`}>
                       {displaySymbol}{convertedDayBalance.toFixed(2)}

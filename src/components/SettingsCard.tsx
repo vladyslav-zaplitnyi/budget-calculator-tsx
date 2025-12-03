@@ -1,4 +1,5 @@
 import React, { ChangeEvent, RefObject } from 'react';
+import { useTranslation } from 'react-i18next';
 import { AVAILABLE_CURRENCIES, getCurrencyName } from '../utils/currencies';
 import { User } from 'firebase/auth';
 import { Budgets, ExchangeRates } from '../types';
@@ -79,6 +80,7 @@ const SettingsCard: React.FC<SettingsCardProps> = ({
   isUpdatingRates,
   rateUpdateMessage
 }) => {
+  const { t, i18n: i18nInstance } = useTranslation();
   const handleCurrencySelect = (currencyCode: string, index: number) => {
     const newCurrencies = [...selectedCurrencies];
     newCurrencies[index] = currencyCode;
@@ -90,14 +92,14 @@ const SettingsCard: React.FC<SettingsCardProps> = ({
   return (
     <div className="bg-white/90 backdrop-blur rounded-2xl shadow-xl p-4 sm:p-6 mb-4 sm:mb-6 border border-gray-100">
       <h2 className="text-lg sm:text-xl font-bold text-gray-800 mb-4 flex items-center">
-        <span className="mr-2">⚙️</span> {isUk ? 'Налаштування' : 'Settings'}
+        <span className="mr-2">⚙️</span> {t('settings.title')}
       </h2>
 
       {/* Multi-budget selector (тільки для авторизованих користувачів) */}
       {user && (
         <div className="mb-4 sm:mb-6">
           <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-2">
-            {isUk ? 'Бюджет' : 'Budget'}
+            {t('settings.budget.label')}
           </label>
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
             <select
@@ -110,12 +112,12 @@ const SettingsCard: React.FC<SettingsCardProps> = ({
             >
               {(!budgets || Object.keys(budgets).length === 0) ? (
                 <option value="">
-                  {isUk ? 'Ще немає збережених бюджетів' : 'No budgets yet'}
+                  {t('settings.budget.noBudgets')}
                 </option>
               ) : (
                 Object.entries(budgets).map(([id, budget]) => (
                   <option key={id} value={id}>
-                    {budget.name || (isUk ? 'Без назви' : 'Untitled')}
+                    {budget.name || t('settings.budget.untitled')}
                   </option>
                 ))
               )}
@@ -124,7 +126,7 @@ const SettingsCard: React.FC<SettingsCardProps> = ({
               type="button"
               onClick={handleAddBudgetClick}
               className="inline-flex items-center justify-center px-3 py-2 sm:px-4 sm:py-2.5 rounded-lg bg-gradient-to-r from-emerald-500 to-teal-500 text-white font-bold text-sm shadow-md hover:shadow-lg hover:from-emerald-600 hover:to-teal-600 active:scale-95 transition-all"
-              title={isUk ? 'Додати новий бюджет' : 'Add new budget'}
+              title={t('settings.budget.add')}
             >
               [+]
             </button>
@@ -133,16 +135,14 @@ const SettingsCard: React.FC<SettingsCardProps> = ({
                 type="button"
                 onClick={handleDeleteBudget}
                 className="inline-flex items-center justify-center px-3 py-2 sm:px-4 sm:py-2.5 rounded-lg bg-gradient-to-r from-red-500 to-red-600 text-white font-bold text-sm shadow-md hover:shadow-lg hover:from-red-600 hover:to-red-700 active:scale-95 transition-all"
-                title={isUk ? 'Видалити поточний бюджет' : 'Delete current budget'}
+                title={t('settings.budget.delete')}
               >
                 [×]
               </button>
             )}
           </div>
           <p className="mt-1 text-[10px] sm:text-xs text-gray-500">
-            {isUk
-              ? 'У безкоштовній версії доступно до 3 бюджетів. Основний бюджет (Main/Основний) не можна видалити.'
-              : 'Free version allows up to 3 budgets. Main budget (Main/Основний) cannot be deleted.'}
+            {t('settings.budget.description')}
           </p>
         </div>
       )}
@@ -150,7 +150,7 @@ const SettingsCard: React.FC<SettingsCardProps> = ({
       {/* Currency Selector */}
       <div className="mb-4 sm:mb-6">
         <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-2">
-          {isUk ? '💱 Вибір валют (3 валюти)' : '💱 Currency Selection (3 currencies)'}
+          {t('settings.currency.selection')}
         </label>
         <div className="grid grid-cols-3 gap-2 sm:gap-3">
           {selectedCurrencies.map((currencyCode, index) => {
@@ -172,7 +172,7 @@ const SettingsCard: React.FC<SettingsCardProps> = ({
                         value={code} 
                         disabled={isSelected}
                       >
-                        {curr.emoji} {code} - {getCurrencyName(code, isUk ? 'uk' : 'en')}
+                        {curr.emoji} {code} - {getCurrencyName(code, i18nInstance.language === 'uk' ? 'uk' : 'en')}
                       </option>
                     );
                   })}
@@ -182,16 +182,14 @@ const SettingsCard: React.FC<SettingsCardProps> = ({
           })}
         </div>
         <p className="mt-1 text-[10px] sm:text-xs text-gray-500">
-          {isUk
-            ? 'Оберіть 3 валюти для відстеження. Кожна валюта може бути вибрана тільки один раз.'
-            : 'Select 3 currencies to track. Each currency can only be selected once.'}
+          {t('settings.currency.description')}
         </p>
       </div>
 
       {/* Initial Balances */}
       <div className="mb-4 sm:mb-6">
         <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-2">
-          {isUk ? '💰 Початкові баланси' : '💰 Starting Balances'}
+          {t('settings.balances.title')}
         </label>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
           {selectedCurrencies.map((currencyCode, index) => {
@@ -221,7 +219,7 @@ const SettingsCard: React.FC<SettingsCardProps> = ({
             return (
               <div key={currencyCode} className={`bg-gradient-to-br ${colorClass} p-3 sm:p-4 rounded-xl border-2 transition-all`}>
                 <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-2">
-                  {currency.emoji} {isUk ? `Початковий бюджет (${currencyCode})` : `Starting budget (${currencyCode})`}
+                  {currency.emoji} {t('settings.balances.startingBudget')} ({currencyCode})
                 </label>
                 <input
                   type="number"
@@ -242,7 +240,7 @@ const SettingsCard: React.FC<SettingsCardProps> = ({
                       }
                     }
                   }}
-                  placeholder={isUk ? '0' : '0'}
+                  placeholder="0"
                   className="w-full px-3 sm:px-4 py-2 sm:py-3 text-base sm:text-lg font-semibold border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 transition-all"
                 />
               </div>
@@ -254,7 +252,7 @@ const SettingsCard: React.FC<SettingsCardProps> = ({
       {/* Exchange Rates */}
       <div className="mb-4 sm:mb-6">
         <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-2">
-          {isUk ? '💱 Курси обміну' : '💱 Exchange Rates'}
+          {t('settings.exchangeRates.title')}
         </label>
         <div className="space-y-4">
           {selectedCurrencies.map((currencyCode, index) => {
@@ -304,7 +302,7 @@ const SettingsCard: React.FC<SettingsCardProps> = ({
                   {/* Купівля */}
                   <div>
                     <label className="block text-[10px] sm:text-xs font-semibold text-gray-600 mb-1">
-                      {isUk ? `Купівля (${baseCurrency} → ${currencyCode})` : `Buy (${baseCurrency} → ${currencyCode})`}
+                      {t('settings.exchangeRates.buy')} ({baseCurrency} → {currencyCode})
                     </label>
                     <input
                       type="number"
@@ -322,7 +320,7 @@ const SettingsCard: React.FC<SettingsCardProps> = ({
                   {/* Продаж */}
                   <div>
                     <label className="block text-[10px] sm:text-xs font-semibold text-gray-600 mb-1">
-                      {isUk ? `Продаж (${currencyCode} → ${baseCurrency})` : `Sell (${currencyCode} → ${baseCurrency})`}
+                      {t('settings.exchangeRates.sell')} ({currencyCode} → {baseCurrency})
                     </label>
                     <input
                       type="number"
@@ -343,9 +341,7 @@ const SettingsCard: React.FC<SettingsCardProps> = ({
           })}
         </div>
         <p className="mt-1 text-[10px] sm:text-xs text-gray-500">
-          {isUk
-            ? `Курси обміну для кожної пари валют. Купівля - курс для покупки валюти, Продаж - курс для продажу валюти.`
-            : `Exchange rates for each currency pair. Buy - rate for buying currency, Sell - rate for selling currency.`}
+          {t('settings.exchangeRates.description')}
         </p>
         {/* Кнопка оновлення курсів НБУ */}
         {handleUpdateNbuRates && (
@@ -361,8 +357,8 @@ const SettingsCard: React.FC<SettingsCardProps> = ({
               }`}
             >
               {isUpdatingRates
-                ? (isUk ? '⏳ Оновлення курсів...' : '⏳ Updating rates...')
-                : (isUk ? '🔄 Оновити курси з НБУ' : '🔄 Update rates from NBU')}
+                ? t('settings.exchangeRates.updating')
+                : t('settings.exchangeRates.update')}
             </button>
             {rateUpdateMessage && (
               <span
@@ -383,19 +379,17 @@ const SettingsCard: React.FC<SettingsCardProps> = ({
         <div className="bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 p-3 sm:p-4 rounded-xl border-2 border-slate-200 space-y-3">
           <h3 className="text-xs sm:text-sm font-bold text-gray-800 mb-1 flex items-center">
             <span className="mr-2">💾</span>{' '}
-            {isUk ? 'Для локальної взаємодії' : 'For local interaction'}
+            {t('settings.localInteraction.title')}
           </h3>
           <p className="text-[10px] sm:text-xs text-gray-500">
-            {isUk
-              ? 'Ви можете зберегти JSON на диск, а потім у будь-який момент імпортувати його назад.'
-              : 'You can save JSON to disk and then import it back at any time.'}
+            {t('settings.localInteraction.description')}
           </p>
           <div className="flex flex-col sm:flex-row gap-2">
             <button
               onClick={handleExportToJsonFile}
               className="flex-1 px-4 sm:px-6 py-2 sm:py-3 rounded-xl font-bold transition-all text-xs sm:text-sm bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white shadow-lg hover:shadow-xl active:scale-95"
             >
-              {isUk ? '📥 Завантажити JSON на диск' : '📥 Download JSON to disk'}
+              {t('settings.localInteraction.export')}
             </button>
             <button
               type="button"
@@ -408,12 +402,8 @@ const SettingsCard: React.FC<SettingsCardProps> = ({
               }`}
             >
               {isLoading
-                ? isUk
-                  ? '⏳ Імпорт...'
-                  : '⏳ Importing...'
-                : isUk
-                ? '⬆️ Імпортувати з JSON-файлу'
-                : '⬆️ Import from JSON file'}
+                ? t('settings.localInteraction.importing')
+                : t('settings.localInteraction.import')}
             </button>
           </div>
           <input
@@ -449,7 +439,7 @@ const SettingsCard: React.FC<SettingsCardProps> = ({
             onClick={handleClearAll}
             className="w-full px-4 sm:px-6 py-3 rounded-xl font-bold transition-all text-sm sm:text-base bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white shadow-lg hover:shadow-xl active:scale-95"
           >
-            {isUk ? '🗑️ Стерти всі поля' : '🗑️ Clear all fields'}
+            {t('settings.clearAll')}
           </button>
         </div>
       </div>

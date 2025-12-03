@@ -7,6 +7,7 @@ import { setCookie } from '../utils/cookieHelpers';
 import { saveToFirestore } from '../utils/storageHelpers';
 import { Budgets, Budget } from '../types';
 import { isExchangeRatePair, hasPairStructure, getBuyRate } from '../utils/typeGuards';
+import { translate } from '../i18n/config';
 
 /**
  * Hook для управління бюджетами (створення, видалення, перемикання)
@@ -192,27 +193,21 @@ export function useBudgetManagement() {
   const handleAddBudgetClick = useCallback(() => {
     if (!user) {
       alert(
-        isUk
-          ? 'Для створення декількох бюджетів увійдіть через Google.'
-          : 'Sign in with Google to create multiple budgets.'
+        translate('settings.budget.signInRequired')
       );
       return;
     }
 
-    const namePrompt = isUk ? 'Введіть назву бюджету' : 'Enter budget name';
+    const namePrompt = translate('settings.budget.namePrompt');
     const name = window.prompt(namePrompt);
     if (!name || !name.trim()) return;
 
     createNewBudget(name);
-  }, [isUk, user, createNewBudget]);
+  }, [user, createNewBudget]);
 
   const handleDeleteBudget = useCallback(() => {
     if (!user) {
-      alert(
-        isUk
-          ? 'Для видалення бюджетів увійдіть через Google.'
-          : 'Sign in with Google to delete budgets.'
-      );
+      alert(translate('settings.budget.signInRequiredDelete'));
       return;
     }
 

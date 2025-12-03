@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   calculateDayBalance,
   calculateCumulativeBalance,
@@ -35,6 +36,7 @@ const DaysTable: React.FC<DaysTableProps> = ({
   exchangeRates = {},
   startBalances = {}
 }) => {
+  const { t: translate, i18n: i18nInstance } = useTranslation();
   const [modalState, setModalState] = useState<{
     isOpen: boolean;
     dayIndex: number | null;
@@ -52,7 +54,7 @@ const DaysTable: React.FC<DaysTableProps> = ({
     const transactionCount = Array.isArray(day.transactions) ? day.transactions.length : 0;
     
     if (transactionCount >= MAX_TRANSACTIONS) {
-      alert(isUk ? 'Максимум 5 операцій на день' : 'Maximum 5 transactions per day');
+      alert(translate('transaction.maxTransactions'));
       return;
     }
 
@@ -134,17 +136,17 @@ const DaysTable: React.FC<DaysTableProps> = ({
           <thead className="bg-gradient-to-r from-indigo-600 via-blue-600 to-violet-600 text-white lg:sticky lg:top-0 z-20">
             <tr>
               <th className="px-3 py-3 text-left font-semibold" rowSpan={2}>
-                {isUk ? 'День' : 'Day'}
+                {translate('days.day')}
               </th>
               <th className="px-3 py-3 text-left font-semibold" rowSpan={2}>
-                {isUk ? 'Опис' : 'Description'}
+                {translate('days.description')}
               </th>
               {selectedCurrencies.map((currencyCode) => {
                 const currency = getCurrencyInfo(currencyCode);
                 if (!currency) return null;
                 return (
                   <th key={currencyCode} className="px-3 py-3 text-center font-semibold border-l border-indigo-400" colSpan={4}>
-                    {currency.emoji} {getCurrencyName(currencyCode, isUk ? 'uk' : 'en')} ({currencyCode})
+                    {currency.emoji} {getCurrencyName(currencyCode, i18nInstance.language === 'uk' ? 'uk' : 'en')} ({currencyCode})
                   </th>
                 );
               })}
@@ -152,7 +154,7 @@ const DaysTable: React.FC<DaysTableProps> = ({
                 {(() => {
                   const displayInfo = getCurrencyInfo(displayCurrency);
                   const displayEmoji = displayInfo ? displayInfo.emoji : '';
-                  return `${displayEmoji} ${displayCurrency} ${isUk ? '(Конвертовано)' : '(Converted)'}`;
+                  return `${displayEmoji} ${displayCurrency} ${translate('days.converted')}`;
                 })()}
               </th>
             </tr>
@@ -160,30 +162,30 @@ const DaysTable: React.FC<DaysTableProps> = ({
               {selectedCurrencies.map((currencyCode, idx) => (
                 <React.Fragment key={currencyCode}>
                   <th className={`px-2 py-2 text-right text-xs ${idx === 0 ? 'border-l border-indigo-400' : 'border-l border-indigo-400'}`}>
-                    {isUk ? 'Надбавки' : 'Income'}
+                    {translate('days.income')}
                   </th>
                   <th className="px-2 py-2 text-right text-xs">
-                    {isUk ? 'Витрати' : 'Expenses'}
+                    {translate('days.expenses')}
                   </th>
                   <th className="px-2 py-2 text-right text-xs">
-                    {isUk ? 'Баланс' : 'Balance'}
+                    {translate('days.balance')}
                   </th>
                   <th className="px-2 py-2 text-right text-xs">
-                    {isUk ? 'Накопич.' : 'Cumulative'}
+                    {translate('days.cumulativeShort')}
                   </th>
                 </React.Fragment>
               ))}
               <th className="px-2 py-2 text-right text-xs border-l border-indigo-400 bg-indigo-50">
-                {isUk ? 'Надбавки' : 'Income'}
+                {translate('days.income')}
               </th>
               <th className="px-2 py-2 text-right text-xs bg-indigo-50">
-                {isUk ? 'Витрати' : 'Expenses'}
+                {translate('days.expenses')}
               </th>
               <th className="px-2 py-2 text-right text-xs bg-indigo-50">
-                {isUk ? 'Баланс' : 'Balance'}
+                {translate('days.balance')}
               </th>
               <th className="px-2 py-2 text-right text-xs bg-indigo-50">
-                {isUk ? 'Накопич.' : 'Cumulative'}
+                {translate('days.cumulativeShort')}
               </th>
             </tr>
           </thead>
@@ -218,11 +220,11 @@ const DaysTable: React.FC<DaysTableProps> = ({
                           onClick={() => handleAddTransaction(index)}
                           className="w-full px-2 py-1 text-xs bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors font-semibold"
                         >
-                          {isUk ? '+ Додати операцію' : '+ Add Transaction'}
+                          {translate('days.addTransaction')}
                         </button>
                       ) : (
                         <div className="w-full px-2 py-1 text-xs bg-gray-200 text-gray-600 rounded-lg text-center">
-                          {isUk ? 'Максимум 5 операцій' : 'Max 5 transactions'}
+                          {translate('transaction.maxTransactionsShort')}
                         </div>
                       )}
                       
@@ -241,14 +243,14 @@ const DaysTable: React.FC<DaysTableProps> = ({
                                 <button
                                   onClick={() => handleEditTransaction(index, t)}
                                   className="text-blue-600 hover:text-blue-800"
-                                  title={isUk ? 'Редагувати' : 'Edit'}
+                                  title={translate('transaction.edit')}
                                 >
                                   ✏️
                                 </button>
                                 <button
                                   onClick={() => handleDeleteTransaction(index, t.id)}
                                   className="text-red-600 hover:text-red-800"
-                                  title={isUk ? 'Видалити' : 'Delete'}
+                                  title={translate('transaction.delete')}
                                 >
                                   🗑️
                                 </button>

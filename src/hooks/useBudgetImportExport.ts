@@ -8,6 +8,7 @@ import { Budgets, Day, Transaction } from '../types';
 import { isExchangeRatePair } from '../utils/typeGuards';
 import { validateDay, validateTransaction } from '../schemas/budgetSchema';
 import { handleError } from '../utils/errorHandler';
+import { translate } from '../i18n/config';
 
 /**
  * Hook для імпорту та експорту бюджету в JSON формат
@@ -17,7 +18,6 @@ export function useBudgetImportExport() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const {
-    isUk,
     selectedCurrencies,
     exchangeRates,
     startBalanceUAH,
@@ -177,15 +177,15 @@ export function useBudgetImportExport() {
       URL.revokeObjectURL(url);
 
       setSaveMessage(
-        isUk ? `✅ Файл збережено на диск: ${filename}` : `✅ File saved to disk: ${filename}`
+        `${translate('errors.fileSaved')}: ${filename}`
       );
       setTimeout(() => setSaveMessage(''), 3000);
     } catch (error) {
       console.error('Помилка при експорті JSON:', error);
-      setSaveMessage(isUk ? '❌ Помилка при експорті JSON' : '❌ Error while exporting JSON');
+      setSaveMessage(translate('errors.exportError'));
       setTimeout(() => setSaveMessage(''), 3000);
     }
-  }, [isUk, budgets, activeBudgetId, selectedCurrencies, exchangeRates, startBalanceUAH, startBalanceUSD, startBalanceEUR, usdRate, eurRate, days, baseCurrency, setSaveMessage]);
+  }, [budgets, activeBudgetId, selectedCurrencies, exchangeRates, startBalanceUAH, startBalanceUSD, startBalanceEUR, usdRate, eurRate, days, baseCurrency, setSaveMessage]);
 
   const handleImportFromJsonFile = useCallback(() => {
     if (fileInputRef.current) {
@@ -424,9 +424,7 @@ export function useBudgetImportExport() {
         setTimeout(() => setLoadMessage(''), 3000);
       } catch (err) {
         console.error('Помилка при читанні JSON-файлу:', err);
-        setLoadMessage(
-          isUk ? '❌ Некоректний або пошкоджений JSON-файл' : '❌ Invalid or corrupted JSON file'
-        );
+        setLoadMessage(translate('errors.importError'));
         setTimeout(() => setLoadMessage(''), 4000);
       } finally {
         setIsLoading(false);
@@ -437,13 +435,13 @@ export function useBudgetImportExport() {
     reader.onerror = () => {
       console.error('Помилка читання файлу');
       setIsLoading(false);
-      setLoadMessage(isUk ? '❌ Помилка читання файлу' : '❌ Error reading file');
+      setLoadMessage(translate('errors.readError'));
       setTimeout(() => setLoadMessage(''), 4000);
       event.target.value = '';
     };
 
     reader.readAsText(file, 'utf-8');
-  }, [isUk, activeBudgetId, selectedCurrencies, exchangeRates, days, setSelectedCurrencies, setExchangeRates, setUsdRate, setEurRate, setStartBalanceUAH, setStartBalanceUSD, setStartBalanceEUR, setBudgets, setDays, setIsLoading, setLoadMessage]);
+  }, [activeBudgetId, selectedCurrencies, exchangeRates, days, setSelectedCurrencies, setExchangeRates, setUsdRate, setEurRate, setStartBalanceUAH, setStartBalanceUSD, setStartBalanceEUR, setBudgets, setDays, setIsLoading, setLoadMessage]);
 
   return {
     handleExportToJsonFile,

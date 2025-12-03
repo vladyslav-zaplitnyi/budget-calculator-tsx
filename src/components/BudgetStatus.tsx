@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { getCurrencyInfo, getCurrencySymbol, getCurrencyEmoji, AVAILABLE_CURRENCIES, getCurrencyName } from '../utils/currencies';
 import { convertCurrency } from '../utils/calculations';
 import { ExchangeRates } from '../types';
@@ -32,6 +33,7 @@ const BudgetStatus: React.FC<BudgetStatusProps> = ({
   setDisplayCurrencyIndex,
   totalInDisplayCurrency
 }) => {
+  const { t, i18n: i18nInstance } = useTranslation();
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const colors = [
     'border-blue-200 hover:border-blue-300',
@@ -58,7 +60,7 @@ const BudgetStatus: React.FC<BudgetStatusProps> = ({
     <div className="bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 rounded-2xl shadow-xl p-4 sm:p-6 mb-4 sm:mb-6 border border-indigo-100">
       <h2 className="text-lg sm:text-xl font-bold text-gray-800 mb-4 flex items-center">
         <span className="mr-2">📊</span>{' '}
-        {isUk ? 'Поточний стан бюджету' : 'Current budget status'}
+        {t('budgetStatus.title')}
       </h2>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         {selectedCurrencies.map((currencyCode, index) => {
@@ -76,7 +78,7 @@ const BudgetStatus: React.FC<BudgetStatusProps> = ({
             <div key={currencyCode} className={`bg-white/80 backdrop-blur p-4 rounded-xl shadow-lg border-2 ${colors[index % colors.length]} transition-all`}>
               <div className="flex items-center justify-between mb-2">
                 <p className="text-xs sm:text-sm font-semibold text-gray-600">
-                  {isUk ? `Баланс ${currencyCode}` : `${currencyCode} balance`}
+                  {t('budgetStatus.balance')} {currencyCode}
                 </p>
                 <span className="text-lg">{currency.emoji}</span>
               </div>
@@ -94,7 +96,7 @@ const BudgetStatus: React.FC<BudgetStatusProps> = ({
         <div className="bg-gradient-to-br from-indigo-500 to-violet-600 p-4 rounded-xl shadow-lg border-2 border-indigo-300 hover:border-indigo-400 transition-all text-white relative">
           <div className="flex items-center justify-between mb-2">
             <p className="text-xs sm:text-sm font-semibold">
-              {isUk ? 'Загальна вартість' : 'Total value'}
+              {t('budgetStatus.totalValue')}
             </p>
             <span className="text-lg">💎</span>
           </div>
@@ -109,7 +111,7 @@ const BudgetStatus: React.FC<BudgetStatusProps> = ({
                 type="button"
                 onClick={() => setIsDropdownOpen(!isDropdownOpen)}
                 className="flex items-center space-x-1 bg-white/20 hover:bg-white/30 rounded-lg px-2 py-1 transition-all"
-                title={isUk ? 'Обрати валюту відображення' : 'Select display currency'}
+                title={t('budgetStatus.selectDisplayCurrency')}
               >
                 <span className="text-lg">{getCurrencyEmoji(displayCurrency)}</span>
                 <span className="text-xs font-semibold">{displayCurrency}</span>
@@ -157,7 +159,7 @@ const BudgetStatus: React.FC<BudgetStatusProps> = ({
                             <div className="flex-1">
                               <div className="text-sm font-semibold">{currencyCode}</div>
                               <div className="text-xs text-gray-500">
-                                {getCurrencyName(currencyCode, isUk ? 'uk' : 'en')}
+                                {getCurrencyName(currencyCode, i18nInstance.language === 'uk' ? 'uk' : 'en')}
                               </div>
                             </div>
                             {isSelected && (
