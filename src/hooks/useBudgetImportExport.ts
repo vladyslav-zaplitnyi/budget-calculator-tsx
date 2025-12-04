@@ -34,7 +34,10 @@ export function useBudgetImportExport() {
     setSaveMessage,
     setLoadMessage,
     setIsLoading,
-    baseCurrency
+    displayCurrency,
+    displayCurrencyIndex,
+    setDisplayCurrency,
+    setDisplayCurrencyIndex
   } = context;
 
   const handleExportToJsonFile = useCallback(() => {
@@ -57,7 +60,8 @@ export function useBudgetImportExport() {
 
       const dataToSave = {
         savedAt: new Date().toISOString(),
-        baseCurrency: baseCurrency,
+        displayCurrency: displayCurrency,
+        displayCurrencyIndex: displayCurrencyIndex,
         budgetName: activeBudget?.name || 'Основний',
         settings: settingsToSave,
         days: days.map((day, index) => ({
@@ -95,7 +99,7 @@ export function useBudgetImportExport() {
       setSaveMessage(translate('errors.exportError'));
       setTimeout(() => setSaveMessage(''), 3000);
     }
-  }, [budgets, activeBudgetId, selectedCurrencies, exchangeRates, days, baseCurrency, setSaveMessage]);
+  }, [budgets, activeBudgetId, selectedCurrencies, exchangeRates, days, displayCurrency, displayCurrencyIndex, setSaveMessage]);
 
   const handleImportFromJsonFile = useCallback(() => {
     if (fileInputRef.current) {
@@ -120,10 +124,39 @@ export function useBudgetImportExport() {
 
         console.log('📂 Імпорт даних з локального JSON-файлу:', file.name);
 
+        // Обробка displayCurrency та displayCurrencyIndex (після завантаження selectedCurrencies)
+        // Але спочатку завантажуємо selectedCurrencies, щоб перевірити валідність displayCurrency
+        let loadedCurrencies = ['UAH', 'USD', 'EUR'];
+        if (data.settings?.selectedCurrencies && Array.isArray(data.settings.selectedCurrencies)) {
+          loadedCurrencies = validateSelectedCurrencies(data.settings.selectedCurrencies);
+        }
+
+        // Відновлюємо displayCurrency та displayCurrencyIndex
+        if (data.displayCurrency && typeof data.displayCurrency === 'string') {
+          // Перевіряємо, чи валюта є в завантажених валютах
+          const currencyIndex = loadedCurrencies.indexOf(data.displayCurrency);
+          if (currencyIndex !== -1) {
+            setDisplayCurrency(data.displayCurrency);
+            setDisplayCurrencyIndex(currencyIndex);
+          } else {
+            // Якщо валюта не знайдена, використовуємо індекс з даних або 0
+            const savedIndex = typeof data.displayCurrencyIndex === 'number' 
+              ? Math.min(data.displayCurrencyIndex, loadedCurrencies.length - 1)
+              : 0;
+            setDisplayCurrency(loadedCurrencies[savedIndex] || 'UAH');
+            setDisplayCurrencyIndex(savedIndex);
+          }
+        } else if (data.baseCurrency && typeof data.baseCurrency === 'string') {
+          // Зворотна сумісність: якщо є baseCurrency, використовуємо його
+          const currencyIndex = loadedCurrencies.indexOf(data.baseCurrency);
+          if (currencyIndex !== -1) {
+            setDisplayCurrency(data.baseCurrency);
+            setDisplayCurrencyIndex(currencyIndex);
+          }
+        }
+
         if (data.settings) {
-          let loadedCurrencies = ['UAH', 'USD', 'EUR'];
           if (data.settings.selectedCurrencies && Array.isArray(data.settings.selectedCurrencies)) {
-            loadedCurrencies = validateSelectedCurrencies(data.settings.selectedCurrencies);
             setSelectedCurrencies(loadedCurrencies);
           }
 
@@ -455,7 +488,7 @@ export function useBudgetImportExport() {
     };
 
     reader.readAsText(file, 'utf-8');
-  }, [activeBudgetId, selectedCurrencies, exchangeRates, days, setSelectedCurrencies, setExchangeRates, setUsdRate, setEurRate, setBudgets, setDays, setIsLoading, setLoadMessage]);
+  }, [activeBudgetId, selectedCurrencies, exchangeRates, days, setSelectedCurrencies, setExchangeRates, setUsdRate, setEurRate, setBudgets, setDays, setIsLoading, setLoadMessage, setDisplayCurrency, setDisplayCurrencyIndex]);
 
   return {
     handleExportToJsonFile,
