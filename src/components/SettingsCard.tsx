@@ -264,14 +264,21 @@ const SettingsCard: React.FC<SettingsCardProps> = ({
               } else if (isExchangeRatePair(rateVal)) {
                   oldRate = getBuyRate(rateVal, 1);
               } else {
-                  // Отримуємо курс з бюджету або використовуємо дефолтне значення
-                  const activeBudget = safeBudgets && safeBudgets[activeBudgetId || 'default'];
-                  if (currencyCode === 'USD') {
-                    oldRate = activeBudget?.usdRate ?? 41.5;
-                  } else if (currencyCode === 'EUR') {
-                    oldRate = activeBudget?.eurRate ?? 45;
+                  // Отримуємо курс з exchangeRates або використовуємо дефолтне значення
+                  const pairKey = `${baseCurrency}_${currencyCode}`;
+                  const ratePair = exchangeRates[pairKey];
+                  if (isExchangeRatePair(ratePair)) {
+                    oldRate = ratePair.buy;
+                  } else if (typeof ratePair === 'number') {
+                    oldRate = ratePair;
                   } else {
-                    oldRate = 1;
+                    if (currencyCode === 'USD') {
+                      oldRate = 41.5;
+                    } else if (currencyCode === 'EUR') {
+                      oldRate = 45;
+                    } else {
+                      oldRate = 1;
+                    }
                   }
               }
               buyRate = oldRate;

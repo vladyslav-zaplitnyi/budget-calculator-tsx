@@ -14,8 +14,6 @@ export function useBudgetStateSync(
     startBalanceUAH,
     startBalanceUSD,
     startBalanceEUR,
-    usdRate,
-    eurRate,
     selectedCurrencies,
     exchangeRates,
     days,
@@ -58,7 +56,7 @@ export function useBudgetStateSync(
           }
         }
       });
-
+      
       return {
         ...safePrev,
         [currentId]: {
@@ -89,18 +87,16 @@ export function useBudgetStateSync(
       const existingBudget = safePrev[currentId] || {
         name: 'Основний'
       };
-
+      
       return {
         ...safePrev,
         [currentId]: {
           ...existingBudget,
-          usdRate,
-          eurRate,
           exchangeRates
         }
       };
     });
-  }, [usdRate, eurRate, exchangeRates, activeBudgetId, isInitialLoad, setBudgets, loadedBudgetsRef]);
+  }, [exchangeRates, activeBudgetId, isInitialLoad, setBudgets, loadedBudgetsRef]);
 
   // Синхронізація днів у активний бюджет
   useEffect(() => {
@@ -121,7 +117,7 @@ export function useBudgetStateSync(
       const existingBudget = safePrev[currentId] || {
         name: 'Основний'
       };
-
+      
       return {
         ...safePrev,
         [currentId]: {

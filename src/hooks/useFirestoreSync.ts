@@ -60,33 +60,37 @@ export function useFirestoreSync(
         const uahUsdPair = budget.exchangeRates['UAH_USD'];
         if (isExchangeRatePair(uahUsdPair)) {
           setUsdRate(uahUsdPair.buy);
+        } else if (typeof uahUsdPair === 'number') {
+          setUsdRate(uahUsdPair);
         } else {
-          setUsdRate(budget.usdRate ?? 41.5);
+          setUsdRate(41.5);
         }
         const uahEurPair = budget.exchangeRates['UAH_EUR'];
         if (isExchangeRatePair(uahEurPair)) {
           setEurRate(uahEurPair.buy);
+        } else if (typeof uahEurPair === 'number') {
+          setEurRate(uahEurPair);
         } else {
-          setEurRate(budget.eurRate ?? 45);
+          setEurRate(45);
         }
       } else {
         setExchangeRates(budget.exchangeRates);
         const usdRateValue = budget.exchangeRates['USD'];
         if (usdRateValue !== undefined) {
-          setUsdRate(getBuyRate(usdRateValue, budget.usdRate ?? 41.5));
+          setUsdRate(getBuyRate(usdRateValue, 41.5));
         } else {
-          setUsdRate(budget.usdRate ?? 41.5);
+          setUsdRate(41.5);
         }
         const eurRateValue = budget.exchangeRates['EUR'];
         if (eurRateValue !== undefined) {
-          setEurRate(getBuyRate(eurRateValue, budget.eurRate ?? 45));
+          setEurRate(getBuyRate(eurRateValue, 45));
         } else {
-          setEurRate(budget.eurRate ?? 45);
+          setEurRate(45);
         }
       }
     } else {
-      setUsdRate(budget.usdRate ?? 41.5);
-      setEurRate(budget.eurRate ?? 45);
+      setUsdRate(41.5);
+      setEurRate(45);
     }
     
     // Використовуємо лише startBalances
@@ -99,6 +103,7 @@ export function useFirestoreSync(
       const baseBudgets = (prevBudgets && Object.keys(prevBudgets).length > 0) 
         ? prevBudgets 
         : (loadedBudgetsRef.current || allBudgets || {});
+      
       return {
         ...baseBudgets,
         [budgetId]: {
@@ -138,14 +143,18 @@ export function useFirestoreSync(
         const uahUsdPair = firestoreData.exchangeRates['UAH_USD'];
         if (isExchangeRatePair(uahUsdPair)) {
           setUsdRate(uahUsdPair.buy);
+        } else if (typeof uahUsdPair === 'number') {
+          setUsdRate(uahUsdPair);
         } else {
-          setUsdRate(firestoreData.usdRate ?? 41.5);
+          setUsdRate(41.5);
         }
         const uahEurPair = firestoreData.exchangeRates['UAH_EUR'];
         if (isExchangeRatePair(uahEurPair)) {
           setEurRate(uahEurPair.buy);
+        } else if (typeof uahEurPair === 'number') {
+          setEurRate(uahEurPair);
         } else {
-          setEurRate(firestoreData.eurRate ?? 45);
+          setEurRate(45);
         }
       } else {
         // Конвертуємо стару структуру в нову
@@ -177,12 +186,23 @@ export function useFirestoreSync(
           };
         });
         setExchangeRates(rates);
-        setUsdRate(firestoreData.usdRate ?? 41.5);
-        setEurRate(firestoreData.eurRate ?? 45);
+        // Отримуємо курси з нової структури rates
+        const uahUsdPair = rates['UAH_USD'];
+        const uahEurPair = rates['UAH_EUR'];
+        if (isExchangeRatePair(uahUsdPair)) {
+          setUsdRate(uahUsdPair.buy);
+        } else {
+          setUsdRate(41.5);
+        }
+        if (isExchangeRatePair(uahEurPair)) {
+          setEurRate(uahEurPair.buy);
+        } else {
+          setEurRate(45);
+        }
       }
     } else {
-      setUsdRate(firestoreData.usdRate ?? 41.5);
-      setEurRate(firestoreData.eurRate ?? 45);
+      setUsdRate(41.5);
+      setEurRate(45);
       const rates: ExchangeRates = {};
       const currencies = validateSelectedCurrencies(firestoreData.selectedCurrencies || DEFAULT_CURRENCIES);
       currencies.forEach(code => {
@@ -364,10 +384,27 @@ export function useFirestoreSync(
               
               if (activeBudget.exchangeRates) {
                 setExchangeRates(activeBudget.exchangeRates);
+                // Отримуємо курси з exchangeRates
+                const uahUsdPair = activeBudget.exchangeRates['UAH_USD'];
+                const uahEurPair = activeBudget.exchangeRates['UAH_EUR'];
+                if (isExchangeRatePair(uahUsdPair)) {
+                  setUsdRate(uahUsdPair.buy);
+                } else if (typeof uahUsdPair === 'number') {
+                  setUsdRate(uahUsdPair);
+                } else {
+                  setUsdRate(41.5);
+                }
+                if (isExchangeRatePair(uahEurPair)) {
+                  setEurRate(uahEurPair.buy);
+                } else if (typeof uahEurPair === 'number') {
+                  setEurRate(uahEurPair);
+                } else {
+                  setEurRate(45);
+                }
+              } else {
+                setUsdRate(41.5);
+                setEurRate(45);
               }
-              
-              setUsdRate(activeBudget.usdRate ?? 41.5);
-              setEurRate(activeBudget.eurRate ?? 45);
               
               if (activeBudget.days) {
                 setDays(normalizeDaysArray(activeBudget.days));
@@ -385,10 +422,27 @@ export function useFirestoreSync(
             
             if (localData.exchangeRates) {
               setExchangeRates(localData.exchangeRates);
+              // Отримуємо курси з exchangeRates
+              const uahUsdPair = localData.exchangeRates['UAH_USD'];
+              const uahEurPair = localData.exchangeRates['UAH_EUR'];
+              if (isExchangeRatePair(uahUsdPair)) {
+                setUsdRate(uahUsdPair.buy);
+              } else if (typeof uahUsdPair === 'number') {
+                setUsdRate(uahUsdPair);
+              } else {
+                setUsdRate(localData.usdRate ?? 41.5);
+              }
+              if (isExchangeRatePair(uahEurPair)) {
+                setEurRate(uahEurPair.buy);
+              } else if (typeof uahEurPair === 'number') {
+                setEurRate(uahEurPair);
+              } else {
+                setEurRate(localData.eurRate ?? 45);
+              }
+            } else {
+              setUsdRate(localData.usdRate ?? 41.5);
+              setEurRate(localData.eurRate ?? 45);
             }
-            
-            setUsdRate(localData.usdRate ?? 41.5);
-            setEurRate(localData.eurRate ?? 45);
             
             if (localData.days) {
               setDays(normalizeDaysArray(localData.days));

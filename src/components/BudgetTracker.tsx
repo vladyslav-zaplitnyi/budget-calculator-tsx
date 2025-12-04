@@ -117,24 +117,28 @@ export default function BudgetTracker() {
   }, [selectedCurrencies, finalBalances, baseCurrency, exchangeRates]);
   
   // Для зворотної сумісності зберігаємо totalInUAH
-  // Отримуємо курси з exchangeRates або бюджету
+  // Отримуємо курси з exchangeRates
   const getUsdRate = useMemo(() => {
     const uahUsdPair = exchangeRates['UAH_USD'];
     if (isExchangeRatePair(uahUsdPair)) {
       return uahUsdPair.buy;
     }
-    const activeBudget = budgets && budgets[activeBudgetId || 'default'];
-    return activeBudget?.usdRate ?? 41.5;
-  }, [exchangeRates, budgets, activeBudgetId]);
+    if (typeof uahUsdPair === 'number') {
+      return uahUsdPair;
+    }
+    return 41.5;
+  }, [exchangeRates]);
 
   const getEurRate = useMemo(() => {
     const uahEurPair = exchangeRates['UAH_EUR'];
     if (isExchangeRatePair(uahEurPair)) {
       return uahEurPair.buy;
     }
-    const activeBudget = budgets && budgets[activeBudgetId || 'default'];
-    return activeBudget?.eurRate ?? 45;
-  }, [exchangeRates, budgets, activeBudgetId]);
+    if (typeof uahEurPair === 'number') {
+      return uahEurPair;
+    }
+    return 45;
+  }, [exchangeRates]);
 
   const totalInUAH = finalBalanceUAH + (finalBalanceUSD * getUsdRate) + (finalBalanceEUR * getEurRate);
 

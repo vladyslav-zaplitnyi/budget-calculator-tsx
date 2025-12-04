@@ -61,8 +61,6 @@ export function useSyncDebounce({
             'USD': latestData.startBalanceUSD,
             'EUR': latestData.startBalanceEUR
           },
-          usdRate: latestData.usdRate,
-          eurRate: latestData.eurRate,
           selectedCurrencies: latestData.selectedCurrencies,
           exchangeRates: latestData.exchangeRates,
           days: latestData.days

@@ -57,8 +57,6 @@ const migrateStartBalances = (budget: Budget | LegacyBudget | any): Budget => {
   const cleanBudget: Budget = {
     name: budget.name || 'Бюджет',
     startBalances: startBalances,
-    usdRate: budget.usdRate || 41.5,
-    eurRate: budget.eurRate || 45,
     days: budget.days || [],
     selectedCurrencies: budget.selectedCurrencies || ['UAH', 'USD', 'EUR'],
     exchangeRates: budget.exchangeRates || {}
@@ -72,8 +70,6 @@ interface LegacyUserData {
   startBalanceUAH?: number | null;
   startBalanceUSD?: number | null;
   startBalanceEUR?: number | null;
-  usdRate?: number;
-  eurRate?: number;
   days?: Day[];
   selectedCurrencies?: string[];
   exchangeRates?: ExchangeRates;
@@ -96,7 +92,8 @@ export const loadFromLocalStorage = (): LoadedUserData | null => {
       // Вже нова структура - мігруємо startBalances, якщо потрібно
       const migratedBudgets: Budgets = {};
       for (const [key, budget] of Object.entries(parsedData.budgets)) {
-        migratedBudgets[key] = migrateStartBalances(budget);
+        const migrated = migrateStartBalances(budget);
+        migratedBudgets[key] = migrated;
       }
       
       const activeId = parsedData.activeBudgetId;
@@ -111,14 +108,12 @@ export const loadFromLocalStorage = (): LoadedUserData | null => {
       // Зберігаємо чисту структуру назад
       localStorage.setItem('budgetTrackerData', JSON.stringify(cleanData));
       
-      // Повертаємо LoadedUserData з computed values
+      // Повертаємо LoadedUserData
       return {
         ...cleanData,
         startBalanceUAH: activeBudget?.startBalances?.['UAH'] ?? null,
         startBalanceUSD: activeBudget?.startBalances?.['USD'] ?? null,
         startBalanceEUR: activeBudget?.startBalances?.['EUR'] ?? null,
-        usdRate: activeBudget?.usdRate ?? 41.5,
-        eurRate: activeBudget?.eurRate ?? 45,
         days: activeBudget?.days || [],
         selectedCurrencies: activeBudget?.selectedCurrencies || ['UAH', 'USD', 'EUR'],
         exchangeRates: activeBudget?.exchangeRates || {}
@@ -162,8 +157,6 @@ export const loadFromLocalStorage = (): LoadedUserData | null => {
     const newBudget: Budget = {
       name: 'Основний',
       startBalances: startBalances,
-      usdRate: settings.usdRate ?? 41.5,
-      eurRate: settings.eurRate ?? 45,
       days: parsedData.days || settings.days || [],
       selectedCurrencies: selectedCurrencies,
       exchangeRates: settings.exchangeRates || {}
@@ -181,14 +174,12 @@ export const loadFromLocalStorage = (): LoadedUserData | null => {
     localStorage.setItem('budgetTrackerData', JSON.stringify(cleanData));
     console.log('✅ Міграція localStorage завершена');
     
-    // Повертаємо LoadedUserData з computed values
+    // Повертаємо LoadedUserData
     return {
       ...cleanData,
       startBalanceUAH: startBalances['UAH'] ?? null,
       startBalanceUSD: startBalances['USD'] ?? null,
       startBalanceEUR: startBalances['EUR'] ?? null,
-      usdRate: newBudget.usdRate,
-      eurRate: newBudget.eurRate,
       days: newBudget.days,
       selectedCurrencies: newBudget.selectedCurrencies,
       exchangeRates: newBudget.exchangeRates
@@ -207,7 +198,7 @@ export const loadFromLocalStorage = (): LoadedUserData | null => {
 //   - Вся актуальна інформація (включно з динамічними startBalances для будь‑яких валют)
 //     зберігається всередині об'єкта `budgets`.
 //   - Тому тут ми зберігаємо тільки `budgets` та `activeBudgetId`.
-//   - Поля типу startBalanceUAH/USD/EUR, usdRate, eurRate, days тощо
+//   - Поля типу startBalanceUAH/USD/EUR, days тощо
 //     більше НЕ зберігаємо окремо в localStorage.
 export const saveToLocalStorage = (
   budgets?: Budgets,
@@ -349,19 +340,20 @@ export const loadFromFirestore = async (
 
           console.log('🔓 ✅ Розшифрування успішне!');
           
-          // Мігруємо бюджети
-          const migratedBudgets: Budgets = {};
-          for (const [key, budget] of Object.entries(decryptedData.budgets || {})) {
-            migratedBudgets[key] = migrateStartBalances(budget);
-          }
+        // Мігруємо бюджети
+        const migratedBudgets: Budgets = {};
+        for (const [key, budget] of Object.entries(decryptedData.budgets || {})) {
+          const migrated = migrateStartBalances(budget);
+          migratedBudgets[key] = migrated;
+        }
 
           const activeId = decryptedData.activeBudgetId && migratedBudgets[decryptedData.activeBudgetId] 
             ? decryptedData.activeBudgetId 
             : Object.keys(migratedBudgets)[0] || 'default';
           
           const activeBudget = migratedBudgets[activeId];
-
-          // Повертаємо LoadedUserData з computed values
+          
+          // Повертаємо LoadedUserData
           const result: LoadedUserData = {
             activeBudgetId: activeId,
             budgets: migratedBudgets,
@@ -372,8 +364,6 @@ export const loadFromFirestore = async (
             startBalanceUAH: activeBudget?.startBalances?.['UAH'] ?? null,
             startBalanceUSD: activeBudget?.startBalances?.['USD'] ?? null,
             startBalanceEUR: activeBudget?.startBalances?.['EUR'] ?? null,
-            usdRate: activeBudget?.usdRate ?? 41.5,
-            eurRate: activeBudget?.eurRate ?? 45,
             days: activeBudget?.days || [],
             selectedCurrencies: activeBudget?.selectedCurrencies || ['UAH', 'USD', 'EUR'],
             exchangeRates: activeBudget?.exchangeRates || {}
@@ -429,7 +419,7 @@ export const loadFromFirestore = async (
         }
 
         const activeBudget = migratedBudgets[activeId];
-
+        
         // Повертаємо LoadedUserData
         return {
           activeBudgetId: activeId,
@@ -440,8 +430,6 @@ export const loadFromFirestore = async (
           startBalanceUAH: activeBudget?.startBalances?.['UAH'] ?? null,
           startBalanceUSD: activeBudget?.startBalances?.['USD'] ?? null,
           startBalanceEUR: activeBudget?.startBalances?.['EUR'] ?? null,
-          usdRate: activeBudget?.usdRate ?? 41.5,
-          eurRate: activeBudget?.eurRate ?? 45,
           days: activeBudget?.days || [],
           selectedCurrencies: activeBudget?.selectedCurrencies || ['UAH', 'USD', 'EUR'],
           exchangeRates: activeBudget?.exchangeRates || {}
@@ -453,8 +441,6 @@ export const loadFromFirestore = async (
       
       const hasOldFields =
         'days' in rawData ||
-        'usdRate' in rawData ||
-        'eurRate' in rawData ||
         'startBalanceUAH' in rawData ||
         'startBalanceUSD' in rawData ||
         'startBalanceEUR' in rawData;
@@ -487,8 +473,6 @@ export const loadFromFirestore = async (
         const defaultBudget: Budget = {
           name: currentLang === 'en' ? 'Main' : 'Основний',
           startBalances: startBalances,
-          usdRate: rawData.usdRate ?? 41.5,
-          eurRate: rawData.eurRate ?? 45,
           days: rawData.days || [],
           selectedCurrencies: rawData.selectedCurrencies || ['UAH', 'USD', 'EUR'],
           exchangeRates: rawData.exchangeRates || {}
@@ -520,8 +504,6 @@ export const loadFromFirestore = async (
           startBalanceUAH: startBalances['UAH'] ?? null,
           startBalanceUSD: startBalances['USD'] ?? null,
           startBalanceEUR: startBalances['EUR'] ?? null,
-          usdRate: defaultBudget.usdRate,
-          eurRate: defaultBudget.eurRate,
           days: defaultBudget.days,
           selectedCurrencies: defaultBudget.selectedCurrencies,
           exchangeRates: defaultBudget.exchangeRates

@@ -81,9 +81,7 @@ export function useBudgetSettings() {
       const clearedBudget = {
         ...existingBudget,
         startBalances: clearedStartBalances,
-        days: emptyDays,
-        usdRate: defaultUsdRate,
-        eurRate: defaultEurRate
+        days: emptyDays
       };
       
       const updatedBudgets: Budgets = {
@@ -333,8 +331,6 @@ export function useBudgetSettings() {
         [activeBudgetId || 'default']: {
           name: 'Основний',
           startBalances: {},
-          usdRate: 41.5,
-          eurRate: 45,
           selectedCurrencies: selectedCurrencies,
           exchangeRates: exchangeRates,
           days: []
@@ -386,8 +382,6 @@ export function useBudgetSettings() {
         [activeBudgetId || 'default']: {
           name: 'Основний',
           startBalances: {},
-          usdRate: 41.5,
-          eurRate: 45,
           selectedCurrencies: selectedCurrencies,
           exchangeRates: exchangeRates,
           days: []

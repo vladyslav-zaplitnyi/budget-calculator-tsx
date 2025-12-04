@@ -50,8 +50,6 @@ export const DaySchema = z.object({
 export const BudgetSchema: z.ZodType<Budget> = z.object({
   name: z.string().min(1),
   startBalances: z.record(z.string(), z.number().nullable()),
-  usdRate: z.number().positive(),
-  eurRate: z.number().positive(),
   days: z.array(DaySchema),
   selectedCurrencies: z.array(z.string()),
   exchangeRates: ExchangeRatesSchema

@@ -27,8 +27,6 @@ export function useBudgetImportExport() {
     setStartBalanceEUR,
     setSelectedCurrencies,
     setExchangeRates,
-    setUsdRate,
-    setEurRate,
     setBudgets,
     setDays,
     setSaveMessage,
@@ -166,23 +164,6 @@ export function useBudgetImportExport() {
           
           if (Object.keys(loadedExchangeRates).length > 0) {
             setExchangeRates(loadedExchangeRates);
-            
-            const uahUsdPair = loadedExchangeRates['UAH_USD'];
-            if (isExchangeRatePair(uahUsdPair)) {
-              setUsdRate(uahUsdPair.buy);
-            } else {
-              setUsdRate(data.settings.usdRate ?? 41.5);
-            }
-            
-            const uahEurPair = loadedExchangeRates['UAH_EUR'];
-            if (isExchangeRatePair(uahEurPair)) {
-              setEurRate(uahEurPair.buy);
-            } else {
-              setEurRate(data.settings.eurRate ?? 45);
-            }
-          } else {
-            setUsdRate(data.settings.usdRate ?? 41.5);
-            setEurRate(data.settings.eurRate ?? 45);
           }
 
           // Підтримка нової структури startBalances та старої (для зворотної сумісності)
@@ -259,9 +240,7 @@ export function useBudgetImportExport() {
                 ...existingBudget,
                 startBalances,
                 selectedCurrencies: loadedCurrencies,
-                exchangeRates: loadedExchangeRates,
-                usdRate: data.settings.usdRate ?? existingBudget.usdRate ?? 41.5,
-                eurRate: data.settings.eurRate ?? existingBudget.eurRate ?? 45
+                exchangeRates: loadedExchangeRates
               }
             };
           });
@@ -488,7 +467,7 @@ export function useBudgetImportExport() {
     };
 
     reader.readAsText(file, 'utf-8');
-  }, [activeBudgetId, selectedCurrencies, exchangeRates, days, setSelectedCurrencies, setExchangeRates, setUsdRate, setEurRate, setBudgets, setDays, setIsLoading, setLoadMessage, setDisplayCurrency, setDisplayCurrencyIndex]);
+  }, [activeBudgetId, selectedCurrencies, exchangeRates, days, setSelectedCurrencies, setExchangeRates, setBudgets, setDays, setIsLoading, setLoadMessage, setDisplayCurrency, setDisplayCurrencyIndex]);
 
   return {
     handleExportToJsonFile,
