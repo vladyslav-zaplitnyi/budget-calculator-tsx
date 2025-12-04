@@ -22,6 +22,37 @@ const convertTimestampToString = (value: unknown): string | undefined => {
   return undefined;
 };
 
+// Функція міграції: конвертує старі поля startBalanceUAH/USD/EUR в startBalances
+const migrateStartBalances = (budget: Budget): Budget => {
+  // Якщо вже є startBalances, просто повертаємо бюджет
+  if (budget.startBalances && Object.keys(budget.startBalances).length > 0) {
+    // Видаляємо старі поля, якщо вони є
+    const { startBalanceUAH, startBalanceUSD, startBalanceEUR, ...cleanedBudget } = budget;
+    return cleanedBudget;
+  }
+
+  // Якщо немає startBalances, але є старі поля - мігруємо
+  const startBalances: Record<string, number | null> = {};
+  
+  if (budget.startBalanceUAH !== undefined && budget.startBalanceUAH !== null) {
+    startBalances['UAH'] = budget.startBalanceUAH;
+  }
+  if (budget.startBalanceUSD !== undefined && budget.startBalanceUSD !== null) {
+    startBalances['USD'] = budget.startBalanceUSD;
+  }
+  if (budget.startBalanceEUR !== undefined && budget.startBalanceEUR !== null) {
+    startBalances['EUR'] = budget.startBalanceEUR;
+  }
+
+  // Видаляємо старі поля
+  const { startBalanceUAH, startBalanceUSD, startBalanceEUR, ...cleanedBudget } = budget;
+  
+  return {
+    ...cleanedBudget,
+    startBalances: Object.keys(startBalances).length > 0 ? startBalances : {}
+  };
+};
+
 // Функція для завантаження даних з localStorage
 export const loadFromLocalStorage = (): UserData | null => {
   try {
@@ -31,6 +62,16 @@ export const loadFromLocalStorage = (): UserData | null => {
 
       // Підтримка як старої (плоскої), так і нової структури з settings
       const settings = parsedData.settings || parsedData;
+
+      // Мігруємо бюджети, якщо вони є
+      let budgets = parsedData.budgets;
+      if (budgets && typeof budgets === 'object') {
+        const migratedBudgets: Budgets = {};
+        for (const [key, budget] of Object.entries(budgets as Budgets)) {
+          migratedBudgets[key] = migrateStartBalances(budget as Budget);
+        }
+        budgets = migratedBudgets;
+      }
 
       const data: UserData = {
         startBalanceUAH: settings.startBalanceUAH ?? null,
@@ -42,7 +83,7 @@ export const loadFromLocalStorage = (): UserData | null => {
         selectedCurrencies: settings.selectedCurrencies || undefined,
         exchangeRates: settings.exchangeRates || undefined,
         // Конвертуємо null в undefined для валідації
-        budgets: parsedData.budgets || undefined,
+        budgets: budgets || undefined,
         activeBudgetId: parsedData.activeBudgetId || undefined
       };
 
@@ -291,8 +332,9 @@ export const loadFromFirestore = async (
               activeId = budgetKeys[0];
             }
 
-            // 🔄 Міграція: видаляємо зайві поля currency та baseCurrency з бюджетів
+            // 🔄 Міграція: видаляємо зайві поля currency та baseCurrency з бюджетів, мігруємо старі баланси
             const migratedBudgets: Budgets = {};
+            let needsBalanceMigration = false;
             for (const [key, budget] of Object.entries(data.budgets as Budgets)) {
               try {
                 interface BudgetWithLegacyFields extends Budget {
@@ -300,7 +342,12 @@ export const loadFromFirestore = async (
                   baseCurrency?: string;
                 }
                 const { currency, baseCurrency, ...budgetCleaned } = budget as BudgetWithLegacyFields;
-                migratedBudgets[key] = budgetCleaned;
+                const migratedBudget = migrateStartBalances(budgetCleaned);
+                migratedBudgets[key] = migratedBudget;
+                // Перевіряємо, чи була міграція балансів
+                if (budget.startBalanceUAH !== undefined || budget.startBalanceUSD !== undefined || budget.startBalanceEUR !== undefined) {
+                  needsBalanceMigration = true;
+                }
               } catch (error) {
                 handleError(
                   error instanceof Error ? error : new Error(String(error)),
@@ -322,9 +369,7 @@ export const loadFromFirestore = async (
             console.log('📦   Ключі активного бюджету:', Object.keys(activeBudget));
             console.log('📦   📊 Деталі активного бюджету:', {
               name: activeBudget.name,
-              startBalanceUAH: activeBudget.startBalanceUAH,
-              startBalanceUSD: activeBudget.startBalanceUSD,
-              startBalanceEUR: activeBudget.startBalanceEUR,
+              startBalances: activeBudget.startBalances,
               usdRate: activeBudget.usdRate,
               eurRate: activeBudget.eurRate,
               daysCount: activeBudget.days?.length || 0,
@@ -335,10 +380,11 @@ export const loadFromFirestore = async (
 
             // ВАЖЛИВО: Для зашифрованих даних НЕ виконуємо updateDoc з відкритими полями!
             // Якщо потрібна міграція, дані будуть автоматично перешифровані та збережені через useSyncDebounce
+            // Використовуємо startBalances замість старих полів
             const result: UserData = {
-              startBalanceUAH: activeBudget.startBalanceUAH ?? null,
-              startBalanceUSD: activeBudget.startBalanceUSD ?? null,
-              startBalanceEUR: activeBudget.startBalanceEUR ?? null,
+              startBalanceUAH: activeBudget.startBalances?.['UAH'] ?? null,
+              startBalanceUSD: activeBudget.startBalances?.['USD'] ?? null,
+              startBalanceEUR: activeBudget.startBalances?.['EUR'] ?? null,
               usdRate: activeBudget.usdRate ?? 41.5,
               eurRate: activeBudget.eurRate ?? 45,
               days: activeBudget.days || undefined,
@@ -428,7 +474,7 @@ export const loadFromFirestore = async (
           }
         }
 
-        // 🔄 Міграція: видаляємо зайві поля currency та baseCurrency з бюджетів
+        // 🔄 Міграція: видаляємо зайві поля currency та baseCurrency з бюджетів, мігруємо старі баланси
         let needsMigration = false;
         const migratedBudgets: Budgets = {};
         for (const [key, budget] of Object.entries(data.budgets as Budgets)) {
@@ -441,11 +487,12 @@ export const loadFromFirestore = async (
               baseCurrency?: string;
             }
             const { currency, baseCurrency, ...budgetCleaned } = budget as BudgetWithLegacyFields;
-            if (currency || baseCurrency) {
-              migratedBudgets[key] = budgetCleaned;
+            const migratedBudget = migrateStartBalances(budgetCleaned);
+            migratedBudgets[key] = migratedBudget;
+            
+            // Перевіряємо, чи була міграція
+            if (currency || baseCurrency || budget.startBalanceUAH !== undefined || budget.startBalanceUSD !== undefined || budget.startBalanceEUR !== undefined) {
               needsMigration = true;
-            } else {
-              migratedBudgets[key] = budget;
             }
           } catch (error) {
             handleError(
@@ -468,7 +515,7 @@ export const loadFromFirestore = async (
               budgets: migratedBudgets,
               updatedAt: new Date().toISOString()
             });
-            console.log('📦 Міграція: видалено зайві поля currency та baseCurrency з бюджетів');
+            console.log('📦 Міграція: видалено зайві поля currency та baseCurrency з бюджетів, мігровано старі баланси в startBalances');
           } catch (e) {
             console.error('Помилка при міграції бюджетів:', e);
           }
@@ -476,10 +523,11 @@ export const loadFromFirestore = async (
 
         const activeBudget = migratedBudgets[activeId] || {};
 
+        // Використовуємо startBalances замість старих полів
         return {
-          startBalanceUAH: activeBudget.startBalanceUAH ?? null,
-          startBalanceUSD: activeBudget.startBalanceUSD ?? null,
-          startBalanceEUR: activeBudget.startBalanceEUR ?? null,
+          startBalanceUAH: activeBudget.startBalances?.['UAH'] ?? null,
+          startBalanceUSD: activeBudget.startBalances?.['USD'] ?? null,
+          startBalanceEUR: activeBudget.startBalances?.['EUR'] ?? null,
           usdRate: activeBudget.usdRate ?? 41.5,
           eurRate: activeBudget.eurRate ?? 45,
           days: activeBudget.days || undefined,
@@ -509,16 +557,21 @@ export const loadFromFirestore = async (
           console.error('Помилка при отриманні мови з localStorage:', e);
         }
         
-        // Створюємо бюджет з тимчасовими полями для міграції
-        interface BudgetWithLegacyFields extends Budget {
-          baseCurrency?: string;
+        // Створюємо бюджет з міграцією старих полів в startBalances
+        const startBalances: Record<string, number | null> = {};
+        if (data.startBalanceUAH !== undefined && data.startBalanceUAH !== null) {
+          startBalances['UAH'] = data.startBalanceUAH;
         }
-        const defaultBudget: BudgetWithLegacyFields = {
+        if (data.startBalanceUSD !== undefined && data.startBalanceUSD !== null) {
+          startBalances['USD'] = data.startBalanceUSD;
+        }
+        if (data.startBalanceEUR !== undefined && data.startBalanceEUR !== null) {
+          startBalances['EUR'] = data.startBalanceEUR;
+        }
+
+        const defaultBudget: Budget = {
           name: currentLang === 'en' ? 'Main' : 'Основний',
-          baseCurrency: 'UAH', // Це поле буде видалено під час міграції
-          startBalanceUAH: data.startBalanceUAH ?? null,
-          startBalanceUSD: data.startBalanceUSD ?? null,
-          startBalanceEUR: data.startBalanceEUR ?? null,
+          startBalances: Object.keys(startBalances).length > 0 ? startBalances : {},
           usdRate: data.usdRate ?? 41.5,
           eurRate: data.eurRate ?? 45,
           days: data.days || undefined
@@ -540,15 +593,15 @@ export const loadFromFirestore = async (
             days: deleteField(),
             updatedAt: new Date().toISOString()
           });
-          console.log('📦 Міграція документа користувача до multi-budget структури');
+          console.log('📦 Міграція документа користувача до multi-budget структури з startBalances');
         } catch (e) {
           console.error('Помилка під час міграції документа користувача до multi-budget:', e);
         }
 
         return {
-          startBalanceUAH: defaultBudget.startBalanceUAH,
-          startBalanceUSD: defaultBudget.startBalanceUSD,
-          startBalanceEUR: defaultBudget.startBalanceEUR,
+          startBalanceUAH: startBalances['UAH'] ?? null,
+          startBalanceUSD: startBalances['USD'] ?? null,
+          startBalanceEUR: startBalances['EUR'] ?? null,
           usdRate: defaultBudget.usdRate,
           eurRate: defaultBudget.eurRate,
           days: defaultBudget.days || undefined,

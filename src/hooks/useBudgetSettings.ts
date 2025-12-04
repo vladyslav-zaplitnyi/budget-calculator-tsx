@@ -4,7 +4,7 @@ import { createEmptyMonthDays } from '../utils/dayHelpers';
 import { validateSelectedCurrencies, getDefaultRate } from '../utils/currencies';
 import { Budgets, ExchangeRates } from '../types';
 import { isExchangeRatePair } from '../utils/typeGuards';
-import { saveToFirestore } from '../utils/storageHelpers';
+import { saveToFirestore, saveToLocalStorage } from '../utils/storageHelpers';
 
 /**
  * Hook для управління налаштуваннями бюджету (валюти, курси, баланси)
@@ -72,9 +72,6 @@ export function useBudgetSettings() {
       
       const clearedBudget = {
         ...existingBudget,
-        startBalanceUAH: null,
-        startBalanceUSD: null,
-        startBalanceEUR: null,
         startBalances: clearedStartBalances,
         days: emptyDays,
         usdRate: defaultUsdRate,
@@ -92,9 +89,23 @@ export function useBudgetSettings() {
       setLoadMessage('');
       setSaveMessage('');
       
+      // Оновлюємо localStorage з очищеними даними
+      saveToLocalStorage(
+        null, // startBalanceUAH
+        null, // startBalanceUSD
+        null, // startBalanceEUR
+        defaultUsdRate, // usdRate
+        defaultEurRate, // eurRate
+        emptyDays, // days
+        selectedCurrencies, // selectedCurrencies
+        exchangeRates, // exchangeRates
+        updatedBudgets, // budgets
+        currentId // activeBudgetId
+      );
+      
       console.log('✅ Всі поля очищено');
     }
-  }, [isUk, activeBudgetId, selectedCurrencies, budgets, setStartBalanceUAH, setStartBalanceUSD, setStartBalanceEUR, setUsdRate, setEurRate, setBudgets, setDays, setLoadMessage, setSaveMessage]);
+  }, [isUk, activeBudgetId, selectedCurrencies, budgets, exchangeRates, setStartBalanceUAH, setStartBalanceUSD, setStartBalanceEUR, setUsdRate, setEurRate, setBudgets, setDays, setLoadMessage, setSaveMessage]);
 
   const handleCurrencyChange = useCallback((newCurrencies: string[]) => {
     const validated = validateSelectedCurrencies(newCurrencies);
@@ -289,9 +300,7 @@ export function useBudgetSettings() {
       const budgetsToSave = budgets && Object.keys(budgets).length > 0 ? budgets : {
         [activeBudgetId || 'default']: {
           name: 'Основний',
-          startBalanceUAH: null,
-          startBalanceUSD: null,
-          startBalanceEUR: null,
+          startBalances: {},
           usdRate: 41.5,
           eurRate: 45,
           selectedCurrencies: selectedCurrencies,
@@ -344,9 +353,7 @@ export function useBudgetSettings() {
       const budgetsToSave = budgets && Object.keys(budgets).length > 0 ? budgets : {
         [activeBudgetId || 'default']: {
           name: 'Основний',
-          startBalanceUAH: null,
-          startBalanceUSD: null,
-          startBalanceEUR: null,
+          startBalances: {},
           usdRate: 41.5,
           eurRate: 45,
           selectedCurrencies: selectedCurrencies,

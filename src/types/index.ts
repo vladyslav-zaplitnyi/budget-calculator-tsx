@@ -37,9 +37,14 @@ export interface ExchangeRates {
 
 export interface Budget {
   name: string;
+  /** @deprecated Використовуйте startBalances замість цього поля */
   startBalanceUAH?: number | null;
+  /** @deprecated Використовуйте startBalances замість цього поля */
   startBalanceUSD?: number | null;
+  /** @deprecated Використовуйте startBalances замість цього поля */
   startBalanceEUR?: number | null;
+  /** Початкові баланси для всіх валют. Ключ - код валюти (UAH, USD, EUR, PLN, RON, тощо) */
+  startBalances?: Record<string, number | null>;
   usdRate?: number;
   eurRate?: number;
   days?: Day[];
@@ -57,9 +62,12 @@ export interface UserData {
   budgets?: Budgets;
   savedAt?: string;
   updatedAt?: string;
-  // Legacy fields
+  // Legacy fields (для зворотної сумісності при завантаженні старих даних)
+  /** @deprecated Використовуйте budgets[activeBudgetId].startBalances замість цього поля */
   startBalanceUAH?: number | null;
+  /** @deprecated Використовуйте budgets[activeBudgetId].startBalances замість цього поля */
   startBalanceUSD?: number | null;
+  /** @deprecated Використовуйте budgets[activeBudgetId].startBalances замість цього поля */
   startBalanceEUR?: number | null;
   usdRate?: number;
   eurRate?: number;

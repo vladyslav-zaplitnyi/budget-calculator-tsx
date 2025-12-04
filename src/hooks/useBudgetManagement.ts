@@ -89,9 +89,6 @@ export function useBudgetManagement() {
 
     const newBudget: Budget = {
       name: trimmedName,
-      startBalanceUAH: null,
-      startBalanceUSD: null,
-      startBalanceEUR: null,
       usdRate: usdRate,
       eurRate: eurRate,
       selectedCurrencies: [...selectedCurrencies],
@@ -114,9 +111,10 @@ export function useBudgetManagement() {
       console.error('Помилка при збереженні вибору бюджету в cookie:', error);
     }
 
-    setStartBalanceUAH(newBudget.startBalanceUAH || null);
-    setStartBalanceUSD(newBudget.startBalanceUSD || null);
-    setStartBalanceEUR(newBudget.startBalanceEUR || null);
+    // Використовуємо startBalances
+    setStartBalanceUAH(newBudget.startBalances?.['UAH'] ?? null);
+    setStartBalanceUSD(newBudget.startBalances?.['USD'] ?? null);
+    setStartBalanceEUR(newBudget.startBalances?.['EUR'] ?? null);
     setUsdRate(newBudget.usdRate || 41.5);
     setEurRate(newBudget.eurRate || 45);
     setDays(newDays);
@@ -238,24 +236,11 @@ export function useBudgetManagement() {
         setEurRate(budget.eurRate ?? 45);
       }
       
-      // 3) Завантажуємо початкові баланси
-      // Спочатку з основних полів
-      setStartBalanceUAH(budget.startBalanceUAH ?? null);
-      setStartBalanceUSD(budget.startBalanceUSD ?? null);
-      setStartBalanceEUR(budget.startBalanceEUR ?? null);
-      
-      // Потім з startBalances (якщо є, перезаписуємо основні поля)
-      if (budget.startBalances) {
-        if (budget.startBalances['UAH'] !== undefined) {
-          setStartBalanceUAH(budget.startBalances['UAH']);
-        }
-        if (budget.startBalances['USD'] !== undefined) {
-          setStartBalanceUSD(budget.startBalances['USD']);
-        }
-        if (budget.startBalances['EUR'] !== undefined) {
-          setStartBalanceEUR(budget.startBalances['EUR']);
-        }
-      }
+      // 3) Завантажуємо початкові баланси з startBalances
+      const startBalances = budget.startBalances || {};
+      setStartBalanceUAH(startBalances['UAH'] ?? null);
+      setStartBalanceUSD(startBalances['USD'] ?? null);
+      setStartBalanceEUR(startBalances['EUR'] ?? null);
       
       // 4) Завантажуємо дні - обов'язково нормалізуємо масив
       const normalizedDays = normalizeDaysArray(budget.days || []);
@@ -379,9 +364,11 @@ export function useBudgetManagement() {
         setEurRate(defaultBudget.eurRate ?? 45);
       }
       
-      setStartBalanceUAH(defaultBudget.startBalanceUAH ?? null);
-      setStartBalanceUSD(defaultBudget.startBalanceUSD ?? null);
-      setStartBalanceEUR(defaultBudget.startBalanceEUR ?? null);
+      // Використовуємо startBalances
+      const startBalances = defaultBudget.startBalances || {};
+      setStartBalanceUAH(startBalances['UAH'] ?? null);
+      setStartBalanceUSD(startBalances['USD'] ?? null);
+      setStartBalanceEUR(startBalances['EUR'] ?? null);
       
       setBudgets((prevBudgets: Budgets) => {
         return {

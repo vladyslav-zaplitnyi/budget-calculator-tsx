@@ -91,9 +91,11 @@ export function useFirestoreSync(
       setEurRate(budget.eurRate ?? 45);
     }
     
-    setStartBalanceUAH(budget.startBalanceUAH ?? null);
-    setStartBalanceUSD(budget.startBalanceUSD ?? null);
-    setStartBalanceEUR(budget.startBalanceEUR ?? null);
+    // Використовуємо лише startBalances
+    const startBalances = budget.startBalances || {};
+    setStartBalanceUAH(startBalances['UAH'] ?? null);
+    setStartBalanceUSD(startBalances['USD'] ?? null);
+    setStartBalanceEUR(startBalances['EUR'] ?? null);
     
     setBudgets((prevBudgets: Budgets) => {
       const baseBudgets = (prevBudgets && Object.keys(prevBudgets).length > 0) 
@@ -103,7 +105,7 @@ export function useFirestoreSync(
         ...baseBudgets,
         [budgetId]: {
           ...budget,
-          startBalances: budget.startBalances || {}
+          startBalances: startBalances
         }
       };
     });
@@ -119,7 +121,8 @@ export function useFirestoreSync(
     if (firestoreData.isEncrypted) {
       setIsEncrypted(true);
     }
-    // Завантажуємо базові дані
+    // Завантажуємо базові дані (для зворотної сумісності зі старими даними)
+    // Але переважно використовуємо startBalances з бюджетів
     setStartBalanceUAH(firestoreData.startBalanceUAH ?? null);
     setStartBalanceUSD(firestoreData.startBalanceUSD ?? null);
     setStartBalanceEUR(firestoreData.startBalanceEUR ?? null);
@@ -344,15 +347,20 @@ export function useFirestoreSync(
         const localData = loadFromLocalStorage();
         if (localData) {
           if (localData.budgets && Object.keys(localData.budgets).length > 0) {
+            // ВАЖЛИВО: Оновлюємо loadedBudgetsRef перед встановленням budgets
+            // щоб useBudgetStateSync міг зберегти всі бюджети
+            loadedBudgetsRef.current = localData.budgets;
             setBudgets(localData.budgets);
             
             if (localData.activeBudgetId && localData.budgets[localData.activeBudgetId]) {
               setActiveBudgetId(localData.activeBudgetId);
               const activeBudget = localData.budgets[localData.activeBudgetId];
               
-              setStartBalanceUAH(activeBudget.startBalanceUAH ?? null);
-              setStartBalanceUSD(activeBudget.startBalanceUSD ?? null);
-              setStartBalanceEUR(activeBudget.startBalanceEUR ?? null);
+              // Використовуємо лише startBalances
+              const startBalances = activeBudget.startBalances || {};
+              setStartBalanceUAH(startBalances['UAH'] ?? null);
+              setStartBalanceUSD(startBalances['USD'] ?? null);
+              setStartBalanceEUR(startBalances['EUR'] ?? null);
               
               if (activeBudget.selectedCurrencies) {
                 setSelectedCurrencies(validateSelectedCurrencies(activeBudget.selectedCurrencies));
