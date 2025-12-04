@@ -2,7 +2,7 @@ import React, { ChangeEvent, RefObject, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { AVAILABLE_CURRENCIES, getCurrencyName } from '../utils/currencies';
 import { User } from 'firebase/auth';
-import { Budgets, ExchangeRates } from '../types';
+import { Budgets, ExchangeRates, Day } from '../types';
 import { isExchangeRatePair, getBuyRate } from '../utils/typeGuards';
 import PasswordModal from './PasswordModal';
 import ConfirmModal from './ConfirmModal';
@@ -42,6 +42,7 @@ interface SettingsCardProps {
   setShowEnableEncryptionModal?: (show: boolean) => void;
   setShowDisableEncryptionModal?: (show: boolean) => void;
   isEncrypted?: boolean;
+  updateDay?: (index: number, field: string, value: any) => void;
 }
 
 const SettingsCard: React.FC<SettingsCardProps> = ({
@@ -77,7 +78,8 @@ const SettingsCard: React.FC<SettingsCardProps> = ({
   showDisableEncryptionModal = false,
   setShowEnableEncryptionModal,
   setShowDisableEncryptionModal,
-  isEncrypted = false
+  isEncrypted = false,
+  updateDay
 }) => {
   const { t, i18n: i18nInstance } = useTranslation();
   
@@ -135,6 +137,25 @@ const SettingsCard: React.FC<SettingsCardProps> = ({
   
   const handleConfirmCurrencyChange = () => {
     if (pendingCurrencyChange && handleCurrencyChange) {
+      // Видаляємо всі транзакції з валютою, яку змінюють
+      const activeBudget = safeBudgets[activeBudgetId || 'default'];
+      const days = activeBudget?.days || [];
+      const currencyToRemove = pendingCurrencyChange.previousValue;
+      
+      // Оновлюємо кожен день, видаляючи транзакції з цією валютою
+      days.forEach((day: Day, dayIndex: number) => {
+        if (day.transactions && day.transactions.length > 0) {
+          const updatedTransactions = day.transactions.filter(
+            transaction => transaction.currency !== currencyToRemove
+          );
+          // Оновлюємо тільки якщо кількість транзакцій змінилася
+          if (updatedTransactions.length !== day.transactions.length && updateDay) {
+            updateDay(dayIndex, 'transactions', updatedTransactions);
+          }
+        }
+      });
+      
+      // Змінюємо валюту
       handleCurrencyChange(pendingCurrencyChange.currencies);
     }
     setShowCurrencyChangeConfirm(false);
