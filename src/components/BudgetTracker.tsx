@@ -26,9 +26,6 @@ export default function BudgetTracker() {
     deleteUserAccount,
     selectedCurrencies,
     exchangeRates,
-    startBalanceUAH,
-    startBalanceUSD,
-    startBalanceEUR,
     activeBudgetId,
     budgets,
     days,
@@ -220,26 +217,20 @@ export default function BudgetTracker() {
             isUk={isUk}
             days={days}
             updateDay={updateDay}
-            startBalanceUAH={startBalanceUAH}
-            startBalanceUSD={startBalanceUSD}
-            startBalanceEUR={startBalanceEUR}
+            startBalances={startBalances}
             selectedCurrencies={selectedCurrencies}
             displayCurrency={displayCurrency}
             exchangeRates={exchangeRates}
-            startBalances={startBalances}
           />
 
           <DaysCards
             isUk={isUk}
             days={days}
             updateDay={updateDay}
-            startBalanceUAH={startBalanceUAH}
-            startBalanceUSD={startBalanceUSD}
-            startBalanceEUR={startBalanceEUR}
+            startBalances={startBalances}
             selectedCurrencies={selectedCurrencies}
             displayCurrency={displayCurrency}
             exchangeRates={exchangeRates}
-            startBalances={startBalances}
           />
 
           <Statistics

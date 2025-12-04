@@ -11,13 +11,11 @@ export function useBudgetStateSync(
   loadedBudgetsRef: React.MutableRefObject<Budgets | null>
 ) {
   const {
-    startBalanceUAH,
-    startBalanceUSD,
-    startBalanceEUR,
     selectedCurrencies,
     exchangeRates,
     days,
     activeBudgetId,
+    budgets,
     setBudgets,
     isInitialLoad
   } = budgetState;
@@ -43,18 +41,11 @@ export function useBudgetStateSync(
       };
 
       // Оновлюємо startBalances: залишаємо тільки обрані валюти
+      // ВАЖЛИВО: Беремо значення з існуючого бюджету, а не з окремих станів
       const updatedStartBalances: Record<string, number | null> = {};
       selectedCurrencies.forEach(code => {
-        if (code === 'UAH') {
-          updatedStartBalances[code] = startBalanceUAH;
-        } else if (code === 'USD') {
-          updatedStartBalances[code] = startBalanceUSD;
-        } else if (code === 'EUR') {
-          updatedStartBalances[code] = startBalanceEUR;
-        } else {
-          // Для інших валют беремо з існуючого бюджету, якщо є
-          updatedStartBalances[code] = existingBudget.startBalances?.[code] ?? null;
-        }
+        // Завжди беремо значення з існуючого бюджету
+        updatedStartBalances[code] = existingBudget.startBalances?.[code] ?? null;
       });
       
       return {
@@ -66,7 +57,7 @@ export function useBudgetStateSync(
         }
       };
     });
-  }, [startBalanceUAH, startBalanceUSD, startBalanceEUR, selectedCurrencies, activeBudgetId, isInitialLoad, setBudgets, loadedBudgetsRef]);
+  }, [selectedCurrencies, activeBudgetId, isInitialLoad, setBudgets, loadedBudgetsRef]);
 
   // Синхронізація курсів валют у активний бюджет
   useEffect(() => {
@@ -128,12 +119,12 @@ export function useBudgetStateSync(
     });
   }, [days, activeBudgetId, isInitialLoad, setBudgets, loadedBudgetsRef]);
 
+
   // Оновлення loadedBudgetsRef при зміні budgets (після початкового завантаження)
   // ВАЖЛИВО: Оновлюємо ref, щоб зберегти всі бюджети при синхронізації
   useEffect(() => {
-    const { budgets: currentBudgets } = budgetState;
-    if (currentBudgets && Object.keys(currentBudgets).length > 0) {
-      const currentKeys = Object.keys(currentBudgets);
+    if (budgets && Object.keys(budgets).length > 0) {
+      const currentKeys = Object.keys(budgets);
       const refKeys = loadedBudgetsRef.current ? Object.keys(loadedBudgetsRef.current) : [];
       
       // Оновлюємо ref, якщо:
@@ -143,10 +134,10 @@ export function useBudgetStateSync(
       if (isInitialLoad === false) {
         const allRefKeysPreserved = refKeys.length === 0 || refKeys.every(key => currentKeys.includes(key));
         if (allRefKeysPreserved && currentKeys.length >= refKeys.length) {
-          loadedBudgetsRef.current = { ...currentBudgets };
+          loadedBudgetsRef.current = { ...budgets };
         }
       }
     }
-  }, [budgetState, isInitialLoad, loadedBudgetsRef]);
+  }, [budgets, isInitialLoad, loadedBudgetsRef]);
 }
 

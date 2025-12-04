@@ -17,18 +17,12 @@ export function useBudgetManagement() {
     isUk,
     selectedCurrencies,
     exchangeRates,
-    startBalanceUAH,
-    startBalanceUSD,
-    startBalanceEUR,
     activeBudgetId,
     setActiveBudgetId,
     budgets,
     setBudgets,
     setSelectedCurrencies,
     setExchangeRates,
-    setStartBalanceUAH,
-    setStartBalanceUSD,
-    setStartBalanceEUR,
     setDays,
     setSyncStatus,
     getSyncStatusText,
@@ -68,18 +62,12 @@ export function useBudgetManagement() {
     const newDays = createEmptyMonthDays();
     const newExchangeRates = { ...exchangeRates };
 
+    // ВАЖЛИВО: Беремо значення з поточного активного бюджету, а не з окремих станів
+    const currentBudget = budgets?.[activeBudgetId || 'default'];
     const newStartBalances: Record<string, number | null> = {};
     selectedCurrencies.forEach(code => {
-      if (code === 'UAH') {
-        newStartBalances[code] = startBalanceUAH;
-      } else if (code === 'USD') {
-        newStartBalances[code] = startBalanceUSD;
-      } else if (code === 'EUR') {
-        newStartBalances[code] = startBalanceEUR;
-      } else {
-        const currentBudget = budgets?.[activeBudgetId || 'default'];
-        newStartBalances[code] = currentBudget?.startBalances?.[code] ?? null;
-      }
+      // Завжди беремо значення з поточного бюджету
+      newStartBalances[code] = currentBudget?.startBalances?.[code] ?? null;
     });
 
     const newBudget: Budget = {
@@ -104,12 +92,8 @@ export function useBudgetManagement() {
       console.error('Помилка при збереженні вибору бюджету в cookie:', error);
     }
 
-    // Використовуємо startBalances
-    setStartBalanceUAH(newBudget.startBalances?.['UAH'] ?? null);
-    setStartBalanceUSD(newBudget.startBalances?.['USD'] ?? null);
-    setStartBalanceEUR(newBudget.startBalances?.['EUR'] ?? null);
     setDays(newDays);
-  }, [isUk, budgets, activeBudgetId, selectedCurrencies, exchangeRates, startBalanceUAH, startBalanceUSD, startBalanceEUR, setBudgets, setActiveBudgetId, setStartBalanceUAH, setStartBalanceUSD, setStartBalanceEUR, setDays]);
+  }, [isUk, budgets, activeBudgetId, selectedCurrencies, exchangeRates, setBudgets, setActiveBudgetId, setDays]);
 
   const handleBudgetChange = useCallback((event: ChangeEvent<HTMLSelectElement>) => {
     const newId = event.target.value;
@@ -196,11 +180,7 @@ export function useBudgetManagement() {
         setExchangeRates({});
       }
       
-      // 3) Завантажуємо початкові баланси з startBalances
-      const startBalances = budget.startBalances || {};
-      setStartBalanceUAH(startBalances['UAH'] ?? null);
-      setStartBalanceUSD(startBalances['USD'] ?? null);
-      setStartBalanceEUR(startBalances['EUR'] ?? null);
+      // 3) Завантажуємо початкові баланси з startBalances (вже в бюджеті)
       
       // 4) Завантажуємо дні - обов'язково нормалізуємо масив
       const normalizedDays = normalizeDaysArray(budget.days || []);
@@ -224,7 +204,7 @@ export function useBudgetManagement() {
 
     // Викликаємо асинхронну функцію, але не чекаємо її в самому хендлері
     switchBudget();
-  }, [budgets, user, baseCurrency, encryptionPassword, setActiveBudgetId, setSelectedCurrencies, setExchangeRates, setStartBalanceUAH, setStartBalanceUSD, setStartBalanceEUR, setBudgets, setDays]);
+  }, [budgets, user, baseCurrency, encryptionPassword, setActiveBudgetId, setSelectedCurrencies, setExchangeRates, setBudgets, setDays]);
 
   const handleAddBudgetClick = useCallback(() => {
     if (!user) {
@@ -305,11 +285,7 @@ export function useBudgetManagement() {
         setExchangeRates({});
       }
       
-      // Використовуємо startBalances
-      const startBalances = defaultBudget.startBalances || {};
-      setStartBalanceUAH(startBalances['UAH'] ?? null);
-      setStartBalanceUSD(startBalances['USD'] ?? null);
-      setStartBalanceEUR(startBalances['EUR'] ?? null);
+      // Використовуємо startBalances (вже в бюджеті)
       
       setBudgets((prevBudgets: Budgets) => {
         return {
@@ -327,7 +303,7 @@ export function useBudgetManagement() {
     if (user) {
       saveToFirestore(user, updatedBudgets, newActiveId, true, setSyncStatus, getSyncStatusText, encryptionPassword, setIsEncrypted);
     }
-  }, [isUk, user, budgets, activeBudgetId, setBudgets, setActiveBudgetId, setSelectedCurrencies, setExchangeRates, setStartBalanceUAH, setStartBalanceUSD, setStartBalanceEUR, setDays, setSyncStatus, getSyncStatusText, encryptionPassword, setIsEncrypted]);
+  }, [isUk, user, budgets, activeBudgetId, setBudgets, setActiveBudgetId, setSelectedCurrencies, setExchangeRates, setDays, setSyncStatus, getSyncStatusText, encryptionPassword, setIsEncrypted]);
 
   return {
     createNewBudget,

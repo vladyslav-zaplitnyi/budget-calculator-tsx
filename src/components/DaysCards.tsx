@@ -15,9 +15,6 @@ interface DaysCardsProps {
   isUk: boolean;
   days: Day[];
   updateDay: (index: number, field: string, value: any) => void;
-  startBalanceUAH: number | null;
-  startBalanceUSD: number | null;
-  startBalanceEUR: number | null;
   selectedCurrencies?: string[];
   displayCurrency?: string;
   exchangeRates?: ExchangeRates;
@@ -28,9 +25,6 @@ const DaysCards: React.FC<DaysCardsProps> = ({
   isUk,
   days,
   updateDay,
-  startBalanceUAH,
-  startBalanceUSD,
-  startBalanceEUR,
   selectedCurrencies = ['UAH', 'USD', 'EUR'],
   displayCurrency = 'UAH',
   exchangeRates = {},
@@ -190,10 +184,7 @@ const DaysCards: React.FC<DaysCardsProps> = ({
               if (!currency) return null;
               
               const dayBalance = calculateDayBalance(day, currencyCode);
-              const startBalance = startBalances[currencyCode] ?? 
-                (currencyCode === 'UAH' ? startBalanceUAH :
-                 currencyCode === 'USD' ? startBalanceUSD :
-                 currencyCode === 'EUR' ? startBalanceEUR : null);
+              const startBalance = startBalances[currencyCode] ?? null;
               const cumulative = calculateCumulativeBalance(index, days, startBalance, currencyCode);
               const incomeKey = `income${currencyCode}`;
               const expenseKey = `expense${currencyCode}`;
@@ -269,10 +260,7 @@ const DaysCards: React.FC<DaysCardsProps> = ({
                 const income = amounts[incomeKey] || 0;
                 const expense = amounts[expenseKey] || 0;
                 const dayBalance = calculateDayBalance(day, currencyCode);
-                const startBalance = startBalances[currencyCode] ?? 
-                  (currencyCode === 'UAH' ? startBalanceUAH :
-                   currencyCode === 'USD' ? startBalanceUSD :
-                   currencyCode === 'EUR' ? startBalanceEUR : null);
+                const startBalance = startBalances[currencyCode] ?? null;
                 const cumulative = calculateCumulativeBalance(index, days, startBalance, currencyCode);
                 
                 convertedIncome += convertCurrency(income, currencyCode, displayCurrency, exchangeRates);

@@ -10,9 +10,6 @@ interface UseSyncDebounceParams {
   isInitialLoad: boolean;
   authLoading: boolean;
   latestDataRef: React.MutableRefObject<{
-    startBalanceUAH: number | null;
-    startBalanceUSD: number | null;
-    startBalanceEUR: number | null;
     selectedCurrencies: string[];
     exchangeRates: ExchangeRates;
     days: Day[];
@@ -51,14 +48,12 @@ export function useSyncDebounce({
     setSyncStatus(getSyncStatusText('syncing'));
     saveTimeoutRef.current = setTimeout(() => {
       const latestData = latestDataRef.current;
+      // ВАЖЛИВО: Використовуємо budgets, які вже містять правильні startBalances
+      // Не використовуємо хардкодні значення startBalanceUAH/USD/EUR
       const safeBudgets: Budgets = budgets && Object.keys(budgets).length > 0 ? budgets : {
         [activeBudgetId || 'default']: {
           name: 'Основний',
-          startBalances: {
-            'UAH': latestData.startBalanceUAH,
-            'USD': latestData.startBalanceUSD,
-            'EUR': latestData.startBalanceEUR
-          },
+          startBalances: {},
           selectedCurrencies: latestData.selectedCurrencies,
           exchangeRates: latestData.exchangeRates,
           days: latestData.days

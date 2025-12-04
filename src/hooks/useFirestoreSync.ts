@@ -24,9 +24,6 @@ export function useFirestoreSync(
   loadedBudgetsRef: React.MutableRefObject<Budgets | null>
 ) {
   const {
-    setStartBalanceUAH,
-    setStartBalanceUSD,
-    setStartBalanceEUR,
     setSelectedCurrencies,
     setExchangeRates,
     setDays,
@@ -57,11 +54,8 @@ export function useFirestoreSync(
       setExchangeRates({});
     }
     
-    // Використовуємо лише startBalances
+    // Використовуємо лише startBalances (вже в бюджеті)
     const startBalances = budget.startBalances || {};
-    setStartBalanceUAH(startBalances['UAH'] ?? null);
-    setStartBalanceUSD(startBalances['USD'] ?? null);
-    setStartBalanceEUR(startBalances['EUR'] ?? null);
     
     setBudgets((prevBudgets: Budgets) => {
       const baseBudgets = (prevBudgets && Object.keys(prevBudgets).length > 0) 
@@ -88,11 +82,7 @@ export function useFirestoreSync(
     if (firestoreData.isEncrypted) {
       setIsEncrypted(true);
     }
-    // Завантажуємо базові дані (для зворотної сумісності зі старими даними)
-    // Але переважно використовуємо startBalances з бюджетів
-    setStartBalanceUAH(firestoreData.startBalanceUAH ?? null);
-    setStartBalanceUSD(firestoreData.startBalanceUSD ?? null);
-    setStartBalanceEUR(firestoreData.startBalanceEUR ?? null);
+    // Використовуємо startBalances з бюджетів
     
     if (firestoreData.selectedCurrencies) {
       setSelectedCurrencies(validateSelectedCurrencies(firestoreData.selectedCurrencies));
@@ -229,9 +219,6 @@ export function useFirestoreSync(
             document.cookie = 'budgetTrackerActiveBudgetId=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
             document.cookie = 'budgetTrackerLanguage=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
             
-            setStartBalanceUAH(null);
-            setStartBalanceUSD(null);
-            setStartBalanceEUR(null);
             setSelectedCurrencies(DEFAULT_CURRENCIES);
             setExchangeRates({});
             setDays([]);
@@ -262,9 +249,6 @@ export function useFirestoreSync(
         const hasLocalData = localStorage.getItem('budgetTrackerData');
         if (!hasLocalData) {
           // localStorage очищено - скидаємо всі дані
-          setStartBalanceUAH(null);
-          setStartBalanceUSD(null);
-          setStartBalanceEUR(null);
           setSelectedCurrencies(DEFAULT_CURRENCIES);
           setExchangeRates({});
           setDays([]);
@@ -288,11 +272,7 @@ export function useFirestoreSync(
               setActiveBudgetId(localData.activeBudgetId);
               const activeBudget = localData.budgets[localData.activeBudgetId];
               
-              // Використовуємо лише startBalances
-              const startBalances = activeBudget.startBalances || {};
-              setStartBalanceUAH(startBalances['UAH'] ?? null);
-              setStartBalanceUSD(startBalances['USD'] ?? null);
-              setStartBalanceEUR(startBalances['EUR'] ?? null);
+              // Використовуємо лише startBalances (вже в бюджеті)
               
               if (activeBudget.selectedCurrencies) {
                 setSelectedCurrencies(validateSelectedCurrencies(activeBudget.selectedCurrencies));
@@ -309,10 +289,7 @@ export function useFirestoreSync(
               }
             }
           } else {
-            // Якщо немає budgets, завантажуємо плоскі дані
-            setStartBalanceUAH(localData.startBalanceUAH ?? null);
-            setStartBalanceUSD(localData.startBalanceUSD ?? null);
-            setStartBalanceEUR(localData.startBalanceEUR ?? null);
+            // Якщо немає budgets, завантажуємо плоскі дані (startBalances вже в budgets)
             
             if (localData.selectedCurrencies) {
               setSelectedCurrencies(validateSelectedCurrencies(localData.selectedCurrencies));

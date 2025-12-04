@@ -16,17 +16,11 @@ export function useBudgetSettings() {
     // Поточні значення стану
     selectedCurrencies,
     exchangeRates,
-    startBalanceUAH,
-    startBalanceUSD,
-    startBalanceEUR,
     activeBudgetId,
     budgets,
     // Сетери стану
     setSelectedCurrencies,
     setExchangeRates,
-    setStartBalanceUAH,
-    setStartBalanceUSD,
-    setStartBalanceEUR,
     setBudgets,
     setDays,
     setSaveMessage,
@@ -53,10 +47,6 @@ export function useBudgetSettings() {
     );
     
     if (confirmed) {
-      setStartBalanceUAH(null);
-      setStartBalanceUSD(null);
-      setStartBalanceEUR(null);
-      
       const currentId = activeBudgetId || 'default';
       const emptyDays = createEmptyMonthDays();
       
@@ -90,7 +80,7 @@ export function useBudgetSettings() {
       
       console.log('✅ Всі поля очищено');
     }
-  }, [isUk, activeBudgetId, selectedCurrencies, budgets, setStartBalanceUAH, setStartBalanceUSD, setStartBalanceEUR, setBudgets, setDays, setLoadMessage, setSaveMessage]);
+  }, [isUk, activeBudgetId, selectedCurrencies, budgets, setBudgets, setDays, setLoadMessage, setSaveMessage]);
 
   const handleCurrencyChange = useCallback((newCurrencies: string[]) => {
     const validated = validateSelectedCurrencies(newCurrencies);
@@ -180,18 +170,11 @@ export function useBudgetSettings() {
       const existingBudget = safePrev[currentId] || { name: 'Основний' };
       
       // Оновлюємо startBalances: залишаємо тільки обрані валюти
+      // ВАЖЛИВО: Беремо значення з існуючого бюджету, а не з окремих станів
       const updatedStartBalances: Record<string, number | null> = {};
       validated.forEach(code => {
-        if (code === 'UAH') {
-          updatedStartBalances[code] = startBalanceUAH;
-        } else if (code === 'USD') {
-          updatedStartBalances[code] = startBalanceUSD;
-        } else if (code === 'EUR') {
-          updatedStartBalances[code] = startBalanceEUR;
-        } else {
-          // Для інших валют беремо з існуючого бюджету, якщо є
-          updatedStartBalances[code] = existingBudget.startBalances?.[code] ?? null;
-        }
+        // Завжди беремо значення з існуючого бюджету
+        updatedStartBalances[code] = existingBudget.startBalances?.[code] ?? null;
       });
       
       const updatedBudget = {
@@ -214,9 +197,6 @@ export function useBudgetSettings() {
   }, [
     exchangeRates,
     baseCurrency,
-    startBalanceUAH,
-    startBalanceUSD,
-    startBalanceEUR,
     activeBudgetId,
     setSelectedCurrencies,
     setExchangeRates,
@@ -253,33 +233,26 @@ export function useBudgetSettings() {
       }
     }
     
-    if (currencyCode === 'UAH') {
-      setStartBalanceUAH(numValue);
-    } else if (currencyCode === 'USD') {
-      setStartBalanceUSD(numValue);
-    } else if (currencyCode === 'EUR') {
-      setStartBalanceEUR(numValue);
-    } else {
-      const currentId = activeBudgetId || 'default';
-      setBudgets((prevBudgets: Budgets) => {
-        const safePrev = prevBudgets || {};
-        const existingBudget = safePrev[currentId] || {
-          name: 'Основний'
-        };
-        
-        const startBalances = existingBudget.startBalances || {};
-        startBalances[currencyCode] = numValue;
-        
-        return {
-          ...safePrev,
-          [currentId]: {
-            ...existingBudget,
-            startBalances
-          }
-        };
-      });
-    }
-  }, [activeBudgetId, setStartBalanceUAH, setStartBalanceUSD, setStartBalanceEUR, setBudgets]);
+    // ВАЖЛИВО: Оновлюємо баланс безпосередньо в бюджеті для всіх валют
+    const currentId = activeBudgetId || 'default';
+    setBudgets((prevBudgets: Budgets) => {
+      const safePrev = prevBudgets || {};
+      const existingBudget = safePrev[currentId] || {
+        name: 'Основний'
+      };
+      
+      const startBalances = { ...(existingBudget.startBalances || {}) };
+      startBalances[currencyCode] = numValue;
+      
+      return {
+        ...safePrev,
+        [currentId]: {
+          ...existingBudget,
+          startBalances
+        }
+      };
+    });
+  }, [activeBudgetId, setBudgets]);
 
   // Обробники для шифрування
   const handleEnableEncryptionClick = useCallback(() => {

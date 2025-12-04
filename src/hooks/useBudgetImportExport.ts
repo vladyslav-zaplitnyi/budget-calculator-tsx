@@ -21,9 +21,6 @@ export function useBudgetImportExport() {
     activeBudgetId,
     budgets,
     days,
-    setStartBalanceUAH,
-    setStartBalanceUSD,
-    setStartBalanceEUR,
     setSelectedCurrencies,
     setExchangeRates,
     setBudgets,
@@ -203,18 +200,6 @@ export function useBudgetImportExport() {
               }
             }
           });
-          
-          // Оновлюємо глобальні стартові баланси для базових валют,
-          // щоб useBudgetStateSync не перезаписував імпортовані значення старими
-          if ('UAH' in startBalancesFromSettings) {
-            setStartBalanceUAH(startBalancesFromSettings['UAH'] ?? null);
-          }
-          if ('USD' in startBalancesFromSettings) {
-            setStartBalanceUSD(startBalancesFromSettings['USD'] ?? null);
-          }
-          if ('EUR' in startBalancesFromSettings) {
-            setStartBalanceEUR(startBalancesFromSettings['EUR'] ?? null);
-          }
           
           const currentId = activeBudgetId || 'default';
           
@@ -458,7 +443,7 @@ export function useBudgetImportExport() {
     };
 
     reader.readAsText(file, 'utf-8');
-  }, [activeBudgetId, days, setSelectedCurrencies, setExchangeRates, setBudgets, setDays, setIsLoading, setLoadMessage, setDisplayCurrency, setDisplayCurrencyIndex, setStartBalanceUAH, setStartBalanceUSD, setStartBalanceEUR]);
+  }, [activeBudgetId, days, setSelectedCurrencies, setExchangeRates, setBudgets, setDays, setIsLoading, setLoadMessage, setDisplayCurrency, setDisplayCurrencyIndex]);
 
   return {
     handleExportToJsonFile,

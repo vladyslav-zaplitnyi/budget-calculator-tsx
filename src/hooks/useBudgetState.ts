@@ -22,12 +22,6 @@ export interface BudgetStateInterface {
   setSelectedCurrencies: (currencies: string[]) => void;
   exchangeRates: ExchangeRates;
   setExchangeRates: (rates: ExchangeRates | ((prev: ExchangeRates) => ExchangeRates)) => void;
-  startBalanceUAH: number | null;
-  setStartBalanceUAH: (value: number | null) => void;
-  startBalanceUSD: number | null;
-  setStartBalanceUSD: (value: number | null) => void;
-  startBalanceEUR: number | null;
-  setStartBalanceEUR: (value: number | null) => void;
   activeBudgetId: string;
   setActiveBudgetId: (id: string) => void;
   budgets: Budgets;
@@ -249,17 +243,6 @@ export function useBudgetState(): BudgetStateInterface {
     }
   }, []); // I need currencyStateRef in dependency? Refs are stable.
 
-  const setStartBalanceUAH = useCallback((value: number | null) => {
-    currencyDispatch({ type: currencyActions.SET_START_BALANCE_UAH, payload: value });
-  }, []);
-
-  const setStartBalanceUSD = useCallback((value: number | null) => {
-    currencyDispatch({ type: currencyActions.SET_START_BALANCE_USD, payload: value });
-  }, []);
-
-  const setStartBalanceEUR = useCallback((value: number | null) => {
-    currencyDispatch({ type: currencyActions.SET_START_BALANCE_EUR, payload: value });
-  }, []);
 
   const setActiveBudgetId = useCallback((id: string) => {
     budgetDispatch({ type: budgetActions.SET_ACTIVE_BUDGET_ID, payload: id });
@@ -378,11 +361,6 @@ export function useBudgetState(): BudgetStateInterface {
     });
     setExchangeRates(defaultRates);
     
-    // Скидаємо баланси
-    setStartBalanceUAH(null);
-    setStartBalanceUSD(null);
-    setStartBalanceEUR(null);
-    
     // Скидаємо валюту відображення
     setDisplayCurrency('UAH');
     setDisplayCurrencyIndex(0);
@@ -392,9 +370,6 @@ export function useBudgetState(): BudgetStateInterface {
     setActiveBudgetId,
     setSelectedCurrencies,
     setExchangeRates,
-    setStartBalanceUAH,
-    setStartBalanceUSD,
-    setStartBalanceEUR,
     setDisplayCurrency,
     setDisplayCurrencyIndex
   ]);
@@ -448,14 +423,6 @@ export function useBudgetState(): BudgetStateInterface {
     exchangeRates: currencyState.exchangeRates,
     setExchangeRates,
     
-    // Баланси
-    startBalanceUAH: currencyState.startBalanceUAH,
-    setStartBalanceUAH,
-    startBalanceUSD: currencyState.startBalanceUSD,
-    setStartBalanceUSD,
-    startBalanceEUR: currencyState.startBalanceEUR,
-    setStartBalanceEUR,
-    
     // Бюджети
     activeBudgetId: budgetState.activeBudgetId,
     setActiveBudgetId,
@@ -504,9 +471,6 @@ export function useBudgetState(): BudgetStateInterface {
     displayState.displayCurrencyIndex,
     currencyState.selectedCurrencies,
     currencyState.exchangeRates,
-    currencyState.startBalanceUAH,
-    currencyState.startBalanceUSD,
-    currencyState.startBalanceEUR,
     budgetState.activeBudgetId,
     budgetState.budgets,
     budgetState.days,
@@ -520,9 +484,6 @@ export function useBudgetState(): BudgetStateInterface {
     setLanguage,
     setSelectedCurrencies,
     setExchangeRates,
-    setStartBalanceUAH,
-    setStartBalanceUSD,
-    setStartBalanceEUR,
     setActiveBudgetId,
     setBudgets,
     setDays,

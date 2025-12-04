@@ -18,9 +18,6 @@ export function useBudgetSync(
   authLoading: boolean
 ) {
   const {
-    startBalanceUAH,
-    startBalanceUSD,
-    startBalanceEUR,
     selectedCurrencies,
     exchangeRates,
     days,
@@ -32,10 +29,9 @@ export function useBudgetSync(
     setIsEncrypted
   } = budgetState;
 
+  // ВАЖЛИВО: Не зберігаємо хардкодні значення startBalanceUAH/USD/EUR
+  // Всі баланси зберігаються в budgets[activeBudgetId].startBalances
   const latestDataRef = useRef({
-    startBalanceUAH,
-    startBalanceUSD,
-    startBalanceEUR,
     selectedCurrencies,
     exchangeRates,
     days
@@ -51,14 +47,11 @@ export function useBudgetSync(
   // Оновлення ref з останніми значеннями для fallback
   useEffect(() => {
     latestDataRef.current = {
-      startBalanceUAH,
-      startBalanceUSD,
-      startBalanceEUR,
       selectedCurrencies,
       exchangeRates,
       days
     };
-  }, [startBalanceUAH, startBalanceUSD, startBalanceEUR, selectedCurrencies, exchangeRates, days]);
+  }, [selectedCurrencies, exchangeRates, days]);
 
   // Автоматичне збереження в localStorage при зміні даних
   // Зберігаємо дані завжди, незалежно від авторизації
@@ -75,7 +68,7 @@ export function useBudgetSync(
     if (!user) {
       setSyncStatus(getSyncStatusText('local'));
     }
-  }, [startBalanceUAH, startBalanceUSD, startBalanceEUR, days, selectedCurrencies, exchangeRates, budgets, activeBudgetId, isInitialLoad, authLoading, user, setSyncStatus, getSyncStatusText]);
+  }, [days, selectedCurrencies, exchangeRates, budgets, activeBudgetId, isInitialLoad, authLoading, user, setSyncStatus, getSyncStatusText]);
 
   // Debounce збереження в Firestore
   useSyncDebounce({
