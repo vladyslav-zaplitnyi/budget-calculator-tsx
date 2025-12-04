@@ -93,12 +93,6 @@ export function budgetReducer(state: BudgetState, action: BudgetAction): BudgetS
           day: action.payload.index + 1,
           transactions: [],
           description: '',
-          incomeUAH: 0,
-          expenseUAH: 0,
-          incomeUSD: 0,
-          expenseUSD: 0,
-          incomeEUR: 0,
-          expenseEUR: 0,
           [action.payload.field]: action.payload.value
         };
       } else {

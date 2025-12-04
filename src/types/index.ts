@@ -10,14 +10,6 @@ export interface Day {
   day: number;
   transactions: Transaction[];
   description?: string;
-  // Legacy fields for backward compatibility
-  incomeUAH?: number;
-  expenseUAH?: number;
-  incomeUSD?: number;
-  expenseUSD?: number;
-  incomeEUR?: number;
-  expenseEUR?: number;
-  [key: string]: any; // Allow dynamic access for legacy calculations
 }
 
 export interface CurrencyInfo {
@@ -37,20 +29,13 @@ export interface ExchangeRates {
 
 export interface Budget {
   name: string;
-  /** @deprecated Використовуйте startBalances замість цього поля */
-  startBalanceUAH?: number | null;
-  /** @deprecated Використовуйте startBalances замість цього поля */
-  startBalanceUSD?: number | null;
-  /** @deprecated Використовуйте startBalances замість цього поля */
-  startBalanceEUR?: number | null;
   /** Початкові баланси для всіх валют. Ключ - код валюти (UAH, USD, EUR, PLN, RON, тощо) */
-  startBalances?: Record<string, number | null>;
-  usdRate?: number;
-  eurRate?: number;
-  days?: Day[];
-  selectedCurrencies?: string[];
-  exchangeRates?: ExchangeRates;
-  [key: string]: any;
+  startBalances: Record<string, number | null>;
+  usdRate: number;
+  eurRate: number;
+  days: Day[];
+  selectedCurrencies: string[];
+  exchangeRates: ExchangeRates;
 }
 
 export interface Budgets {
@@ -58,24 +43,25 @@ export interface Budgets {
 }
 
 export interface UserData {
-  activeBudgetId?: string;
-  budgets?: Budgets;
+  activeBudgetId: string;
+  budgets: Budgets;
   savedAt?: string;
   updatedAt?: string;
-  // Legacy fields (для зворотної сумісності при завантаженні старих даних)
-  /** @deprecated Використовуйте budgets[activeBudgetId].startBalances замість цього поля */
+  // Encryption fields
+  isEncrypted?: boolean;
+  encryptedData?: string;
+}
+
+// Розширена версія UserData для внутрішнього використання (computed values з активного бюджету)
+export interface LoadedUserData extends UserData {
+  // Computed fields з активного бюджету (для зручності в хуках)
   startBalanceUAH?: number | null;
-  /** @deprecated Використовуйте budgets[activeBudgetId].startBalances замість цього поля */
   startBalanceUSD?: number | null;
-  /** @deprecated Використовуйте budgets[activeBudgetId].startBalances замість цього поля */
   startBalanceEUR?: number | null;
   usdRate?: number;
   eurRate?: number;
   days?: Day[];
   selectedCurrencies?: string[];
   exchangeRates?: ExchangeRates;
-  // Encryption fields
-  isEncrypted?: boolean;
-  encryptedData?: string;
 }
 

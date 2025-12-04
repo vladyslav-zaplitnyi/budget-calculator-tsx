@@ -56,9 +56,11 @@ export function useSyncDebounce({
       const safeBudgets: Budgets = budgets && Object.keys(budgets).length > 0 ? budgets : {
         [activeBudgetId || 'default']: {
           name: 'Основний',
-          startBalanceUAH: latestData.startBalanceUAH,
-          startBalanceUSD: latestData.startBalanceUSD,
-          startBalanceEUR: latestData.startBalanceEUR,
+          startBalances: {
+            'UAH': latestData.startBalanceUAH,
+            'USD': latestData.startBalanceUSD,
+            'EUR': latestData.startBalanceEUR
+          },
           usdRate: latestData.usdRate,
           eurRate: latestData.eurRate,
           selectedCurrencies: latestData.selectedCurrencies,

@@ -31,38 +31,31 @@ export const TransactionSchema: z.ZodType<Transaction> = z.object({
 
 /**
  * Схема валідації для Day
- * Підтримує як нову структуру з transactions, так і legacy поля
+ * Тільки нова структура з transactions
  */
 export const DaySchema = z.object({
   day: z.number().int().min(1).max(31),
   transactions: z.array(TransactionSchema).default([]),
-  description: z.string().optional(),
-  // Legacy fields для зворотної сумісності
-  incomeUAH: z.number().optional(),
-  expenseUAH: z.number().optional(),
-  incomeUSD: z.number().optional(),
-  expenseUSD: z.number().optional(),
-  incomeEUR: z.number().optional(),
-  expenseEUR: z.number().optional()
-}).passthrough().transform((data) => ({
-  ...data,
-  transactions: data.transactions || []
-})) as z.ZodType<Day>; // Дозволяє додаткові поля для legacy підтримки
+  description: z.string().optional()
+}).transform((data) => ({
+  day: data.day,
+  transactions: data.transactions || [],
+  description: data.description || ''
+})) as z.ZodType<Day>;
 
 /**
  * Схема валідації для Budget
+ * Чиста структура без legacy-полів
  */
 export const BudgetSchema: z.ZodType<Budget> = z.object({
   name: z.string().min(1),
-  startBalanceUAH: z.number().nullable().optional(),
-  startBalanceUSD: z.number().nullable().optional(),
-  startBalanceEUR: z.number().nullable().optional(),
-  usdRate: z.number().positive().optional(),
-  eurRate: z.number().positive().optional(),
-  days: z.array(DaySchema).optional(),
-  selectedCurrencies: z.array(z.string()).optional(),
-  exchangeRates: ExchangeRatesSchema.optional()
-}).passthrough(); // Дозволяє додаткові поля для legacy підтримки
+  startBalances: z.record(z.string(), z.number().nullable()),
+  usdRate: z.number().positive(),
+  eurRate: z.number().positive(),
+  days: z.array(DaySchema),
+  selectedCurrencies: z.array(z.string()),
+  exchangeRates: ExchangeRatesSchema
+});
 
 /**
  * Схема валідації для Budgets (об'єкт з бюджетами)
@@ -74,21 +67,13 @@ export const BudgetsSchema: z.ZodType<Budgets> = z.record(
 
 /**
  * Схема валідації для UserData
+ * Чиста структура без legacy-полів
  */
 export const UserDataSchema: z.ZodType<UserData> = z.object({
-  activeBudgetId: z.string().optional(),
-  budgets: BudgetsSchema.optional(),
+  activeBudgetId: z.string(),
+  budgets: BudgetsSchema,
   savedAt: z.string().optional(),
   updatedAt: z.string().optional(),
-  // Legacy fields для зворотної сумісності
-  startBalanceUAH: z.number().nullable().optional(),
-  startBalanceUSD: z.number().nullable().optional(),
-  startBalanceEUR: z.number().nullable().optional(),
-  usdRate: z.number().positive().optional(),
-  eurRate: z.number().positive().optional(),
-  days: z.array(DaySchema).optional(),
-  selectedCurrencies: z.array(z.string()).optional(),
-  exchangeRates: ExchangeRatesSchema.optional(),
   // Encryption fields
   isEncrypted: z.boolean().optional(),
   encryptedData: z.string().optional()

@@ -179,33 +179,23 @@ export const calculateDayAmountsFromTransactions = (day: Day | null | undefined,
   return amounts;
 };
 
-// Обчислює баланс дня з транзакцій або старих полів (backward compatibility)
+// Обчислює баланс дня з транзакцій
 export const calculateDayBalanceUAH = (day: Day | null | undefined): number => {
   if (!day) return 0;
   const amounts = calculateDayAmountsFromTransactions(day);
-  // Якщо є транзакції, використовуємо їх, інакше старі поля
-  if (amounts.incomeUAH > 0 || amounts.expenseUAH > 0) {
-    return amounts.incomeUAH - amounts.expenseUAH;
-  }
-  return (parseFloat(String(day.incomeUAH)) || 0) - (parseFloat(String(day.expenseUAH)) || 0);
+  return amounts.incomeUAH - amounts.expenseUAH;
 };
 
 export const calculateDayBalanceUSD = (day: Day | null | undefined): number => {
   if (!day) return 0;
   const amounts = calculateDayAmountsFromTransactions(day);
-  if (amounts.incomeUSD > 0 || amounts.expenseUSD > 0) {
-    return amounts.incomeUSD - amounts.expenseUSD;
-  }
-  return (parseFloat(String(day.incomeUSD)) || 0) - (parseFloat(String(day.expenseUSD)) || 0);
+  return amounts.incomeUSD - amounts.expenseUSD;
 };
 
 export const calculateDayBalanceEUR = (day: Day | null | undefined): number => {
   if (!day) return 0;
   const amounts = calculateDayAmountsFromTransactions(day);
-  if (amounts.incomeEUR > 0 || amounts.expenseEUR > 0) {
-    return amounts.incomeEUR - amounts.expenseEUR;
-  }
-  return (parseFloat(String(day.incomeEUR)) || 0) - (parseFloat(String(day.expenseEUR)) || 0);
+  return amounts.incomeEUR - amounts.expenseEUR;
 };
 
 export const calculateCumulativeBalanceUAH = (dayIndex: number, days: Day[], startBalanceUAH: number | null): number => {
@@ -276,21 +266,7 @@ export const calculateTotals = (days: Day[], selectedCurrencies: string[] = ['UA
       totals[`totalExpense${code}`] += amounts[expenseKey] || 0;
     });
 
-    // Для зворотної сумісності - додаємо тільки якщо немає транзакцій (backward compatibility)
-    // Якщо є транзакції, дані вже додані через цикл selectedCurrencies вище
-    const hasTransactions = amounts.incomeUAH > 0 || amounts.expenseUAH > 0 || 
-                            amounts.incomeUSD > 0 || amounts.expenseUSD > 0 ||
-                            amounts.incomeEUR > 0 || amounts.expenseEUR > 0;
-    
-    if (!hasTransactions) {
-      // Backward compatibility - якщо немає транзакцій, використовуємо старі поля
-      totalIncomeUAH += parseFloat(String(day.incomeUAH)) || 0;
-      totalExpenseUAH += parseFloat(String(day.expenseUAH)) || 0;
-      totalIncomeUSD += parseFloat(String(day.incomeUSD)) || 0;
-      totalExpenseUSD += parseFloat(String(day.expenseUSD)) || 0;
-      totalIncomeEUR += parseFloat(String(day.incomeEUR)) || 0;
-      totalExpenseEUR += parseFloat(String(day.expenseEUR)) || 0;
-    }
+    // Всі дані тепер в транзакціях, legacy-поля більше не підтримуються
   });
 
   return {
@@ -312,19 +288,7 @@ export const calculateDayBalance = (day: Day | null | undefined, currencyCode: s
   const incomeKey = `income${currencyCode}`;
   const expenseKey = `expense${currencyCode}`;
   
-  // Спочатку пробуємо з транзакцій
-  if (amounts[incomeKey] !== undefined || amounts[expenseKey] !== undefined) {
-    return (amounts[incomeKey] || 0) - (amounts[expenseKey] || 0);
-  }
-  
-  // Для зворотної сумісності зі старими полями
-  const oldIncomeKey = `income${currencyCode}`;
-  const oldExpenseKey = `expense${currencyCode}`;
-  if (day[oldIncomeKey] !== undefined || day[oldExpenseKey] !== undefined) {
-    return (parseFloat(String(day[oldIncomeKey])) || 0) - (parseFloat(String(day[oldExpenseKey])) || 0);
-  }
-  
-  return 0;
+  return (amounts[incomeKey] || 0) - (amounts[expenseKey] || 0);
 };
 
 // Універсальна функція для обчислення накопиченого балансу

@@ -145,13 +145,7 @@ export function useBudgetImportExport() {
         days: days.map((day, index) => ({
           day: day.day || (index + 1),
           description: String(day.description || '').trim(),
-          transactions: Array.isArray(day.transactions) ? day.transactions : [],
-          incomeUAH: toNumber(day.incomeUAH),
-          expenseUAH: toNumber(day.expenseUAH),
-          incomeUSD: toNumber(day.incomeUSD),
-          expenseUSD: toNumber(day.expenseUSD),
-          incomeEUR: toNumber(day.incomeEUR),
-          expenseEUR: toNumber(day.expenseEUR)
+          transactions: Array.isArray(day.transactions) ? day.transactions : []
         })),
         totals: totalsToSave
       };
@@ -336,16 +330,70 @@ export function useBudgetImportExport() {
                 }
               }
 
+              // Мігруємо legacy-дані, якщо вони є
+              const legacyDay = loadedDay as any;
+              if (!validatedTransactions.length && (legacyDay.incomeUAH || legacyDay.expenseUAH || legacyDay.incomeUSD || legacyDay.expenseUSD || legacyDay.incomeEUR || legacyDay.expenseEUR)) {
+                // Мігруємо legacy-поля в транзакції
+                if (toNumber(legacyDay.incomeUAH) > 0) {
+                  validatedTransactions.push({
+                    id: `migrated-income-uah-${i}`,
+                    type: 'income',
+                    amount: toNumber(legacyDay.incomeUAH),
+                    currency: 'UAH',
+                    description: String(legacyDay.description || 'Міграція: Дохід UAH')
+                  });
+                }
+                if (toNumber(legacyDay.expenseUAH) > 0) {
+                  validatedTransactions.push({
+                    id: `migrated-expense-uah-${i}`,
+                    type: 'expense',
+                    amount: toNumber(legacyDay.expenseUAH),
+                    currency: 'UAH',
+                    description: String(legacyDay.description || 'Міграція: Витрата UAH')
+                  });
+                }
+                if (toNumber(legacyDay.incomeUSD) > 0) {
+                  validatedTransactions.push({
+                    id: `migrated-income-usd-${i}`,
+                    type: 'income',
+                    amount: toNumber(legacyDay.incomeUSD),
+                    currency: 'USD',
+                    description: String(legacyDay.description || 'Міграція: Дохід USD')
+                  });
+                }
+                if (toNumber(legacyDay.expenseUSD) > 0) {
+                  validatedTransactions.push({
+                    id: `migrated-expense-usd-${i}`,
+                    type: 'expense',
+                    amount: toNumber(legacyDay.expenseUSD),
+                    currency: 'USD',
+                    description: String(legacyDay.description || 'Міграція: Витрата USD')
+                  });
+                }
+                if (toNumber(legacyDay.incomeEUR) > 0) {
+                  validatedTransactions.push({
+                    id: `migrated-income-eur-${i}`,
+                    type: 'income',
+                    amount: toNumber(legacyDay.incomeEUR),
+                    currency: 'EUR',
+                    description: String(legacyDay.description || 'Міграція: Дохід EUR')
+                  });
+                }
+                if (toNumber(legacyDay.expenseEUR) > 0) {
+                  validatedTransactions.push({
+                    id: `migrated-expense-eur-${i}`,
+                    type: 'expense',
+                    amount: toNumber(legacyDay.expenseEUR),
+                    currency: 'EUR',
+                    description: String(legacyDay.description || 'Міграція: Витрата EUR')
+                  });
+                }
+              }
+
               const dayData: Day = {
                 day: loadedDay.day || i,
                 description: String(loadedDay.description || '').trim(),
-                transactions: validatedTransactions,
-                incomeUAH: toNumber(loadedDay.incomeUAH),
-                expenseUAH: toNumber(loadedDay.expenseUAH),
-                incomeUSD: toNumber(loadedDay.incomeUSD),
-                expenseUSD: toNumber(loadedDay.expenseUSD),
-                incomeEUR: toNumber(loadedDay.incomeEUR),
-                expenseEUR: toNumber(loadedDay.expenseEUR)
+                transactions: validatedTransactions
               };
 
               // Валідація дня
@@ -364,13 +412,7 @@ export function useBudgetImportExport() {
                 newDays.push({
                   day: i,
                   transactions: [],
-                  description: '',
-                  incomeUAH: 0,
-                  expenseUAH: 0,
-                  incomeUSD: 0,
-                  expenseUSD: 0,
-                  incomeEUR: 0,
-                  expenseEUR: 0
+                  description: ''
                 });
                 console.warn(`⚠️ День ${i} не валідний, використано значення за замовчуванням`);
               }
@@ -378,13 +420,7 @@ export function useBudgetImportExport() {
               newDays.push({
                 day: i,
                 transactions: [],
-                description: '',
-                incomeUAH: 0,
-                expenseUAH: 0,
-                incomeUSD: 0,
-                expenseUSD: 0,
-                incomeEUR: 0,
-                expenseEUR: 0
+                description: ''
               });
             }
           }
