@@ -98,18 +98,7 @@ export function useBudgetSettings() {
       setSaveMessage('');
       
       // Оновлюємо localStorage з очищеними даними
-      saveToLocalStorage(
-        null, // startBalanceUAH
-        null, // startBalanceUSD
-        null, // startBalanceEUR
-        defaultUsdRate, // usdRate
-        defaultEurRate, // eurRate
-        emptyDays, // days
-        selectedCurrencies, // selectedCurrencies
-        exchangeRates, // exchangeRates
-        updatedBudgets, // budgets
-        currentId // activeBudgetId
-      );
+      saveToLocalStorage(updatedBudgets, currentId);
       
       console.log('✅ Всі поля очищено');
     }
@@ -217,18 +206,9 @@ export function useBudgetSettings() {
     // ЯВНО зберігаємо оновлений вибір валют у localStorage разом з іншими даними
     try {
       const currentId = activeBudgetId || 'default';
-      saveToLocalStorage(
-        startBalanceUAH,
-        startBalanceUSD,
-        startBalanceEUR,
-        nextUsdRate,
-        nextEurRate,
-        days,
-        validated,
-        newRates,
-        budgets,
-        currentId
-      );
+      // Всі актуальні дані (включно з динамічними startBalances та новими курсами)
+      // потраплять у `budgets` через useBudgetStateSync та інші хуки.
+      saveToLocalStorage(budgets, currentId);
     } catch (e) {
       console.error('Помилка при збереженні вибраних валют у localStorage:', e);
     }

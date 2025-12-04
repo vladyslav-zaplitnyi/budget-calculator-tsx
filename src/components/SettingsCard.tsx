@@ -9,27 +9,16 @@ import PasswordModal from './PasswordModal';
 interface SettingsCardProps {
   isUk: boolean;
   user: User | null;
-  budgets: Budgets;
+  budgets: Budgets | null | undefined;
   activeBudgetId: string;
   handleBudgetChange: (event: ChangeEvent<HTMLSelectElement>) => void;
   handleAddBudgetClick: () => void;
   handleDeleteBudget: () => void;
-  startBalanceUAH: number | null;
-  setStartBalanceUAH: (value: number | null) => void;
-  startBalanceUSD: number | null;
-  setStartBalanceUSD: (value: number | null) => void;
-  startBalanceEUR: number | null;
-  setStartBalanceEUR: (value: number | null) => void;
-  usdRate: number;
-  setUsdRate: (rate: number) => void;
-  eurRate: number;
-  setEurRate: (rate: number) => void;
   selectedCurrencies: string[];
   exchangeRates: ExchangeRates;
   handleCurrencyChange: (currencies: string[]) => void;
   handleExchangeRateChange: (pairKey: string, type: string | undefined, rate: number) => void;
   handleStartBalanceChange: (currencyCode: string, value: string) => void;
-  startBalances: Record<string, number | null>;
   handleExportToJsonFile: () => void;
   handleImportFromJsonFile: () => void;
   isLoading: boolean;
@@ -57,27 +46,16 @@ interface SettingsCardProps {
 const SettingsCard: React.FC<SettingsCardProps> = ({
   isUk,
   user,
-  budgets,
+  budgets = {},
   activeBudgetId,
   handleBudgetChange,
   handleAddBudgetClick,
   handleDeleteBudget,
-  startBalanceUAH,
-  setStartBalanceUAH,
-  startBalanceUSD,
-  setStartBalanceUSD,
-  startBalanceEUR,
-  setStartBalanceEUR,
-  usdRate,
-  setUsdRate,
-  eurRate,
-  setEurRate,
   selectedCurrencies = ['UAH', 'USD', 'EUR'],
   exchangeRates = {},
   handleCurrencyChange,
   handleExchangeRateChange,
   handleStartBalanceChange,
-  startBalances = {},
   handleExportToJsonFile,
   handleImportFromJsonFile,
   isLoading,
@@ -101,6 +79,10 @@ const SettingsCard: React.FC<SettingsCardProps> = ({
   isEncrypted = false
 }) => {
   const { t, i18n: i18nInstance } = useTranslation();
+  
+  // Ensure budgets is always an object to prevent runtime errors
+  const safeBudgets = budgets || {};
+  
   const handleCurrencySelect = (currencyCode: string, index: number) => {
     const newCurrencies = [...selectedCurrencies];
     newCurrencies[index] = currencyCode;
@@ -124,18 +106,18 @@ const SettingsCard: React.FC<SettingsCardProps> = ({
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
             <select
               value={
-                budgets && Object.keys(budgets).length > 0 ? activeBudgetId : ''
+                safeBudgets && Object.keys(safeBudgets).length > 0 ? activeBudgetId : ''
               }
               onChange={handleBudgetChange}
               className="flex-1 px-3 sm:px-4 py-2 sm:py-2.5 text-sm sm:text-base border-2 border-indigo-200 rounded-lg focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 bg-white"
-              disabled={!budgets || Object.keys(budgets).length === 0}
+              disabled={!safeBudgets || Object.keys(safeBudgets).length === 0}
             >
-              {(!budgets || Object.keys(budgets).length === 0) ? (
+              {(!safeBudgets || Object.keys(safeBudgets).length === 0) ? (
                 <option value="">
                   {t('settings.budget.noBudgets')}
                 </option>
               ) : (
-                Object.entries(budgets).map(([id, budget]) => (
+                Object.entries(safeBudgets).map(([id, budget]) => (
                   <option key={id} value={id}>
                     {budget.name || t('settings.budget.untitled')}
                   </option>
@@ -150,7 +132,7 @@ const SettingsCard: React.FC<SettingsCardProps> = ({
             >
               [+]
             </button>
-            {budgets && Object.keys(budgets).length > 1 && activeBudgetId !== 'default' && (
+            {safeBudgets && Object.keys(safeBudgets).length > 1 && activeBudgetId !== 'default' && (
               <button
                 type="button"
                 onClick={handleDeleteBudget}
@@ -216,18 +198,9 @@ const SettingsCard: React.FC<SettingsCardProps> = ({
             const currency = AVAILABLE_CURRENCIES[currencyCode];
             if (!currency) return null;
             
-            // Отримуємо поточний баланс для валюти
-            let currentBalance: number | null = null;
-            if (currencyCode === 'UAH') {
-              currentBalance = startBalanceUAH;
-            } else if (currencyCode === 'USD') {
-              currentBalance = startBalanceUSD;
-            } else if (currencyCode === 'EUR') {
-              currentBalance = startBalanceEUR;
-            } else {
-              // Для інших валют використовуємо startBalances
-              currentBalance = startBalances[currencyCode] ?? null;
-            }
+            // Отримуємо поточний баланс для валюти з бюджету
+            const activeBudget = safeBudgets && safeBudgets[activeBudgetId || 'default'];
+            const currentBalance = activeBudget?.startBalances?.[currencyCode] ?? null;
             
             const colors = [
               'from-blue-50 to-blue-100/70 border-blue-200 hover:border-blue-300',
@@ -249,15 +222,6 @@ const SettingsCard: React.FC<SettingsCardProps> = ({
                     const inputValue = e.target.value;
                     if (handleStartBalanceChange) {
                       handleStartBalanceChange(currencyCode, inputValue);
-                    } else {
-                      const numValue = inputValue === '' ? null : (isNaN(parseFloat(inputValue)) ? null : parseFloat(inputValue));
-                      if (currencyCode === 'UAH') {
-                        setStartBalanceUAH(numValue);
-                      } else if (currencyCode === 'USD') {
-                        setStartBalanceUSD(numValue);
-                      } else if (currencyCode === 'EUR') {
-                        setStartBalanceEUR(numValue);
-                      }
                     }
                   }}
                   placeholder="0"
@@ -300,7 +264,15 @@ const SettingsCard: React.FC<SettingsCardProps> = ({
               } else if (isExchangeRatePair(rateVal)) {
                   oldRate = getBuyRate(rateVal, 1);
               } else {
-                  oldRate = (currencyCode === 'USD' ? usdRate : currencyCode === 'EUR' ? eurRate : 1);
+                  // Отримуємо курс з бюджету або використовуємо дефолтне значення
+                  const activeBudget = safeBudgets && safeBudgets[activeBudgetId || 'default'];
+                  if (currencyCode === 'USD') {
+                    oldRate = activeBudget?.usdRate ?? 41.5;
+                  } else if (currencyCode === 'EUR') {
+                    oldRate = activeBudget?.eurRate ?? 45;
+                  } else {
+                    oldRate = 1;
+                  }
               }
               buyRate = oldRate;
               sellRate = oldRate * 1.01;

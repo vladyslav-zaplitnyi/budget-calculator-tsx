@@ -72,18 +72,9 @@ export function useBudgetSync(
     if (isInitialLoad || authLoading) return;
 
     // Зберігаємо дані в localStorage завжди при зміні
-    saveToLocalStorage(
-      startBalanceUAH, 
-      startBalanceUSD, 
-      startBalanceEUR, 
-      usdRate, 
-      eurRate, 
-      days, 
-      selectedCurrencies, 
-      exchangeRates,
-      budgets,
-      activeBudgetId
-    );
+    // ВАЖЛИВО: Всі баланси, курси, дні та вибрані валюти зберігаються
+    // всередині об'єкта `budgets` (через useBudgetStateSync).
+    saveToLocalStorage(budgets, activeBudgetId);
     
     // Оновлюємо статус синхронізації
     // Якщо користувач не авторизований, показуємо тільки локальний статус

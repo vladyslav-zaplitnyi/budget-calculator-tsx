@@ -1,9 +1,9 @@
-import { doc, getDoc, setDoc, updateDoc, deleteField, serverTimestamp, Timestamp } from 'firebase/firestore';
+import { doc, getDoc, setDoc, serverTimestamp, Timestamp } from 'firebase/firestore';
 import { db } from '../firebase';
 import { LANGUAGE_STORAGE_KEY } from './constants';
 import { User } from 'firebase/auth';
 import { Day, ExchangeRates, Budget, Budgets, UserData, LoadedUserData } from '../types';
-import { validateUserData, validateBudgets } from '../schemas/budgetSchema';
+import { validateBudgets } from '../schemas/budgetSchema';
 import { handleError } from './errorHandler';
 import { encryptData, decryptData, WrongPasswordError } from './encryption';
 
@@ -203,15 +203,13 @@ export const loadFromLocalStorage = (): LoadedUserData | null => {
 };
 
 // Функція для збереження даних в localStorage (ТІЛЬКИ ЧИСТА СТРУКТУРА)
+// ⚠️ УВАГА:
+//   - Вся актуальна інформація (включно з динамічними startBalances для будь‑яких валют)
+//     зберігається всередині об'єкта `budgets`.
+//   - Тому тут ми зберігаємо тільки `budgets` та `activeBudgetId`.
+//   - Поля типу startBalanceUAH/USD/EUR, usdRate, eurRate, days тощо
+//     більше НЕ зберігаємо окремо в localStorage.
 export const saveToLocalStorage = (
-  startBalanceUAH: number | null, 
-  startBalanceUSD: number | null, 
-  startBalanceEUR: number | null, 
-  usdRate: number, 
-  eurRate: number, 
-  days: Day[], 
-  selectedCurrencies: string[], 
-  exchangeRates: ExchangeRates,
   budgets?: Budgets,
   activeBudgetId?: string
 ): void => {

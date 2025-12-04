@@ -3,7 +3,6 @@ import { useBudgetContext } from '../contexts/BudgetContext';
 import { normalizeDaysArray } from '../utils/dayHelpers';
 import { saveToLocalStorage } from '../utils/storageHelpers';
 import { validateSelectedCurrencies } from '../utils/currencies';
-import { calculateTotals, calculateFinalBalances, convertCurrency } from '../utils/calculations';
 import { Budgets, Day, Transaction } from '../types';
 import { isExchangeRatePair } from '../utils/typeGuards';
 import { validateDay, validateTransaction } from '../schemas/budgetSchema';
@@ -20,21 +19,16 @@ export function useBudgetImportExport() {
   const {
     selectedCurrencies,
     exchangeRates,
-    startBalanceUAH,
-    startBalanceUSD,
-    startBalanceEUR,
-    usdRate,
-    eurRate,
     activeBudgetId,
     budgets,
     days,
+    setStartBalanceUAH,
+    setStartBalanceUSD,
+    setStartBalanceEUR,
     setSelectedCurrencies,
     setExchangeRates,
     setUsdRate,
     setEurRate,
-    setStartBalanceUAH,
-    setStartBalanceUSD,
-    setStartBalanceEUR,
     setBudgets,
     setDays,
     setSaveMessage,
@@ -45,109 +39,31 @@ export function useBudgetImportExport() {
 
   const handleExportToJsonFile = useCallback(() => {
     try {
-      const toNumber = (value: unknown): number => {
-        if (value === '' || value === null || value === undefined) return 0;
-        if (typeof value === 'number') return value;
-        const num = parseFloat(String(value));
-        return isNaN(num) ? 0 : num;
-      };
-
       const activeBudget = budgets && budgets[activeBudgetId || 'default'];
       const budgetStartBalances = activeBudget?.startBalances || {};
+      
+      // Формуємо мапу startBalances з усіх вибраних валют
       const exportStartBalances: Record<string, number | null> = {};
       selectedCurrencies.forEach(code => {
-        if (code === 'UAH') {
-          exportStartBalances[code] = startBalanceUAH;
-        } else if (code === 'USD') {
-          exportStartBalances[code] = startBalanceUSD;
-        } else if (code === 'EUR') {
-          exportStartBalances[code] = startBalanceEUR;
-        } else {
-          exportStartBalances[code] = budgetStartBalances[code] ?? null;
-        }
+        exportStartBalances[code] = budgetStartBalances[code] ?? null;
       });
 
-      const totals = calculateTotals(days, selectedCurrencies);
-      const finalBalances = calculateFinalBalances(days, startBalanceUAH, startBalanceUSD, startBalanceEUR, selectedCurrencies, exportStartBalances);
-      
-      let totalInBaseCurrency = 0;
-      selectedCurrencies.forEach(code => {
-        const finalBalance = finalBalances[`finalBalance${code}`] || 0;
-        if (code === baseCurrency) {
-          totalInBaseCurrency += finalBalance;
-        } else {
-          totalInBaseCurrency += convertCurrency(finalBalance, code, baseCurrency, exchangeRates);
-        }
-      });
-
+      // Чисті налаштування без legacy-полів
       const settingsToSave: Record<string, unknown> = {
-        startBalanceUAH: startBalanceUAH !== null ? toNumber(startBalanceUAH) : null,
-        startBalanceUSD: startBalanceUSD !== null ? toNumber(startBalanceUSD) : null,
-        startBalanceEUR: startBalanceEUR !== null ? toNumber(startBalanceEUR) : null,
-        usdRate: toNumber(usdRate),
-        eurRate: toNumber(eurRate),
+        startBalances: exportStartBalances,
         selectedCurrencies: [...selectedCurrencies],
         exchangeRates: { ...exchangeRates }
       };
 
-      selectedCurrencies.forEach(currencyCode => {
-        const balanceKey = `startBalance${currencyCode}`;
-        if (currencyCode === 'UAH') {
-          settingsToSave[balanceKey] = startBalanceUAH !== null ? toNumber(startBalanceUAH) : null;
-        } else if (currencyCode === 'USD') {
-          settingsToSave[balanceKey] = startBalanceUSD !== null ? toNumber(startBalanceUSD) : null;
-        } else if (currencyCode === 'EUR') {
-          settingsToSave[balanceKey] = startBalanceEUR !== null ? toNumber(startBalanceEUR) : null;
-        } else {
-          const balance = exportStartBalances[currencyCode];
-          settingsToSave[balanceKey] = balance !== null && balance !== undefined ? toNumber(balance) : null;
-        }
-      });
-
-      if (exchangeRates['UAH_RON']) {
-        const ronPair = exchangeRates['UAH_RON'];
-        if (isExchangeRatePair(ronPair)) {
-          settingsToSave.ronRate = ronPair.buy || ronPair.sell || null;
-        } else if (typeof ronPair === 'number') {
-          settingsToSave.ronRate = ronPair;
-        }
-      }
-      if (exchangeRates['UAH_PLN']) {
-        const plnPair = exchangeRates['UAH_PLN'];
-        if (isExchangeRatePair(plnPair)) {
-          settingsToSave.plnRate = plnPair.buy || plnPair.sell || null;
-        } else if (typeof plnPair === 'number') {
-          settingsToSave.plnRate = plnPair;
-        }
-      }
-
-      const totalsToSave: Record<string, number> = {};
-      selectedCurrencies.forEach(currencyCode => {
-        totalsToSave[`totalIncome${currencyCode}`] = toNumber((totals[`totalIncome${currencyCode}`] || 0).toFixed(2));
-        totalsToSave[`totalExpense${currencyCode}`] = toNumber((totals[`totalExpense${currencyCode}`] || 0).toFixed(2));
-        totalsToSave[`finalBalance${currencyCode}`] = toNumber((finalBalances[`finalBalance${currencyCode}`] || 0).toFixed(2));
-      });
-
-      totalsToSave.totalIncomeUAH = toNumber((totals.totalIncomeUAH || 0).toFixed(2));
-      totalsToSave.totalExpenseUAH = toNumber((totals.totalExpenseUAH || 0).toFixed(2));
-      totalsToSave.totalIncomeUSD = toNumber((totals.totalIncomeUSD || 0).toFixed(2));
-      totalsToSave.totalExpenseUSD = toNumber((totals.totalExpenseUSD || 0).toFixed(2));
-      totalsToSave.totalIncomeEUR = toNumber((totals.totalIncomeEUR || 0).toFixed(2));
-      totalsToSave.totalExpenseEUR = toNumber((totals.totalExpenseEUR || 0).toFixed(2));
-      totalsToSave.finalBalanceUAH = toNumber((finalBalances.finalBalanceUAH || 0).toFixed(2));
-      totalsToSave.finalBalanceUSD = toNumber((finalBalances.finalBalanceUSD || 0).toFixed(2));
-      totalsToSave.finalBalanceEUR = toNumber((finalBalances.finalBalanceEUR || 0).toFixed(2));
-      totalsToSave.totalInUAH = toNumber(totalInBaseCurrency.toFixed(2));
-
       const dataToSave = {
         savedAt: new Date().toISOString(),
+        baseCurrency: baseCurrency,
+        budgetName: activeBudget?.name || 'Основний',
         settings: settingsToSave,
         days: days.map((day, index) => ({
           day: day.day || (index + 1),
-          description: String(day.description || '').trim(),
           transactions: Array.isArray(day.transactions) ? day.transactions : []
-        })),
-        totals: totalsToSave
+        }))
       };
 
       const now = new Date();
@@ -179,7 +95,7 @@ export function useBudgetImportExport() {
       setSaveMessage(translate('errors.exportError'));
       setTimeout(() => setSaveMessage(''), 3000);
     }
-  }, [budgets, activeBudgetId, selectedCurrencies, exchangeRates, startBalanceUAH, startBalanceUSD, startBalanceEUR, usdRate, eurRate, days, baseCurrency, setSaveMessage]);
+  }, [budgets, activeBudgetId, selectedCurrencies, exchangeRates, days, baseCurrency, setSaveMessage]);
 
   const handleImportFromJsonFile = useCallback(() => {
     if (fileInputRef.current) {
@@ -275,10 +191,17 @@ export function useBudgetImportExport() {
             }
           });
           
-          // Встановлюємо баланси для UAH, USD, EUR (для зворотної сумісності зі старим кодом)
-          setStartBalanceUAH(startBalancesFromSettings['UAH'] ?? null);
-          setStartBalanceUSD(startBalancesFromSettings['USD'] ?? null);
-          setStartBalanceEUR(startBalancesFromSettings['EUR'] ?? null);
+          // Оновлюємо глобальні стартові баланси для базових валют,
+          // щоб useBudgetStateSync не перезаписував імпортовані значення старими
+          if ('UAH' in startBalancesFromSettings) {
+            setStartBalanceUAH(startBalancesFromSettings['UAH'] ?? null);
+          }
+          if ('USD' in startBalancesFromSettings) {
+            setStartBalanceUSD(startBalancesFromSettings['USD'] ?? null);
+          }
+          if ('EUR' in startBalancesFromSettings) {
+            setStartBalanceEUR(startBalancesFromSettings['EUR'] ?? null);
+          }
           
           const currentId = activeBudgetId || 'default';
           
@@ -500,19 +423,12 @@ export function useBudgetImportExport() {
               [currentId]: budgetWithDays
             };
             
+            // Отримуємо startBalances з оновленого бюджету для збереження
+            const finalStartBalances = budgetWithDays.startBalances || {};
+            
             // Зберігаємо в localStorage з budgets
-            saveToLocalStorage(
-              data.settings?.startBalanceUAH ?? null,
-              data.settings?.startBalanceUSD ?? null,
-              data.settings?.startBalanceEUR ?? null,
-              data.settings?.usdRate ?? 41.5,
-              data.settings?.eurRate ?? 45,
-              normalizedDays || days,
-              finalSelectedCurrencies,
-              finalExchangeRates,
-              updatedBudgets,
-              currentId
-            );
+            // Всі динамічні startBalances вже знаходяться всередині updatedBudgets
+            saveToLocalStorage(updatedBudgets, currentId);
             
             return updatedBudgets;
           });
@@ -539,7 +455,7 @@ export function useBudgetImportExport() {
     };
 
     reader.readAsText(file, 'utf-8');
-  }, [activeBudgetId, selectedCurrencies, exchangeRates, days, setSelectedCurrencies, setExchangeRates, setUsdRate, setEurRate, setStartBalanceUAH, setStartBalanceUSD, setStartBalanceEUR, setBudgets, setDays, setIsLoading, setLoadMessage]);
+  }, [activeBudgetId, selectedCurrencies, exchangeRates, days, setSelectedCurrencies, setExchangeRates, setUsdRate, setEurRate, setBudgets, setDays, setIsLoading, setLoadMessage]);
 
   return {
     handleExportToJsonFile,

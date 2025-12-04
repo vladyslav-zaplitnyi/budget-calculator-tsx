@@ -9,6 +9,7 @@ import Statistics from './Statistics';
 import { useBudgetContext } from '../contexts/BudgetContext';
 import { useBudgetHandlers } from '../hooks/useBudgetHandlers';
 import { calculateTotals, calculateFinalBalances, convertCurrency } from '../utils/calculations';
+import { isExchangeRatePair } from '../utils/typeGuards';
 
 export default function BudgetTracker() {
   const context = useBudgetContext();
@@ -27,15 +28,8 @@ export default function BudgetTracker() {
     selectedCurrencies,
     exchangeRates,
     startBalanceUAH,
-    setStartBalanceUAH,
     startBalanceUSD,
-    setStartBalanceUSD,
     startBalanceEUR,
-    setStartBalanceEUR,
-    usdRate,
-    setUsdRate,
-    eurRate,
-    setEurRate,
     activeBudgetId,
     budgets,
     days,
@@ -87,18 +81,10 @@ export default function BudgetTracker() {
     
     const balances: Record<string, number | null> = {};
     selectedCurrencies.forEach(code => {
-      if (code === 'UAH') {
-        balances[code] = startBalanceUAH;
-      } else if (code === 'USD') {
-        balances[code] = startBalanceUSD;
-      } else if (code === 'EUR') {
-        balances[code] = startBalanceEUR;
-      } else {
-        balances[code] = budgetStartBalances[code] ?? null;
-      }
+      balances[code] = budgetStartBalances[code] ?? null;
     });
     return balances;
-  }, [selectedCurrencies, startBalanceUAH, startBalanceUSD, startBalanceEUR, budgets, activeBudgetId]);
+  }, [selectedCurrencies, budgets, activeBudgetId]);
 
   // Calculations
   const totals = useMemo(
@@ -107,8 +93,8 @@ export default function BudgetTracker() {
   );
 
   const finalBalances = useMemo(
-    () => calculateFinalBalances(days, startBalanceUAH, startBalanceUSD, startBalanceEUR, selectedCurrencies, startBalances),
-    [days, startBalanceUAH, startBalanceUSD, startBalanceEUR, selectedCurrencies, startBalances]
+    () => calculateFinalBalances(days, null, null, null, selectedCurrencies, startBalances),
+    [days, selectedCurrencies, startBalances]
   );
   
   // Для зворотної сумісності
@@ -131,7 +117,26 @@ export default function BudgetTracker() {
   }, [selectedCurrencies, finalBalances, baseCurrency, exchangeRates]);
   
   // Для зворотної сумісності зберігаємо totalInUAH
-  const totalInUAH = finalBalanceUAH + (finalBalanceUSD * usdRate) + (finalBalanceEUR * eurRate);
+  // Отримуємо курси з exchangeRates або бюджету
+  const getUsdRate = useMemo(() => {
+    const uahUsdPair = exchangeRates['UAH_USD'];
+    if (isExchangeRatePair(uahUsdPair)) {
+      return uahUsdPair.buy;
+    }
+    const activeBudget = budgets && budgets[activeBudgetId || 'default'];
+    return activeBudget?.usdRate ?? 41.5;
+  }, [exchangeRates, budgets, activeBudgetId]);
+
+  const getEurRate = useMemo(() => {
+    const uahEurPair = exchangeRates['UAH_EUR'];
+    if (isExchangeRatePair(uahEurPair)) {
+      return uahEurPair.buy;
+    }
+    const activeBudget = budgets && budgets[activeBudgetId || 'default'];
+    return activeBudget?.eurRate ?? 45;
+  }, [exchangeRates, budgets, activeBudgetId]);
+
+  const totalInUAH = finalBalanceUAH + (finalBalanceUSD * getUsdRate) + (finalBalanceEUR * getEurRate);
 
   // Обчислюємо загальну вартість у вибраній валюті відображення
   const totalInDisplayCurrency = useMemo(() => {
@@ -191,22 +196,11 @@ export default function BudgetTracker() {
             handleBudgetChange={handleBudgetChange}
             handleAddBudgetClick={handleAddBudgetClick}
             handleDeleteBudget={handleDeleteBudget}
-            startBalanceUAH={startBalanceUAH}
-            setStartBalanceUAH={setStartBalanceUAH}
-            startBalanceUSD={startBalanceUSD}
-            setStartBalanceUSD={setStartBalanceUSD}
-            startBalanceEUR={startBalanceEUR}
-            setStartBalanceEUR={setStartBalanceEUR}
-            usdRate={usdRate}
-            setUsdRate={setUsdRate}
-            eurRate={eurRate}
-            setEurRate={setEurRate}
             selectedCurrencies={selectedCurrencies}
             exchangeRates={exchangeRates}
             handleCurrencyChange={handleCurrencyChange}
             handleExchangeRateChange={handleExchangeRateChange}
             handleStartBalanceChange={handleStartBalanceChange}
-            startBalances={startBalances}
             handleExportToJsonFile={handleExportToJsonFile}
             handleImportFromJsonFile={handleImportFromJsonFile}
             isLoading={isLoading}
