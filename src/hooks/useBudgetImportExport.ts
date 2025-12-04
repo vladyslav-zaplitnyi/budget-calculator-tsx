@@ -236,9 +236,49 @@ export function useBudgetImportExport() {
             setEurRate(data.settings.eurRate ?? 45);
           }
 
-          setStartBalanceUAH(data.settings.startBalanceUAH ?? null);
-          setStartBalanceUSD(data.settings.startBalanceUSD ?? null);
-          setStartBalanceEUR(data.settings.startBalanceEUR ?? null);
+          // Підтримка нової структури startBalances та старої (для зворотної сумісності)
+          const startBalancesFromSettings: Record<string, number | null> = {};
+          
+          // Спочатку перевіряємо нову структуру startBalances
+          if (data.settings.startBalances && typeof data.settings.startBalances === 'object') {
+            Object.entries(data.settings.startBalances).forEach(([currencyCode, balance]) => {
+              if (typeof balance === 'number') {
+                startBalancesFromSettings[currencyCode] = balance;
+              } else if (balance === null || balance === '') {
+                startBalancesFromSettings[currencyCode] = null;
+              } else {
+                // Ігноруємо невалідні значення
+                startBalancesFromSettings[currencyCode] = null;
+              }
+            });
+          }
+          
+          // Fallback на старі поля для зворотної сумісності
+          if (data.settings.startBalanceUAH !== undefined) {
+            startBalancesFromSettings['UAH'] = data.settings.startBalanceUAH;
+          }
+          if (data.settings.startBalanceUSD !== undefined) {
+            startBalancesFromSettings['USD'] = data.settings.startBalanceUSD;
+          }
+          if (data.settings.startBalanceEUR !== undefined) {
+            startBalancesFromSettings['EUR'] = data.settings.startBalanceEUR;
+          }
+          
+          // Завантажуємо баланси для інших валют зі старих полів
+          loadedCurrencies.forEach(currencyCode => {
+            if (!['UAH', 'USD', 'EUR'].includes(currencyCode)) {
+              const balanceKey = `startBalance${currencyCode}`;
+              if (data.settings[balanceKey] !== undefined) {
+                const balanceValue = data.settings[balanceKey];
+                startBalancesFromSettings[currencyCode] = balanceValue === null || balanceValue === '' ? null : balanceValue;
+              }
+            }
+          });
+          
+          // Встановлюємо баланси для UAH, USD, EUR (для зворотної сумісності зі старим кодом)
+          setStartBalanceUAH(startBalancesFromSettings['UAH'] ?? null);
+          setStartBalanceUSD(startBalancesFromSettings['USD'] ?? null);
+          setStartBalanceEUR(startBalancesFromSettings['EUR'] ?? null);
           
           const currentId = activeBudgetId || 'default';
           
@@ -246,15 +286,14 @@ export function useBudgetImportExport() {
             const safePrev = prevBudgets || {};
             const existingBudget = safePrev[currentId] || { name: 'Основний' };
             
-            const startBalances: Record<string, number | null> = {};
+            const startBalances: Record<string, number | null> = { ...(existingBudget.startBalances || {}) };
             
+            // Оновлюємо баланси з імпортованих даних
             loadedCurrencies.forEach(currencyCode => {
-              const balanceKey = `startBalance${currencyCode}`;
-              if (data.settings[balanceKey] !== undefined) {
-                const balanceValue = data.settings[balanceKey];
-                startBalances[currencyCode] = balanceValue === null || balanceValue === '' ? null : balanceValue;
-              } else {
-                startBalances[currencyCode] = existingBudget.startBalances?.[currencyCode] ?? null;
+              if (startBalancesFromSettings[currencyCode] !== undefined) {
+                startBalances[currencyCode] = startBalancesFromSettings[currencyCode];
+              } else if (startBalances[currencyCode] === undefined) {
+                startBalances[currencyCode] = null;
               }
             });
             
