@@ -173,15 +173,45 @@ export function useBudgetSettings() {
 
     setExchangeRates(newRates);
 
-    // ЯВНО зберігаємо оновлений вибір валют у localStorage разом з іншими даними
-    try {
-      const currentId = activeBudgetId || 'default';
-      // Всі актуальні дані (включно з динамічними startBalances та новими курсами)
-      // потраплять у `budgets` через useBudgetStateSync та інші хуки.
-      saveToLocalStorage(budgets, currentId);
-    } catch (e) {
-      console.error('Помилка при збереженні вибраних валют у localStorage:', e);
-    }
+    // Оновлюємо budgets безпосередньо: встановлюємо selectedCurrencies та оновлюємо startBalances
+    // (залишаємо тільки обрані валюти, видаляємо необрані)
+    const currentId = activeBudgetId || 'default';
+    setBudgets((prevBudgets: Budgets) => {
+      const safePrev = prevBudgets || {};
+      const existingBudget = safePrev[currentId] || { name: 'Основний' };
+      
+      // Оновлюємо startBalances: залишаємо тільки обрані валюти
+      const updatedStartBalances: Record<string, number | null> = {};
+      validated.forEach(code => {
+        if (code === 'UAH') {
+          updatedStartBalances[code] = startBalanceUAH;
+        } else if (code === 'USD') {
+          updatedStartBalances[code] = startBalanceUSD;
+        } else if (code === 'EUR') {
+          updatedStartBalances[code] = startBalanceEUR;
+        } else {
+          // Для інших валют беремо з існуючого бюджету, якщо є
+          updatedStartBalances[code] = existingBudget.startBalances?.[code] ?? null;
+        }
+      });
+      
+      const updatedBudget = {
+        ...existingBudget,
+        selectedCurrencies: validated,
+        startBalances: updatedStartBalances,
+        exchangeRates: newRates
+      };
+      
+      const updatedBudgets: Budgets = {
+        ...safePrev,
+        [currentId]: updatedBudget
+      };
+      
+      // Зберігаємо оновлені дані в localStorage
+      saveToLocalStorage(updatedBudgets, currentId);
+      
+      return updatedBudgets;
+    });
   }, [
     exchangeRates,
     baseCurrency,
@@ -192,7 +222,8 @@ export function useBudgetSettings() {
     activeBudgetId,
     budgets,
     setSelectedCurrencies,
-    setExchangeRates
+    setExchangeRates,
+    setBudgets
   ]);
 
   const handleExchangeRateChange = useCallback((pairKey: string, type: string | undefined, rate: number) => {

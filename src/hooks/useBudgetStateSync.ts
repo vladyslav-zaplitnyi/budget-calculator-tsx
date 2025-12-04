@@ -42,7 +42,8 @@ export function useBudgetStateSync(
         name: 'Основний'
       };
 
-      const updatedStartBalances = { ...(existingBudget.startBalances || {}) };
+      // Оновлюємо startBalances: залишаємо тільки обрані валюти
+      const updatedStartBalances: Record<string, number | null> = {};
       selectedCurrencies.forEach(code => {
         if (code === 'UAH') {
           updatedStartBalances[code] = startBalanceUAH;
@@ -51,9 +52,8 @@ export function useBudgetStateSync(
         } else if (code === 'EUR') {
           updatedStartBalances[code] = startBalanceEUR;
         } else {
-          if (updatedStartBalances[code] === undefined) {
-            updatedStartBalances[code] = null;
-          }
+          // Для інших валют беремо з існуючого бюджету, якщо є
+          updatedStartBalances[code] = existingBudget.startBalances?.[code] ?? null;
         }
       });
       
