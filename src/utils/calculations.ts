@@ -308,14 +308,32 @@ export const calculateFinalBalances = (
   startBalanceUSD: number | null, 
   startBalanceEUR: number | null, 
   selectedCurrencies: string[] = ['UAH', 'USD', 'EUR'], 
-  startBalances: Record<string, number | null> = {}
+  startBalances: Record<string, number | null> = {},
+  totals?: Totals
 ): Record<string, number> => {
-  // Для зворотної сумісності
-  const finalBalanceUAH = calculateCumulativeBalanceUAH(30, days, startBalanceUAH);
-  const finalBalanceUSD = calculateCumulativeBalanceUSD(30, days, startBalanceUSD);
-  const finalBalanceEUR = calculateCumulativeBalanceEUR(30, days, startBalanceEUR);
+  // Обчислюємо totals, якщо не передано
+  const calculatedTotals = totals || calculateTotals(days, selectedCurrencies);
 
-  // Динамічні баланси для вибраних валют
+  // Для зворотної сумісності - обчислюємо через totals (різниця з Детальної статистики)
+  const totalIncomeUAH = calculatedTotals.totalIncomeUAH || 0;
+  const totalExpenseUAH = calculatedTotals.totalExpenseUAH || 0;
+  const differenceUAH = totalIncomeUAH - totalExpenseUAH;
+  const startBalanceUAHValue = parseFloat(String(startBalanceUAH)) || 0;
+  const finalBalanceUAH = startBalanceUAHValue + differenceUAH;
+
+  const totalIncomeUSD = calculatedTotals.totalIncomeUSD || 0;
+  const totalExpenseUSD = calculatedTotals.totalExpenseUSD || 0;
+  const differenceUSD = totalIncomeUSD - totalExpenseUSD;
+  const startBalanceUSDValue = parseFloat(String(startBalanceUSD)) || 0;
+  const finalBalanceUSD = startBalanceUSDValue + differenceUSD;
+
+  const totalIncomeEUR = calculatedTotals.totalIncomeEUR || 0;
+  const totalExpenseEUR = calculatedTotals.totalExpenseEUR || 0;
+  const differenceEUR = totalIncomeEUR - totalExpenseEUR;
+  const startBalanceEURValue = parseFloat(String(startBalanceEUR)) || 0;
+  const finalBalanceEUR = startBalanceEURValue + differenceEUR;
+
+  // Динамічні баланси для вибраних валют - використовуємо різницю з Детальної статистики
   const finalBalances: Record<string, number> = {
     finalBalanceUAH,
     finalBalanceUSD,
@@ -327,7 +345,16 @@ export const calculateFinalBalances = (
       (currencyCode === 'UAH' ? startBalanceUAH : 
        currencyCode === 'USD' ? startBalanceUSD : 
        currencyCode === 'EUR' ? startBalanceEUR : null);
-    finalBalances[`finalBalance${currencyCode}`] = calculateCumulativeBalance(30, days, startBalance, currencyCode);
+    
+    const startBalanceValue = parseFloat(String(startBalance)) || 0;
+    const incomeKey = `totalIncome${currencyCode}`;
+    const expenseKey = `totalExpense${currencyCode}`;
+    const totalIncome = calculatedTotals[incomeKey] || 0;
+    const totalExpense = calculatedTotals[expenseKey] || 0;
+    const difference = totalIncome - totalExpense;
+    
+    // Поточний стан бюджету = початковий баланс + різниця у валюті з Детальної статистики
+    finalBalances[`finalBalance${currencyCode}`] = startBalanceValue + difference;
   });
 
   return finalBalances;

@@ -92,8 +92,8 @@ export default function BudgetTracker() {
   );
 
   const finalBalances = useMemo(
-    () => calculateFinalBalances(days, null, null, null, selectedCurrencies, startBalances),
-    [days, selectedCurrencies, startBalances]
+    () => calculateFinalBalances(days, null, null, null, selectedCurrencies, startBalances, totals),
+    [days, selectedCurrencies, startBalances, totals]
   );
   
   // Обчислюємо загальну вартість у базовій валюті
