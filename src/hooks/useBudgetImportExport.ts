@@ -4,7 +4,6 @@ import { normalizeDaysArray } from '../utils/dayHelpers';
 import { saveToLocalStorage } from '../utils/storageHelpers';
 import { validateSelectedCurrencies } from '../utils/currencies';
 import { Budgets, Day, Transaction } from '../types';
-import { isExchangeRatePair } from '../utils/typeGuards';
 import { validateDay, validateTransaction } from '../schemas/budgetSchema';
 import { handleError } from '../utils/errorHandler';
 import { translate } from '../i18n/config';
@@ -413,11 +412,6 @@ export function useBudgetImportExport() {
             setExchangeRates(data.settings.exchangeRates);
           }
           
-          const finalSelectedCurrencies = data.settings?.selectedCurrencies 
-            ? validateSelectedCurrencies(data.settings.selectedCurrencies)
-            : selectedCurrencies;
-          const finalExchangeRates = data.settings?.exchangeRates || exchangeRates;
-          
           // Оновлюємо budgets з days та зберігаємо в localStorage
           const currentId = activeBudgetId || 'default';
           setBudgets((prevBudgets: Budgets) => {
@@ -434,9 +428,6 @@ export function useBudgetImportExport() {
               ...safePrev,
               [currentId]: budgetWithDays
             };
-            
-            // Отримуємо startBalances з оновленого бюджету для збереження
-            const finalStartBalances = budgetWithDays.startBalances || {};
             
             // Зберігаємо в localStorage з budgets
             // Всі динамічні startBalances вже знаходяться всередині updatedBudgets
@@ -467,7 +458,7 @@ export function useBudgetImportExport() {
     };
 
     reader.readAsText(file, 'utf-8');
-  }, [activeBudgetId, selectedCurrencies, exchangeRates, days, setSelectedCurrencies, setExchangeRates, setBudgets, setDays, setIsLoading, setLoadMessage, setDisplayCurrency, setDisplayCurrencyIndex]);
+  }, [activeBudgetId, days, setSelectedCurrencies, setExchangeRates, setBudgets, setDays, setIsLoading, setLoadMessage, setDisplayCurrency, setDisplayCurrencyIndex, setStartBalanceUAH, setStartBalanceUSD, setStartBalanceEUR]);
 
   return {
     handleExportToJsonFile,

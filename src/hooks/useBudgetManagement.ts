@@ -6,7 +6,6 @@ import { ACTIVE_BUDGET_COOKIE_KEY } from '../utils/constants';
 import { setCookie } from '../utils/cookieHelpers';
 import { saveToFirestore, loadFromFirestore } from '../utils/storageHelpers';
 import { Budgets, Budget, UserData } from '../types';
-import { hasPairStructure } from '../utils/typeGuards';
 import { translate } from '../i18n/config';
 
 /**
@@ -225,7 +224,7 @@ export function useBudgetManagement() {
 
     // Викликаємо асинхронну функцію, але не чекаємо її в самому хендлері
     switchBudget();
-  }, [budgets, user, baseCurrency, setActiveBudgetId, setSelectedCurrencies, setExchangeRates, setStartBalanceUAH, setStartBalanceUSD, setStartBalanceEUR, setBudgets, setDays]);
+  }, [budgets, user, baseCurrency, encryptionPassword, setActiveBudgetId, setSelectedCurrencies, setExchangeRates, setStartBalanceUAH, setStartBalanceUSD, setStartBalanceEUR, setBudgets, setDays]);
 
   const handleAddBudgetClick = useCallback(() => {
     if (!user) {

@@ -9,7 +9,6 @@ import Statistics from './Statistics';
 import { useBudgetContext } from '../contexts/BudgetContext';
 import { useBudgetHandlers } from '../hooks/useBudgetHandlers';
 import { calculateTotals, calculateFinalBalances, convertCurrency } from '../utils/calculations';
-import { isExchangeRatePair } from '../utils/typeGuards';
 
 export default function BudgetTracker() {
   const context = useBudgetContext();
@@ -96,11 +95,6 @@ export default function BudgetTracker() {
     () => calculateFinalBalances(days, null, null, null, selectedCurrencies, startBalances),
     [days, selectedCurrencies, startBalances]
   );
-  
-  // Для зворотної сумісності
-  const finalBalanceUAH = finalBalances.finalBalanceUAH;
-  const finalBalanceUSD = finalBalances.finalBalanceUSD;
-  const finalBalanceEUR = finalBalances.finalBalanceEUR;
   
   // Обчислюємо загальну вартість у базовій валюті
   const totalInBaseCurrency = useMemo(() => {
