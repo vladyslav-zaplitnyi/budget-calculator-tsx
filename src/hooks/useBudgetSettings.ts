@@ -13,17 +13,25 @@ export function useBudgetSettings() {
   const context = useBudgetContext();
   const {
     isUk,
+    // Поточні значення стану
     selectedCurrencies,
-    setSelectedCurrencies,
     exchangeRates,
+    startBalanceUAH,
+    startBalanceUSD,
+    startBalanceEUR,
+    usdRate,
+    eurRate,
+    activeBudgetId,
+    budgets,
+    days,
+    // Сетери стану
+    setSelectedCurrencies,
     setExchangeRates,
     setStartBalanceUAH,
     setStartBalanceUSD,
     setStartBalanceEUR,
     setUsdRate,
     setEurRate,
-    activeBudgetId,
-    budgets,
     setBudgets,
     setDays,
     setSaveMessage,
@@ -110,51 +118,55 @@ export function useBudgetSettings() {
   const handleCurrencyChange = useCallback((newCurrencies: string[]) => {
     const validated = validateSelectedCurrencies(newCurrencies);
     setSelectedCurrencies(validated);
-    
+
+    // Оновлюємо курси через сеттер з колбеком (щоб не втратити поточний стан)
     setExchangeRates((prevRates: ExchangeRates) => {
-      const newRates = { ...prevRates };
+      const updatedRates: ExchangeRates = { ...prevRates };
+
       validated.forEach(code => {
         if (code === baseCurrency) return;
-        
+
         const pairKey = `${baseCurrency}_${code}`;
         const reversePairKey = `${code}_${baseCurrency}`;
-        
-        if (!newRates[pairKey] || typeof newRates[pairKey] !== 'object') {
+
+        if (!updatedRates[pairKey] || typeof updatedRates[pairKey] !== 'object') {
           const defaultRate = getDefaultRate(code);
-          newRates[pairKey] = {
+          updatedRates[pairKey] = {
             buy: defaultRate,
             sell: defaultRate * 1.005
           };
-          newRates[reversePairKey] = {
+          updatedRates[reversePairKey] = {
             buy: 1 / (defaultRate * 1.005),
             sell: 1 / defaultRate
           };
         }
       });
-      
-      Object.keys(newRates).forEach(key => {
+
+      Object.keys(updatedRates).forEach(key => {
         if (key.includes('_')) {
           const [from, to] = key.split('_');
           if (!validated.includes(from) || !validated.includes(to)) {
-            delete newRates[key];
+            delete updatedRates[key];
           }
         } else {
           if (!validated.includes(key)) {
-            delete newRates[key];
+            delete updatedRates[key];
           }
         }
       });
 
-      return newRates;
+      // Повертаємо нові курси в стан
+      return updatedRates;
     });
 
-    const newRates = { ...exchangeRates };
+    // Формуємо нові курси локально для подальшого використання (збереження в localStorage)
+    const newRates: ExchangeRates = { ...exchangeRates };
     validated.forEach(code => {
       if (code === baseCurrency) return;
-      
+
       const pairKey = `${baseCurrency}_${code}`;
       const reversePairKey = `${code}_${baseCurrency}`;
-      
+
       if (!newRates[pairKey] || typeof newRates[pairKey] !== 'object') {
         const defaultRate = getDefaultRate(code);
         newRates[pairKey] = {
@@ -167,7 +179,7 @@ export function useBudgetSettings() {
         };
       }
     });
-    
+
     Object.keys(newRates).forEach(key => {
       if (key.includes('_')) {
         const [from, to] = key.split('_');
@@ -180,22 +192,62 @@ export function useBudgetSettings() {
         }
       }
     });
-    
+
     setExchangeRates(newRates);
-    
+
+    // Оновлюємо базові курси USD/EUR з урахуванням нових пар
+    let nextUsdRate = usdRate;
+    let nextEurRate = eurRate;
+
     if (validated.includes('USD')) {
       const uahUsdPair = newRates[`${baseCurrency}_USD`];
       if (isExchangeRatePair(uahUsdPair)) {
-        setUsdRate(uahUsdPair.buy);
+        nextUsdRate = uahUsdPair.buy;
+        setUsdRate(nextUsdRate);
       }
     }
     if (validated.includes('EUR')) {
       const uahEurPair = newRates[`${baseCurrency}_EUR`];
       if (isExchangeRatePair(uahEurPair)) {
-        setEurRate(uahEurPair.buy);
+        nextEurRate = uahEurPair.buy;
+        setEurRate(nextEurRate);
       }
     }
-  }, [exchangeRates, baseCurrency, setSelectedCurrencies, setExchangeRates, setUsdRate, setEurRate]);
+
+    // ЯВНО зберігаємо оновлений вибір валют у localStorage разом з іншими даними
+    try {
+      const currentId = activeBudgetId || 'default';
+      saveToLocalStorage(
+        startBalanceUAH,
+        startBalanceUSD,
+        startBalanceEUR,
+        nextUsdRate,
+        nextEurRate,
+        days,
+        validated,
+        newRates,
+        budgets,
+        currentId
+      );
+    } catch (e) {
+      console.error('Помилка при збереженні вибраних валют у localStorage:', e);
+    }
+  }, [
+    exchangeRates,
+    baseCurrency,
+    usdRate,
+    eurRate,
+    startBalanceUAH,
+    startBalanceUSD,
+    startBalanceEUR,
+    days,
+    activeBudgetId,
+    budgets,
+    setSelectedCurrencies,
+    setExchangeRates,
+    setUsdRate,
+    setEurRate
+  ]);
 
   const handleExchangeRateChange = useCallback((pairKey: string, type: string | undefined, rate: number) => {
     setExchangeRates((prevRates: ExchangeRates) => {
