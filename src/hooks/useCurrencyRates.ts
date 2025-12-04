@@ -9,8 +9,6 @@ export function useCurrencyRates(budgetState: BudgetStateWithSync) {
   const {
     selectedCurrencies,
     setExchangeRates,
-    setUsdRate,
-    setEurRate,
     baseCurrency,
     isUk,
     setRateUpdateMessage,
@@ -63,13 +61,6 @@ export function useCurrencyRates(budgetState: BudgetStateWithSync) {
         return updatedRates;
       });
       
-      if (newRates['USD'] !== undefined) {
-        setUsdRate(newRates['USD']);
-      }
-      if (newRates['EUR'] !== undefined) {
-        setEurRate(newRates['EUR']);
-      }
-      
       const ratesList = Object.entries(newRates)
         .map(([code, rate]) => {
           const buyRate = rate;
@@ -101,7 +92,7 @@ export function useCurrencyRates(budgetState: BudgetStateWithSync) {
     } finally {
       setIsUpdatingRates(false);
     }
-  }, [selectedCurrencies, baseCurrency, isUk, fetchRatesForCurrencies, setExchangeRates, setUsdRate, setEurRate, setRateUpdateMessage, setIsUpdatingRates]);
+  }, [selectedCurrencies, baseCurrency, isUk, fetchRatesForCurrencies, setExchangeRates, setRateUpdateMessage, setIsUpdatingRates]);
 
   return {
     handleUpdateNbuRates

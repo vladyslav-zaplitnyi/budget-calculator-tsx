@@ -13,8 +13,6 @@ interface UseSyncDebounceParams {
     startBalanceUAH: number | null;
     startBalanceUSD: number | null;
     startBalanceEUR: number | null;
-    usdRate: number;
-    eurRate: number;
     selectedCurrencies: string[];
     exchangeRates: ExchangeRates;
     days: Day[];

@@ -19,8 +19,6 @@ export function useBudgetSettings() {
     startBalanceUAH,
     startBalanceUSD,
     startBalanceEUR,
-    usdRate,
-    eurRate,
     activeBudgetId,
     budgets,
     days,
@@ -30,8 +28,6 @@ export function useBudgetSettings() {
     setStartBalanceUAH,
     setStartBalanceUSD,
     setStartBalanceEUR,
-    setUsdRate,
-    setEurRate,
     setBudgets,
     setDays,
     setSaveMessage,
@@ -61,11 +57,6 @@ export function useBudgetSettings() {
       setStartBalanceUAH(null);
       setStartBalanceUSD(null);
       setStartBalanceEUR(null);
-      
-      const defaultUsdRate = 41.5;
-      const defaultEurRate = 45;
-      setUsdRate(defaultUsdRate);
-      setEurRate(defaultEurRate);
       
       const currentId = activeBudgetId || 'default';
       const emptyDays = createEmptyMonthDays();
@@ -100,7 +91,7 @@ export function useBudgetSettings() {
       
       console.log('✅ Всі поля очищено');
     }
-  }, [isUk, activeBudgetId, selectedCurrencies, budgets, exchangeRates, setStartBalanceUAH, setStartBalanceUSD, setStartBalanceEUR, setUsdRate, setEurRate, setBudgets, setDays, setLoadMessage, setSaveMessage]);
+  }, [isUk, activeBudgetId, selectedCurrencies, budgets, exchangeRates, setStartBalanceUAH, setStartBalanceUSD, setStartBalanceEUR, setBudgets, setDays, setLoadMessage, setSaveMessage]);
 
   const handleCurrencyChange = useCallback((newCurrencies: string[]) => {
     const validated = validateSelectedCurrencies(newCurrencies);
@@ -182,25 +173,6 @@ export function useBudgetSettings() {
 
     setExchangeRates(newRates);
 
-    // Оновлюємо базові курси USD/EUR з урахуванням нових пар
-    let nextUsdRate = usdRate;
-    let nextEurRate = eurRate;
-
-    if (validated.includes('USD')) {
-      const uahUsdPair = newRates[`${baseCurrency}_USD`];
-      if (isExchangeRatePair(uahUsdPair)) {
-        nextUsdRate = uahUsdPair.buy;
-        setUsdRate(nextUsdRate);
-      }
-    }
-    if (validated.includes('EUR')) {
-      const uahEurPair = newRates[`${baseCurrency}_EUR`];
-      if (isExchangeRatePair(uahEurPair)) {
-        nextEurRate = uahEurPair.buy;
-        setEurRate(nextEurRate);
-      }
-    }
-
     // ЯВНО зберігаємо оновлений вибір валют у localStorage разом з іншими даними
     try {
       const currentId = activeBudgetId || 'default';
@@ -213,8 +185,6 @@ export function useBudgetSettings() {
   }, [
     exchangeRates,
     baseCurrency,
-    usdRate,
-    eurRate,
     startBalanceUAH,
     startBalanceUSD,
     startBalanceEUR,
@@ -222,9 +192,7 @@ export function useBudgetSettings() {
     activeBudgetId,
     budgets,
     setSelectedCurrencies,
-    setExchangeRates,
-    setUsdRate,
-    setEurRate
+    setExchangeRates
   ]);
 
   const handleExchangeRateChange = useCallback((pairKey: string, type: string | undefined, rate: number) => {
@@ -246,19 +214,7 @@ export function useBudgetSettings() {
       }
       return newRates;
     });
-
-    if (!type) {
-       if (pairKey === 'USD') setUsdRate(rate);
-       if (pairKey === 'EUR') setEurRate(rate);
-    } else {
-       if (pairKey === `${baseCurrency}_USD` && type === 'buy') {
-          setUsdRate(rate);
-       }
-       if (pairKey === `${baseCurrency}_EUR` && type === 'buy') {
-          setEurRate(rate);
-       }
-    }
-  }, [baseCurrency, setExchangeRates, setUsdRate, setEurRate]);
+  }, [baseCurrency, setExchangeRates]);
 
   const handleStartBalanceChange = useCallback((currencyCode: string, value: string) => {
     let numValue: number | null = null;

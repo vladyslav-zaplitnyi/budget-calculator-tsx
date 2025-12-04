@@ -6,7 +6,7 @@ import { ACTIVE_BUDGET_COOKIE_KEY } from '../utils/constants';
 import { setCookie } from '../utils/cookieHelpers';
 import { saveToFirestore, loadFromFirestore } from '../utils/storageHelpers';
 import { Budgets, Budget, UserData } from '../types';
-import { isExchangeRatePair, hasPairStructure, getBuyRate } from '../utils/typeGuards';
+import { hasPairStructure } from '../utils/typeGuards';
 import { translate } from '../i18n/config';
 
 /**
@@ -21,16 +21,12 @@ export function useBudgetManagement() {
     startBalanceUAH,
     startBalanceUSD,
     startBalanceEUR,
-    usdRate,
-    eurRate,
     activeBudgetId,
     setActiveBudgetId,
     budgets,
     setBudgets,
     setSelectedCurrencies,
     setExchangeRates,
-    setUsdRate,
-    setEurRate,
     setStartBalanceUAH,
     setStartBalanceUSD,
     setStartBalanceEUR,
@@ -113,25 +109,8 @@ export function useBudgetManagement() {
     setStartBalanceUAH(newBudget.startBalances?.['UAH'] ?? null);
     setStartBalanceUSD(newBudget.startBalances?.['USD'] ?? null);
     setStartBalanceEUR(newBudget.startBalances?.['EUR'] ?? null);
-    // Отримуємо курси з exchangeRates
-    const uahUsdPair = newBudget.exchangeRates?.['UAH_USD'];
-    const uahEurPair = newBudget.exchangeRates?.['UAH_EUR'];
-    if (isExchangeRatePair(uahUsdPair)) {
-      setUsdRate(uahUsdPair.buy);
-    } else if (typeof uahUsdPair === 'number') {
-      setUsdRate(uahUsdPair);
-    } else {
-      setUsdRate(usdRate);
-    }
-    if (isExchangeRatePair(uahEurPair)) {
-      setEurRate(uahEurPair.buy);
-    } else if (typeof uahEurPair === 'number') {
-      setEurRate(uahEurPair);
-    } else {
-      setEurRate(eurRate);
-    }
     setDays(newDays);
-  }, [isUk, budgets, activeBudgetId, selectedCurrencies, exchangeRates, startBalanceUAH, startBalanceUSD, startBalanceEUR, usdRate, eurRate, setBudgets, setActiveBudgetId, setStartBalanceUAH, setStartBalanceUSD, setStartBalanceEUR, setUsdRate, setEurRate, setDays]);
+  }, [isUk, budgets, activeBudgetId, selectedCurrencies, exchangeRates, startBalanceUAH, startBalanceUSD, startBalanceEUR, setBudgets, setActiveBudgetId, setStartBalanceUAH, setStartBalanceUSD, setStartBalanceEUR, setDays]);
 
   const handleBudgetChange = useCallback((event: ChangeEvent<HTMLSelectElement>) => {
     const newId = event.target.value;
@@ -213,44 +192,9 @@ export function useBudgetManagement() {
       
       // 2) Завантажуємо курси валют
       if (budget.exchangeRates) {
-        const hasNewStructure = hasPairStructure(budget.exchangeRates);
-        if (hasNewStructure) {
-          setExchangeRates(budget.exchangeRates);
-          const uahUsdPair = budget.exchangeRates['UAH_USD'];
-          if (isExchangeRatePair(uahUsdPair)) {
-            setUsdRate(uahUsdPair.buy);
-          } else if (typeof uahUsdPair === 'number') {
-            setUsdRate(uahUsdPair);
-          } else {
-            setUsdRate(41.5);
-          }
-          const uahEurPair = budget.exchangeRates['UAH_EUR'];
-          if (isExchangeRatePair(uahEurPair)) {
-            setEurRate(uahEurPair.buy);
-          } else if (typeof uahEurPair === 'number') {
-            setEurRate(uahEurPair);
-          } else {
-            setEurRate(45);
-          }
-        } else {
-          setExchangeRates(budget.exchangeRates);
-          const usdRateValue = budget.exchangeRates['USD'];
-          if (usdRateValue !== undefined) {
-            setUsdRate(getBuyRate(usdRateValue, 41.5));
-          } else {
-            setUsdRate(41.5);
-          }
-          const eurRateValue = budget.exchangeRates['EUR'];
-          if (eurRateValue !== undefined) {
-            setEurRate(getBuyRate(eurRateValue, 45));
-          } else {
-            setEurRate(45);
-          }
-        }
+        setExchangeRates(budget.exchangeRates);
       } else {
         setExchangeRates({});
-        setUsdRate(41.5);
-        setEurRate(45);
       }
       
       // 3) Завантажуємо початкові баланси з startBalances
@@ -281,7 +225,7 @@ export function useBudgetManagement() {
 
     // Викликаємо асинхронну функцію, але не чекаємо її в самому хендлері
     switchBudget();
-  }, [budgets, user, baseCurrency, setActiveBudgetId, setSelectedCurrencies, setExchangeRates, setUsdRate, setEurRate, setStartBalanceUAH, setStartBalanceUSD, setStartBalanceEUR, setBudgets, setDays]);
+  }, [budgets, user, baseCurrency, setActiveBudgetId, setSelectedCurrencies, setExchangeRates, setStartBalanceUAH, setStartBalanceUSD, setStartBalanceEUR, setBudgets, setDays]);
 
   const handleAddBudgetClick = useCallback(() => {
     if (!user) {
@@ -357,35 +301,9 @@ export function useBudgetManagement() {
       }
       
       if (defaultBudget.exchangeRates) {
-        const hasNewStructure = hasPairStructure(defaultBudget.exchangeRates);
-        if (hasNewStructure) {
-          setExchangeRates(defaultBudget.exchangeRates);
-          const uahUsdPair = defaultBudget.exchangeRates['UAH_USD'];
-          if (isExchangeRatePair(uahUsdPair)) {
-            setUsdRate(uahUsdPair.buy);
-          } else if (typeof uahUsdPair === 'number') {
-            setUsdRate(uahUsdPair);
-          } else {
-            setUsdRate(41.5);
-          }
-          const uahEurPair = defaultBudget.exchangeRates['UAH_EUR'];
-          if (isExchangeRatePair(uahEurPair)) {
-            setEurRate(uahEurPair.buy);
-          } else if (typeof uahEurPair === 'number') {
-            setEurRate(uahEurPair);
-          } else {
-            setEurRate(45);
-          }
-        } else {
-          setExchangeRates(defaultBudget.exchangeRates);
-          const usdRateValue = defaultBudget.exchangeRates['USD'];
-          const eurRateValue = defaultBudget.exchangeRates['EUR'];
-          setUsdRate(usdRateValue !== undefined ? getBuyRate(usdRateValue, 41.5) : 41.5);
-          setEurRate(eurRateValue !== undefined ? getBuyRate(eurRateValue, 45) : 45);
-        }
+        setExchangeRates(defaultBudget.exchangeRates);
       } else {
-        setUsdRate(41.5);
-        setEurRate(45);
+        setExchangeRates({});
       }
       
       // Використовуємо startBalances
@@ -410,7 +328,7 @@ export function useBudgetManagement() {
     if (user) {
       saveToFirestore(user, updatedBudgets, newActiveId, true, setSyncStatus, getSyncStatusText, encryptionPassword, setIsEncrypted);
     }
-  }, [isUk, user, budgets, activeBudgetId, setBudgets, setActiveBudgetId, setSelectedCurrencies, setExchangeRates, setUsdRate, setEurRate, setStartBalanceUAH, setStartBalanceUSD, setStartBalanceEUR, setDays, setSyncStatus, getSyncStatusText, encryptionPassword, setIsEncrypted]);
+  }, [isUk, user, budgets, activeBudgetId, setBudgets, setActiveBudgetId, setSelectedCurrencies, setExchangeRates, setStartBalanceUAH, setStartBalanceUSD, setStartBalanceEUR, setDays, setSyncStatus, getSyncStatusText, encryptionPassword, setIsEncrypted]);
 
   return {
     createNewBudget,

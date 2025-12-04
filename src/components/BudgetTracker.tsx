@@ -117,30 +117,8 @@ export default function BudgetTracker() {
   }, [selectedCurrencies, finalBalances, baseCurrency, exchangeRates]);
   
   // Для зворотної сумісності зберігаємо totalInUAH
-  // Отримуємо курси з exchangeRates
-  const getUsdRate = useMemo(() => {
-    const uahUsdPair = exchangeRates['UAH_USD'];
-    if (isExchangeRatePair(uahUsdPair)) {
-      return uahUsdPair.buy;
-    }
-    if (typeof uahUsdPair === 'number') {
-      return uahUsdPair;
-    }
-    return 41.5;
-  }, [exchangeRates]);
-
-  const getEurRate = useMemo(() => {
-    const uahEurPair = exchangeRates['UAH_EUR'];
-    if (isExchangeRatePair(uahEurPair)) {
-      return uahEurPair.buy;
-    }
-    if (typeof uahEurPair === 'number') {
-      return uahEurPair;
-    }
-    return 45;
-  }, [exchangeRates]);
-
-  const totalInUAH = finalBalanceUAH + (finalBalanceUSD * getUsdRate) + (finalBalanceEUR * getEurRate);
+  // Використовуємо totalInBaseCurrency, який вже обчислює загальну вартість у базовій валюті
+  const totalInUAH = totalInBaseCurrency;
 
   // Обчислюємо загальну вартість у вибраній валюті відображення
   const totalInDisplayCurrency = useMemo(() => {

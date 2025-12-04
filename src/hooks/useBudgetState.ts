@@ -28,10 +28,6 @@ export interface BudgetStateInterface {
   setStartBalanceUSD: (value: number | null) => void;
   startBalanceEUR: number | null;
   setStartBalanceEUR: (value: number | null) => void;
-  usdRate: number;
-  setUsdRate: (rate: number) => void;
-  eurRate: number;
-  setEurRate: (rate: number) => void;
   activeBudgetId: string;
   setActiveBudgetId: (id: string) => void;
   budgets: Budgets;
@@ -71,9 +67,7 @@ export function useBudgetState(): BudgetStateInterface {
   // Ініціалізуємо курси обміну (потрібно зробити це перед створенням початкового стану)
   const initializeExchangeRates = (
     savedRates: ExchangeRates | null | undefined, 
-    savedCurrencies: string[] | null | undefined, 
-    savedUsdRate: number | null | undefined, 
-    savedEurRate: number | null | undefined
+    savedCurrencies: string[] | null | undefined
   ): ExchangeRates => {
     if (savedRates && typeof savedRates === 'object') {
       const hasNewStructure = hasPairStructure(savedRates);
@@ -88,13 +82,7 @@ export function useBudgetState(): BudgetStateInterface {
         let rateValue = savedRates[code];
         let rate: number;
         if (!rateValue) {
-          if (code === 'USD') {
-            rate = savedUsdRate ?? 41.5;
-          } else if (code === 'EUR') {
-            rate = savedEurRate ?? 45;
-          } else {
-            rate = getDefaultRate(code);
-          }
+          rate = getDefaultRate(code);
         } else {
           rate = getBuyRate(rateValue, 1);
         }
@@ -116,14 +104,7 @@ export function useBudgetState(): BudgetStateInterface {
     const currencies = validateSelectedCurrencies(savedCurrencies || DEFAULT_CURRENCIES);
     currencies.forEach((code) => {
       if (code === BASE_CURRENCY) return;
-      let rate;
-      if (code === 'USD') {
-        rate = savedUsdRate ?? 41.5;
-      } else if (code === 'EUR') {
-        rate = savedEurRate ?? 45;
-      } else {
-        rate = getDefaultRate(code);
-      }
+      const rate = getDefaultRate(code);
       const pairKey = `${BASE_CURRENCY}_${code}`;
       const reversePairKey = `${code}_${BASE_CURRENCY}`;
       rates[pairKey] = {
@@ -140,36 +121,15 @@ export function useBudgetState(): BudgetStateInterface {
 
   const initialExchangeRates = initializeExchangeRates(
     loadedData?.exchangeRates,
-    loadedData?.selectedCurrencies,
-    loadedData?.usdRate,
-    loadedData?.eurRate
+    loadedData?.selectedCurrencies
   );
 
-  // Визначаємо початкові значення для курсів USD та EUR
-  const initialUsdRate = (() => {
-    const uahUsdPair = initialExchangeRates['UAH_USD'];
-    if (uahUsdPair && typeof uahUsdPair === 'object' && 'buy' in uahUsdPair) {
-      return (uahUsdPair as any).buy;
-    }
-    return (initialExchangeRates['USD'] as number) ?? loadedData?.usdRate ?? 41.5;
-  })();
-
-  const initialEurRate = (() => {
-    const uahEurPair = initialExchangeRates['UAH_EUR'];
-    if (uahEurPair && typeof uahEurPair === 'object' && 'buy' in uahEurPair) {
-      return (uahEurPair as any).buy;
-    }
-    return (initialExchangeRates['EUR'] as number) ?? loadedData?.eurRate ?? 45;
-  })();
-
-  // Створюємо початковий стан для валют з урахуванням курсів
+  // Створюємо початковий стан для валют
   const currencyInitialState = {
     ...createCurrencyInitialState({
       ...loadedData,
       selectedCurrencies: validateSelectedCurrencies(loadedData?.selectedCurrencies || DEFAULT_CURRENCIES),
-      exchangeRates: initialExchangeRates,
-      usdRate: initialUsdRate,
-      eurRate: initialEurRate
+      exchangeRates: initialExchangeRates
     })
   };
 
@@ -301,14 +261,6 @@ export function useBudgetState(): BudgetStateInterface {
     currencyDispatch({ type: currencyActions.SET_START_BALANCE_EUR, payload: value });
   }, []);
 
-  const setUsdRate = useCallback((rate: number) => {
-    currencyDispatch({ type: currencyActions.SET_USD_RATE, payload: rate });
-  }, []);
-
-  const setEurRate = useCallback((rate: number) => {
-    currencyDispatch({ type: currencyActions.SET_EUR_RATE, payload: rate });
-  }, []);
-
   const setActiveBudgetId = useCallback((id: string) => {
     budgetDispatch({ type: budgetActions.SET_ACTIVE_BUDGET_ID, payload: id });
   }, []);
@@ -431,10 +383,6 @@ export function useBudgetState(): BudgetStateInterface {
     setStartBalanceUSD(null);
     setStartBalanceEUR(null);
     
-    // Скидаємо курси
-    setUsdRate(41.5);
-    setEurRate(45);
-    
     // Скидаємо валюту відображення
     setDisplayCurrency('UAH');
     setDisplayCurrencyIndex(0);
@@ -447,8 +395,6 @@ export function useBudgetState(): BudgetStateInterface {
     setStartBalanceUAH,
     setStartBalanceUSD,
     setStartBalanceEUR,
-    setUsdRate,
-    setEurRate,
     setDisplayCurrency,
     setDisplayCurrencyIndex
   ]);
@@ -510,12 +456,6 @@ export function useBudgetState(): BudgetStateInterface {
     startBalanceEUR: currencyState.startBalanceEUR,
     setStartBalanceEUR,
     
-    // Курси
-    usdRate: currencyState.usdRate,
-    setUsdRate,
-    eurRate: currencyState.eurRate,
-    setEurRate,
-    
     // Бюджети
     activeBudgetId: budgetState.activeBudgetId,
     setActiveBudgetId,
@@ -567,8 +507,6 @@ export function useBudgetState(): BudgetStateInterface {
     currencyState.startBalanceUAH,
     currencyState.startBalanceUSD,
     currencyState.startBalanceEUR,
-    currencyState.usdRate,
-    currencyState.eurRate,
     budgetState.activeBudgetId,
     budgetState.budgets,
     budgetState.days,
@@ -585,8 +523,6 @@ export function useBudgetState(): BudgetStateInterface {
     setStartBalanceUAH,
     setStartBalanceUSD,
     setStartBalanceEUR,
-    setUsdRate,
-    setEurRate,
     setActiveBudgetId,
     setBudgets,
     setDays,

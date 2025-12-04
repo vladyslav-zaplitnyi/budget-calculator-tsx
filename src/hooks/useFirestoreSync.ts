@@ -7,7 +7,7 @@ import { getCookie } from '../utils/cookieHelpers';
 import { BudgetStateWithSync } from '../contexts/BudgetContext';
 import { User } from 'firebase/auth';
 import { Budgets, ExchangeRates } from '../types';
-import { isExchangeRatePair, getBuyRate, hasPairStructure } from '../utils/typeGuards';
+import { getBuyRate, hasPairStructure } from '../utils/typeGuards';
 import { WrongPasswordError } from '../utils/encryption';
 
 const BASE_CURRENCY = 'UAH';
@@ -27,8 +27,6 @@ export function useFirestoreSync(
     setStartBalanceUAH,
     setStartBalanceUSD,
     setStartBalanceEUR,
-    setUsdRate,
-    setEurRate,
     setSelectedCurrencies,
     setExchangeRates,
     setDays,
@@ -54,43 +52,9 @@ export function useFirestoreSync(
     }
     
     if (budget.exchangeRates) {
-      const hasNewStructure = hasPairStructure(budget.exchangeRates);
-      if (hasNewStructure) {
-        setExchangeRates(budget.exchangeRates);
-        const uahUsdPair = budget.exchangeRates['UAH_USD'];
-        if (isExchangeRatePair(uahUsdPair)) {
-          setUsdRate(uahUsdPair.buy);
-        } else if (typeof uahUsdPair === 'number') {
-          setUsdRate(uahUsdPair);
-        } else {
-          setUsdRate(41.5);
-        }
-        const uahEurPair = budget.exchangeRates['UAH_EUR'];
-        if (isExchangeRatePair(uahEurPair)) {
-          setEurRate(uahEurPair.buy);
-        } else if (typeof uahEurPair === 'number') {
-          setEurRate(uahEurPair);
-        } else {
-          setEurRate(45);
-        }
-      } else {
-        setExchangeRates(budget.exchangeRates);
-        const usdRateValue = budget.exchangeRates['USD'];
-        if (usdRateValue !== undefined) {
-          setUsdRate(getBuyRate(usdRateValue, 41.5));
-        } else {
-          setUsdRate(41.5);
-        }
-        const eurRateValue = budget.exchangeRates['EUR'];
-        if (eurRateValue !== undefined) {
-          setEurRate(getBuyRate(eurRateValue, 45));
-        } else {
-          setEurRate(45);
-        }
-      }
+      setExchangeRates(budget.exchangeRates);
     } else {
-      setUsdRate(41.5);
-      setEurRate(45);
+      setExchangeRates({});
     }
     
     // Використовуємо лише startBalances
@@ -140,22 +104,6 @@ export function useFirestoreSync(
       
       if (hasNewStructure) {
         setExchangeRates(firestoreData.exchangeRates);
-        const uahUsdPair = firestoreData.exchangeRates['UAH_USD'];
-        if (isExchangeRatePair(uahUsdPair)) {
-          setUsdRate(uahUsdPair.buy);
-        } else if (typeof uahUsdPair === 'number') {
-          setUsdRate(uahUsdPair);
-        } else {
-          setUsdRate(41.5);
-        }
-        const uahEurPair = firestoreData.exchangeRates['UAH_EUR'];
-        if (isExchangeRatePair(uahEurPair)) {
-          setEurRate(uahEurPair.buy);
-        } else if (typeof uahEurPair === 'number') {
-          setEurRate(uahEurPair);
-        } else {
-          setEurRate(45);
-        }
       } else {
         // Конвертуємо стару структуру в нову
         const rates: ExchangeRates = {};
@@ -164,13 +112,7 @@ export function useFirestoreSync(
           if (code === BASE_CURRENCY) return;
           let rate = firestoreData.exchangeRates![code];
           if (!rate) {
-            if (code === 'USD') {
-              rate = firestoreData.usdRate ?? 41.5;
-            } else if (code === 'EUR') {
-              rate = firestoreData.eurRate ?? 45;
-            } else {
-              rate = getDefaultRate(code);
-            }
+            rate = getDefaultRate(code);
           }
           const pairKey = `${BASE_CURRENCY}_${code}`;
           const reversePairKey = `${code}_${BASE_CURRENCY}`;
@@ -186,35 +128,13 @@ export function useFirestoreSync(
           };
         });
         setExchangeRates(rates);
-        // Отримуємо курси з нової структури rates
-        const uahUsdPair = rates['UAH_USD'];
-        const uahEurPair = rates['UAH_EUR'];
-        if (isExchangeRatePair(uahUsdPair)) {
-          setUsdRate(uahUsdPair.buy);
-        } else {
-          setUsdRate(41.5);
-        }
-        if (isExchangeRatePair(uahEurPair)) {
-          setEurRate(uahEurPair.buy);
-        } else {
-          setEurRate(45);
-        }
       }
     } else {
-      setUsdRate(41.5);
-      setEurRate(45);
       const rates: ExchangeRates = {};
       const currencies = validateSelectedCurrencies(firestoreData.selectedCurrencies || DEFAULT_CURRENCIES);
       currencies.forEach(code => {
         if (code === BASE_CURRENCY) return;
-        let rate;
-        if (code === 'USD') {
-          rate = firestoreData.usdRate ?? 41.5;
-        } else if (code === 'EUR') {
-          rate = firestoreData.eurRate ?? 45;
-        } else {
-          rate = getDefaultRate(code);
-        }
+        const rate = getDefaultRate(code);
         const pairKey = `${BASE_CURRENCY}_${code}`;
         const reversePairKey = `${code}_${BASE_CURRENCY}`;
         rates[pairKey] = {
@@ -314,8 +234,6 @@ export function useFirestoreSync(
             setStartBalanceEUR(null);
             setSelectedCurrencies(DEFAULT_CURRENCIES);
             setExchangeRates({});
-            setUsdRate(41.5);
-            setEurRate(45);
             setDays([]);
             setBudgets({});
             loadedBudgetsRef.current = {};
@@ -349,8 +267,6 @@ export function useFirestoreSync(
           setStartBalanceEUR(null);
           setSelectedCurrencies(DEFAULT_CURRENCIES);
           setExchangeRates({});
-          setUsdRate(41.5);
-          setEurRate(45);
           setDays([]);
           setBudgets({});
           setActiveBudgetId('default');
@@ -384,26 +300,8 @@ export function useFirestoreSync(
               
               if (activeBudget.exchangeRates) {
                 setExchangeRates(activeBudget.exchangeRates);
-                // Отримуємо курси з exchangeRates
-                const uahUsdPair = activeBudget.exchangeRates['UAH_USD'];
-                const uahEurPair = activeBudget.exchangeRates['UAH_EUR'];
-                if (isExchangeRatePair(uahUsdPair)) {
-                  setUsdRate(uahUsdPair.buy);
-                } else if (typeof uahUsdPair === 'number') {
-                  setUsdRate(uahUsdPair);
-                } else {
-                  setUsdRate(41.5);
-                }
-                if (isExchangeRatePair(uahEurPair)) {
-                  setEurRate(uahEurPair.buy);
-                } else if (typeof uahEurPair === 'number') {
-                  setEurRate(uahEurPair);
-                } else {
-                  setEurRate(45);
-                }
               } else {
-                setUsdRate(41.5);
-                setEurRate(45);
+                setExchangeRates({});
               }
               
               if (activeBudget.days) {
@@ -422,26 +320,8 @@ export function useFirestoreSync(
             
             if (localData.exchangeRates) {
               setExchangeRates(localData.exchangeRates);
-              // Отримуємо курси з exchangeRates
-              const uahUsdPair = localData.exchangeRates['UAH_USD'];
-              const uahEurPair = localData.exchangeRates['UAH_EUR'];
-              if (isExchangeRatePair(uahUsdPair)) {
-                setUsdRate(uahUsdPair.buy);
-              } else if (typeof uahUsdPair === 'number') {
-                setUsdRate(uahUsdPair);
-              } else {
-                setUsdRate(localData.usdRate ?? 41.5);
-              }
-              if (isExchangeRatePair(uahEurPair)) {
-                setEurRate(uahEurPair.buy);
-              } else if (typeof uahEurPair === 'number') {
-                setEurRate(uahEurPair);
-              } else {
-                setEurRate(localData.eurRate ?? 45);
-              }
             } else {
-              setUsdRate(localData.usdRate ?? 41.5);
-              setEurRate(localData.eurRate ?? 45);
+              setExchangeRates({});
             }
             
             if (localData.days) {

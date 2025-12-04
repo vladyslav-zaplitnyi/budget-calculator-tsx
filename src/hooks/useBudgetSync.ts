@@ -21,8 +21,6 @@ export function useBudgetSync(
     startBalanceUAH,
     startBalanceUSD,
     startBalanceEUR,
-    usdRate,
-    eurRate,
     selectedCurrencies,
     exchangeRates,
     days,
@@ -38,8 +36,6 @@ export function useBudgetSync(
     startBalanceUAH,
     startBalanceUSD,
     startBalanceEUR,
-    usdRate,
-    eurRate,
     selectedCurrencies,
     exchangeRates,
     days
@@ -58,13 +54,11 @@ export function useBudgetSync(
       startBalanceUAH,
       startBalanceUSD,
       startBalanceEUR,
-      usdRate,
-      eurRate,
       selectedCurrencies,
       exchangeRates,
       days
     };
-  }, [startBalanceUAH, startBalanceUSD, startBalanceEUR, usdRate, eurRate, selectedCurrencies, exchangeRates, days]);
+  }, [startBalanceUAH, startBalanceUSD, startBalanceEUR, selectedCurrencies, exchangeRates, days]);
 
   // Автоматичне збереження в localStorage при зміні даних
   // Зберігаємо дані завжди, незалежно від авторизації
@@ -81,7 +75,7 @@ export function useBudgetSync(
     if (!user) {
       setSyncStatus(getSyncStatusText('local'));
     }
-  }, [startBalanceUAH, startBalanceUSD, startBalanceEUR, usdRate, eurRate, days, selectedCurrencies, exchangeRates, budgets, activeBudgetId, isInitialLoad, authLoading, user, setSyncStatus, getSyncStatusText]);
+  }, [startBalanceUAH, startBalanceUSD, startBalanceEUR, days, selectedCurrencies, exchangeRates, budgets, activeBudgetId, isInitialLoad, authLoading, user, setSyncStatus, getSyncStatusText]);
 
   // Debounce збереження в Firestore
   useSyncDebounce({

@@ -203,18 +203,6 @@ export function useNbuRates() {
     }
   };
 
-  /**
-   * Завантажує актуальні курси USD та EUR з API НБУ (для зворотної сумісності)
-   * @deprecated Використовуйте fetchRatesForCurrencies замість цієї функції
-   */
-  const fetchAndApplyRates = async (): Promise<{ usdRate: number; eurRate: number }> => {
-    const rates = await fetchRatesForCurrencies(['USD', 'EUR']);
-    return {
-      usdRate: rates['USD'] || 41.5,
-      eurRate: rates['EUR'] || 45.0
-    };
-  };
-
-  return { fetchRatesForCurrencies, fetchAndApplyRates };
+  return { fetchRatesForCurrencies };
 }
 

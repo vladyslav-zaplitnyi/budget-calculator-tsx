@@ -6,8 +6,6 @@ export const currencyActions = {
   SET_START_BALANCE_UAH: 'SET_START_BALANCE_UAH',
   SET_START_BALANCE_USD: 'SET_START_BALANCE_USD',
   SET_START_BALANCE_EUR: 'SET_START_BALANCE_EUR',
-  SET_USD_RATE: 'SET_USD_RATE',
-  SET_EUR_RATE: 'SET_EUR_RATE',
   UPDATE_EXCHANGE_RATE: 'UPDATE_EXCHANGE_RATE',
   RESET_BALANCES: 'RESET_BALANCES'
 } as const;
@@ -18,8 +16,6 @@ export interface CurrencyState {
   startBalanceUAH: number | null;
   startBalanceUSD: number | null;
   startBalanceEUR: number | null;
-  usdRate: number;
-  eurRate: number;
 }
 
 export type CurrencyAction =
@@ -28,8 +24,6 @@ export type CurrencyAction =
   | { type: typeof currencyActions.SET_START_BALANCE_UAH; payload: number | null }
   | { type: typeof currencyActions.SET_START_BALANCE_USD; payload: number | null }
   | { type: typeof currencyActions.SET_START_BALANCE_EUR; payload: number | null }
-  | { type: typeof currencyActions.SET_USD_RATE; payload: number }
-  | { type: typeof currencyActions.SET_EUR_RATE; payload: number }
   | { type: typeof currencyActions.UPDATE_EXCHANGE_RATE; payload: ExchangeRates }
   | { type: typeof currencyActions.RESET_BALANCES };
 
@@ -38,9 +32,7 @@ const initialState: CurrencyState = {
   exchangeRates: {},
   startBalanceUAH: null,
   startBalanceUSD: null,
-  startBalanceEUR: null,
-  usdRate: 41.5,
-  eurRate: 45
+  startBalanceEUR: null
 };
 
 export function currencyReducer(state: CurrencyState, action: CurrencyAction): CurrencyState {
@@ -75,18 +67,6 @@ export function currencyReducer(state: CurrencyState, action: CurrencyAction): C
         startBalanceEUR: action.payload
       };
     
-    case currencyActions.SET_USD_RATE:
-      return {
-        ...state,
-        usdRate: action.payload
-      };
-    
-    case currencyActions.SET_EUR_RATE:
-      return {
-        ...state,
-        eurRate: action.payload
-      };
-    
     case currencyActions.UPDATE_EXCHANGE_RATE:
       return {
         ...state,
@@ -101,9 +81,7 @@ export function currencyReducer(state: CurrencyState, action: CurrencyAction): C
         ...state,
         startBalanceUAH: null,
         startBalanceUSD: null,
-        startBalanceEUR: null,
-        usdRate: 41.5,
-        eurRate: 45
+        startBalanceEUR: null
       };
     
     default:
@@ -130,9 +108,7 @@ export function createCurrencyInitialState(loadedData: unknown): CurrencyState {
       : null,
     startBalanceEUR: (data && (typeof data.startBalanceEUR === 'number' || data.startBalanceEUR === null))
       ? data.startBalanceEUR as number | null
-      : null,
-    usdRate: (data && typeof data.usdRate === 'number') ? data.usdRate : initialState.usdRate,
-    eurRate: (data && typeof data.eurRate === 'number') ? data.eurRate : initialState.eurRate
+      : null
   };
 }
 

@@ -56,8 +56,6 @@ export interface LoadedUserData extends UserData {
   startBalanceUAH?: number | null;
   startBalanceUSD?: number | null;
   startBalanceEUR?: number | null;
-  usdRate?: number;
-  eurRate?: number;
   days?: Day[];
   selectedCurrencies?: string[];
   exchangeRates?: ExchangeRates;
