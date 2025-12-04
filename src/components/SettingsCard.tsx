@@ -110,11 +110,27 @@ const SettingsCard: React.FC<SettingsCardProps> = ({
     newDisplayCurrencies[index] = currencyCode;
     setDisplayCurrencies(newDisplayCurrencies);
     
-    // Зберігаємо нові валюти та показуємо модальне вікно
+    // Перевіряємо, чи є транзакції з валютою, яку намагаються змінити
+    const activeBudget = safeBudgets[activeBudgetId || 'default'];
+    const days = activeBudget?.days || [];
+    const hasTransactionsWithCurrency = days.some(day => 
+      day.transactions && day.transactions.some(transaction => transaction.currency === previousValue)
+    );
+    
+    // Зберігаємо нові валюти
     const newCurrencies = [...selectedCurrencies];
     newCurrencies[index] = currencyCode;
-    setPendingCurrencyChange({ currencies: newCurrencies, index, previousValue });
-    setShowCurrencyChangeConfirm(true);
+    
+    // Показуємо попап тільки якщо є транзакції з цією валютою
+    if (hasTransactionsWithCurrency) {
+      setPendingCurrencyChange({ currencies: newCurrencies, index, previousValue });
+      setShowCurrencyChangeConfirm(true);
+    } else {
+      // Якщо немає транзакцій, просто змінюємо валюту без попапу
+      if (handleCurrencyChange) {
+        handleCurrencyChange(newCurrencies);
+      }
+    }
   };
   
   const handleConfirmCurrencyChange = () => {

@@ -36,7 +36,7 @@
       "description": "Select 3 currencies to track. Each currency can only be selected once.",
       "changeConfirm": {
         "title": "Are you sure?",
-        "message": "Changing currency may affect your starting balances and exchange rates. Continue?",
+        "message": "You have some calculations in this currency. After changing the currency, they will be erased. Continue?",
         "confirm": "Yes",
         "cancel": "No"
       }
