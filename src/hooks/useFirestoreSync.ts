@@ -39,7 +39,6 @@ export function useFirestoreSync(
     setSyncStatus,
     encryptionPassword,
     setEncryptionPassword,
-    isEncrypted,
     setIsEncrypted,
     isUk
   } = budgetState;
@@ -47,7 +46,6 @@ export function useFirestoreSync(
   // Стан для модального вікна введення пароля
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [passwordError, setPasswordError] = useState<string | undefined>();
-  const [pendingLoad, setPendingLoad] = useState<(() => Promise<void>) | null>(null);
 
   // Допоміжна функція для завантаження даних бюджету
   const loadBudgetData = (budget: typeof budgets[string], budgetId: string, allBudgets: Budgets) => {
@@ -276,7 +274,6 @@ export function useFirestoreSync(
           // Перевіряємо, чи дані зашифровані і потрібен пароль
           if (firestoreData && 'isEncrypted' in firestoreData && 'needsPassword' in firestoreData) {
             // Потрібен пароль - показуємо модальне вікно
-            setPendingLoad(() => loadData);
             setShowPasswordModal(true);
             setIsInitialLoad(false);
             return;
@@ -312,7 +309,6 @@ export function useFirestoreSync(
               // Невірний пароль - показуємо помилку в модальному вікні
               setPasswordError(isUk ? 'Невірний пароль. Спробуйте ще раз.' : 'Wrong password. Please try again.');
               setShowPasswordModal(true);
-              setPendingLoad(() => loadData);
             } else {
               setSyncStatus(getSyncStatusText('error'));
             }
@@ -431,16 +427,6 @@ export function useFirestoreSync(
         // Обробляємо дані так само, як в основному useEffect
         if (firestoreData && 'isEncrypted' in firestoreData && 'needsPassword' in firestoreData) {
           console.log('🔑 ⚠️ Пароль не прийнято, потрібен пароль');
-          // Створюємо функцію для повторного завантаження
-          const retryLoad = async () => {
-            if (user) {
-              const retryData = await loadFromFirestore(user, encryptionPassword);
-              if (retryData && !('needsPassword' in retryData)) {
-                processFirestoreData(retryData);
-              }
-            }
-          };
-          setPendingLoad(() => retryLoad);
           setShowPasswordModal(true);
           setIsInitialLoad(false);
           return;
@@ -456,22 +442,11 @@ export function useFirestoreSync(
           console.error('❌ Невірний пароль!');
           setPasswordError(isUk ? 'Невірний пароль. Спробуйте ще раз.' : 'Wrong password. Please try again.');
           setShowPasswordModal(true);
-          // Створюємо функцію для повторного завантаження
-          const retryLoad = async () => {
-            if (user) {
-              const retryData = await loadFromFirestore(user, encryptionPassword);
-              if (retryData && !('needsPassword' in retryData)) {
-                processFirestoreData(retryData);
-              }
-            }
-          };
-          setPendingLoad(() => retryLoad);
         } else {
           setSyncStatus(getSyncStatusText('error'));
         }
       } finally {
         setIsInitialLoad(false);
-        setPendingLoad(null);
       }
     }
   };
@@ -479,7 +454,6 @@ export function useFirestoreSync(
   const handlePasswordCancel = () => {
     setShowPasswordModal(false);
     setPasswordError(undefined);
-    setPendingLoad(null);
     setIsInitialLoad(false);
   };
 

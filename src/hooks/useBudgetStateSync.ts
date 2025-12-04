@@ -151,6 +151,6 @@ export function useBudgetStateSync(
         }
       }
     }
-  }, [budgetState.budgets, isInitialLoad, loadedBudgetsRef]);
+  }, [budgetState, isInitialLoad, loadedBudgetsRef]);
 }
 
