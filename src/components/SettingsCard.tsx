@@ -1,10 +1,11 @@
-import React, { ChangeEvent, RefObject } from 'react';
+import React, { ChangeEvent, RefObject, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { AVAILABLE_CURRENCIES, getCurrencyName } from '../utils/currencies';
 import { User } from 'firebase/auth';
 import { Budgets, ExchangeRates } from '../types';
 import { isExchangeRatePair, getBuyRate } from '../utils/typeGuards';
 import PasswordModal from './PasswordModal';
+import ConfirmModal from './ConfirmModal';
 
 interface SettingsCardProps {
   isUk: boolean;
@@ -83,12 +84,56 @@ const SettingsCard: React.FC<SettingsCardProps> = ({
   // Ensure budgets is always an object to prevent runtime errors
   const safeBudgets = budgets || {};
   
+  // Стан для модального вікна підтвердження зміни валюти
+  const [showCurrencyChangeConfirm, setShowCurrencyChangeConfirm] = useState(false);
+  const [pendingCurrencyChange, setPendingCurrencyChange] = useState<{ currencies: string[]; index: number; previousValue: string } | null>(null);
+  // Локальний стан для відображення валют у select (для відновлення при скасуванні)
+  const [displayCurrencies, setDisplayCurrencies] = useState<string[]>(selectedCurrencies);
+  
+  // Синхронізуємо displayCurrencies з selectedCurrencies, коли немає pending зміни
+  React.useEffect(() => {
+    if (!showCurrencyChangeConfirm) {
+      setDisplayCurrencies(selectedCurrencies);
+    }
+  }, [selectedCurrencies, showCurrencyChangeConfirm]);
+  
   const handleCurrencySelect = (currencyCode: string, index: number) => {
+    const previousValue = selectedCurrencies[index];
+    
+    // Перевіряємо, чи валюта дійсно змінилася
+    if (currencyCode === previousValue) {
+      return; // Валюта не змінилася, нічого не робимо
+    }
+    
+    // Оновлюємо локальний стан для відображення
+    const newDisplayCurrencies = [...displayCurrencies];
+    newDisplayCurrencies[index] = currencyCode;
+    setDisplayCurrencies(newDisplayCurrencies);
+    
+    // Зберігаємо нові валюти та показуємо модальне вікно
     const newCurrencies = [...selectedCurrencies];
     newCurrencies[index] = currencyCode;
-    if (handleCurrencyChange) {
-      handleCurrencyChange(newCurrencies);
+    setPendingCurrencyChange({ currencies: newCurrencies, index, previousValue });
+    setShowCurrencyChangeConfirm(true);
+  };
+  
+  const handleConfirmCurrencyChange = () => {
+    if (pendingCurrencyChange && handleCurrencyChange) {
+      handleCurrencyChange(pendingCurrencyChange.currencies);
     }
+    setShowCurrencyChangeConfirm(false);
+    setPendingCurrencyChange(null);
+  };
+  
+  const handleCancelCurrencyChange = () => {
+    // Відновлюємо попереднє значення
+    if (pendingCurrencyChange) {
+      const restoredCurrencies = [...displayCurrencies];
+      restoredCurrencies[pendingCurrencyChange.index] = pendingCurrencyChange.previousValue;
+      setDisplayCurrencies(restoredCurrencies);
+    }
+    setShowCurrencyChangeConfirm(false);
+    setPendingCurrencyChange(null);
   };
 
   return (
@@ -155,7 +200,7 @@ const SettingsCard: React.FC<SettingsCardProps> = ({
           {t('settings.currency.selection')}
         </label>
         <div className="grid grid-cols-3 gap-2 sm:gap-3">
-          {selectedCurrencies.map((currencyCode, index) => {
+          {displayCurrencies.map((currencyCode, index) => {
             const availableCurrencies = Object.keys(AVAILABLE_CURRENCIES);
             
             return (
@@ -167,7 +212,7 @@ const SettingsCard: React.FC<SettingsCardProps> = ({
                 >
                   {availableCurrencies.map(code => {
                     const curr = AVAILABLE_CURRENCIES[code];
-                    const isSelected = selectedCurrencies.includes(code) && code !== currencyCode;
+                    const isSelected = displayCurrencies.includes(code) && code !== currencyCode;
                     return (
                       <option 
                         key={code} 
@@ -496,6 +541,17 @@ const SettingsCard: React.FC<SettingsCardProps> = ({
           : 'Enter your current password to disable encryption. After this, data will be stored in plain text.'}
         confirmButtonText={isUk ? 'Вимкнути' : 'Disable'}
         cancelButtonText={isUk ? 'Скасувати' : 'Cancel'}
+      />
+      
+      {/* Модальне вікно підтвердження зміни валюти */}
+      <ConfirmModal
+        isOpen={showCurrencyChangeConfirm}
+        onClose={handleCancelCurrencyChange}
+        onConfirm={handleConfirmCurrencyChange}
+        title={t('settings.currency.changeConfirm.title')}
+        message={t('settings.currency.changeConfirm.message')}
+        confirmButtonText={t('settings.currency.changeConfirm.confirm')}
+        cancelButtonText={t('settings.currency.changeConfirm.cancel')}
       />
     </div>
   );

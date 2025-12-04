@@ -33,7 +33,13 @@
     },
     "currency": {
       "selection": "💱 Currency Selection (3 currencies)",
-      "description": "Select 3 currencies to track. Each currency can only be selected once."
+      "description": "Select 3 currencies to track. Each currency can only be selected once.",
+      "changeConfirm": {
+        "title": "Are you sure?",
+        "message": "Changing currency may affect your starting balances and exchange rates. Continue?",
+        "confirm": "Yes",
+        "cancel": "No"
+      }
     },
     "balances": {
       "title": "💰 Starting Balances",

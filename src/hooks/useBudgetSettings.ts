@@ -21,7 +21,6 @@ export function useBudgetSettings() {
     startBalanceEUR,
     activeBudgetId,
     budgets,
-    days,
     // Сетери стану
     setSelectedCurrencies,
     setExchangeRates,
@@ -91,7 +90,7 @@ export function useBudgetSettings() {
       
       console.log('✅ Всі поля очищено');
     }
-  }, [isUk, activeBudgetId, selectedCurrencies, budgets, exchangeRates, setStartBalanceUAH, setStartBalanceUSD, setStartBalanceEUR, setBudgets, setDays, setLoadMessage, setSaveMessage]);
+  }, [isUk, activeBudgetId, selectedCurrencies, budgets, setStartBalanceUAH, setStartBalanceUSD, setStartBalanceEUR, setBudgets, setDays, setLoadMessage, setSaveMessage]);
 
   const handleCurrencyChange = useCallback((newCurrencies: string[]) => {
     const validated = validateSelectedCurrencies(newCurrencies);
@@ -218,9 +217,7 @@ export function useBudgetSettings() {
     startBalanceUAH,
     startBalanceUSD,
     startBalanceEUR,
-    days,
     activeBudgetId,
-    budgets,
     setSelectedCurrencies,
     setExchangeRates,
     setBudgets
@@ -245,7 +242,7 @@ export function useBudgetSettings() {
       }
       return newRates;
     });
-  }, [baseCurrency, setExchangeRates]);
+  }, [setExchangeRates]);
 
   const handleStartBalanceChange = useCallback((currencyCode: string, value: string) => {
     let numValue: number | null = null;
