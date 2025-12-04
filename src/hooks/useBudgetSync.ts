@@ -67,18 +67,11 @@ export function useBudgetSync(
   }, [startBalanceUAH, startBalanceUSD, startBalanceEUR, usdRate, eurRate, selectedCurrencies, exchangeRates, days]);
 
   // Автоматичне збереження в localStorage при зміні даних
-  // НЕ зберігаємо, якщо користувач вийшов (user === null)
+  // Зберігаємо дані завжди, незалежно від авторизації
   useEffect(() => {
     if (isInitialLoad || authLoading) return;
-    
-    // Якщо користувач вийшов, не зберігаємо дані в localStorage
-    // Це запобігає збереженню даних після logout
-    if (!user) {
-      setSyncStatus(getSyncStatusText('local'));
-      return;
-    }
 
-    // Зберігаємо дані тільки для авторизованих користувачів
+    // Зберігаємо дані в localStorage завжди при зміні
     saveToLocalStorage(
       startBalanceUAH, 
       startBalanceUSD, 
@@ -92,7 +85,11 @@ export function useBudgetSync(
       activeBudgetId
     );
     
-    setSyncStatus(getSyncStatusText('local'));
+    // Оновлюємо статус синхронізації
+    // Якщо користувач не авторизований, показуємо тільки локальний статус
+    if (!user) {
+      setSyncStatus(getSyncStatusText('local'));
+    }
   }, [startBalanceUAH, startBalanceUSD, startBalanceEUR, usdRate, eurRate, days, selectedCurrencies, exchangeRates, budgets, activeBudgetId, isInitialLoad, authLoading, user, setSyncStatus, getSyncStatusText]);
 
   // Debounce збереження в Firestore
