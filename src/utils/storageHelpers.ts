@@ -22,41 +22,17 @@ const convertTimestampToString = (value: unknown): string | undefined => {
   return undefined;
 };
 
-// Тип для legacy-бюджету (для міграції)
-interface LegacyBudget extends Budget {
-  startBalanceUAH?: number | null;
-  startBalanceUSD?: number | null;
-  startBalanceEUR?: number | null;
-  [key: string]: any;
-}
-
-// Функція міграції: конвертує старі поля startBalanceUAH/USD/EUR в startBalances
-const migrateStartBalances = (budget: Budget | LegacyBudget | any): Budget => {
-  const legacyBudget = budget as LegacyBudget;
-  
-  // Якщо вже є startBalances і немає старих полів, просто повертаємо бюджет
-  if (budget.startBalances && Object.keys(budget.startBalances).length > 0 && 
-      !legacyBudget.startBalanceUAH && !legacyBudget.startBalanceUSD && !legacyBudget.startBalanceEUR) {
+// Функція міграції: забезпечує наявність startBalances
+const migrateStartBalances = (budget: Budget | any): Budget => {
+  // Якщо вже є startBalances, просто повертаємо бюджет
+  if (budget.startBalances && Object.keys(budget.startBalances).length > 0) {
     return budget;
   }
 
-  // Створюємо або оновлюємо startBalances
-  const startBalances: Record<string, number | null> = { ...(budget.startBalances || {}) };
-  
-  if (legacyBudget.startBalanceUAH !== undefined && legacyBudget.startBalanceUAH !== null) {
-    startBalances['UAH'] = legacyBudget.startBalanceUAH;
-  }
-  if (legacyBudget.startBalanceUSD !== undefined && legacyBudget.startBalanceUSD !== null) {
-    startBalances['USD'] = legacyBudget.startBalanceUSD;
-  }
-  if (legacyBudget.startBalanceEUR !== undefined && legacyBudget.startBalanceEUR !== null) {
-    startBalances['EUR'] = legacyBudget.startBalanceEUR;
-  }
-
-  // Створюємо чистий бюджет без legacy-полів
+  // Створюємо чистий бюджет з порожніми startBalances
   const cleanBudget: Budget = {
     name: budget.name || 'Бюджет',
-    startBalances: startBalances,
+    startBalances: budget.startBalances || {},
     days: budget.days || [],
     selectedCurrencies: budget.selectedCurrencies || ['UAH', 'USD', 'EUR'],
     exchangeRates: budget.exchangeRates || {}
@@ -67,9 +43,6 @@ const migrateStartBalances = (budget: Budget | LegacyBudget | any): Budget => {
 
 // Інтерфейс для legacy-даних
 interface LegacyUserData {
-  startBalanceUAH?: number | null;
-  startBalanceUSD?: number | null;
-  startBalanceEUR?: number | null;
   days?: Day[];
   selectedCurrencies?: string[];
   exchangeRates?: ExchangeRates;
@@ -111,9 +84,6 @@ export const loadFromLocalStorage = (): LoadedUserData | null => {
       // Повертаємо LoadedUserData
       return {
         ...cleanData,
-        startBalanceUAH: activeBudget?.startBalances?.['UAH'] ?? null,
-        startBalanceUSD: activeBudget?.startBalances?.['USD'] ?? null,
-        startBalanceEUR: activeBudget?.startBalances?.['EUR'] ?? null,
         days: activeBudget?.days || [],
         selectedCurrencies: activeBudget?.selectedCurrencies || ['UAH', 'USD', 'EUR'],
         exchangeRates: activeBudget?.exchangeRates || {}
@@ -129,17 +99,6 @@ export const loadFromLocalStorage = (): LoadedUserData | null => {
     
     // Збираємо початкові баланси
     const startBalances: Record<string, number | null> = {};
-    
-    // Завантажуємо стандартні баланси
-    if (settings.startBalanceUAH !== undefined) {
-      startBalances['UAH'] = settings.startBalanceUAH;
-    }
-    if (settings.startBalanceUSD !== undefined) {
-      startBalances['USD'] = settings.startBalanceUSD;
-    }
-    if (settings.startBalanceEUR !== undefined) {
-      startBalances['EUR'] = settings.startBalanceEUR;
-    }
     
     // Завантажуємо баланси для інших валют
     selectedCurrencies.forEach((currencyCode: string) => {
@@ -177,9 +136,6 @@ export const loadFromLocalStorage = (): LoadedUserData | null => {
     // Повертаємо LoadedUserData
     return {
       ...cleanData,
-      startBalanceUAH: startBalances['UAH'] ?? null,
-      startBalanceUSD: startBalances['USD'] ?? null,
-      startBalanceEUR: startBalances['EUR'] ?? null,
       days: newBudget.days,
       selectedCurrencies: newBudget.selectedCurrencies,
       exchangeRates: newBudget.exchangeRates
@@ -198,8 +154,6 @@ export const loadFromLocalStorage = (): LoadedUserData | null => {
 //   - Вся актуальна інформація (включно з динамічними startBalances для будь‑яких валют)
 //     зберігається всередині об'єкта `budgets`.
 //   - Тому тут ми зберігаємо тільки `budgets` та `activeBudgetId`.
-//   - Поля типу startBalanceUAH/USD/EUR, days тощо
-//     більше НЕ зберігаємо окремо в localStorage.
 export const saveToLocalStorage = (
   budgets?: Budgets,
   activeBudgetId?: string
@@ -361,9 +315,6 @@ export const loadFromFirestore = async (
             updatedAt: convertTimestampToString(rawData.updatedAt),
             isEncrypted: true,
             // Computed values з активного бюджету
-            startBalanceUAH: activeBudget?.startBalances?.['UAH'] ?? null,
-            startBalanceUSD: activeBudget?.startBalances?.['USD'] ?? null,
-            startBalanceEUR: activeBudget?.startBalances?.['EUR'] ?? null,
             days: activeBudget?.days || [],
             selectedCurrencies: activeBudget?.selectedCurrencies || ['UAH', 'USD', 'EUR'],
             exchangeRates: activeBudget?.exchangeRates || {}
@@ -393,11 +344,6 @@ export const loadFromFirestore = async (
         for (const [key, budget] of Object.entries(rawData.budgets as Budgets)) {
           const migratedBudget = migrateStartBalances(budget);
           migratedBudgets[key] = migratedBudget;
-          
-          // Перевіряємо, чи була міграція
-          if ((budget as any).startBalanceUAH !== undefined || (budget as any).startBalanceUSD !== undefined || (budget as any).startBalanceEUR !== undefined) {
-            needsMigration = true;
-          }
         }
 
         const activeId = rawData.activeBudgetId && migratedBudgets[rawData.activeBudgetId]
@@ -427,9 +373,6 @@ export const loadFromFirestore = async (
           savedAt: convertTimestampToString(rawData.savedAt),
           updatedAt: convertTimestampToString(rawData.updatedAt),
           // Computed values
-          startBalanceUAH: activeBudget?.startBalances?.['UAH'] ?? null,
-          startBalanceUSD: activeBudget?.startBalances?.['USD'] ?? null,
-          startBalanceEUR: activeBudget?.startBalances?.['EUR'] ?? null,
           days: activeBudget?.days || [],
           selectedCurrencies: activeBudget?.selectedCurrencies || ['UAH', 'USD', 'EUR'],
           exchangeRates: activeBudget?.exchangeRates || {}
@@ -439,11 +382,7 @@ export const loadFromFirestore = async (
       // 🧩 Міграція старої плоскої структури
       console.log('📦 Міграція старої плоскої структури до budgets');
       
-      const hasOldFields =
-        'days' in rawData ||
-        'startBalanceUAH' in rawData ||
-        'startBalanceUSD' in rawData ||
-        'startBalanceEUR' in rawData;
+      const hasOldFields = 'days' in rawData;
 
       if (hasOldFields) {
         // Отримуємо мову для іменування бюджету
@@ -459,15 +398,6 @@ export const loadFromFirestore = async (
         
         // Створюємо startBalances
         const startBalances: Record<string, number | null> = {};
-        if (rawData.startBalanceUAH !== undefined) {
-          startBalances['UAH'] = rawData.startBalanceUAH ?? null;
-        }
-        if (rawData.startBalanceUSD !== undefined) {
-          startBalances['USD'] = rawData.startBalanceUSD ?? null;
-        }
-        if (rawData.startBalanceEUR !== undefined) {
-          startBalances['EUR'] = rawData.startBalanceEUR ?? null;
-        }
 
         // Створюємо новий бюджет
         const defaultBudget: Budget = {
@@ -501,9 +431,6 @@ export const loadFromFirestore = async (
           savedAt: convertTimestampToString(rawData.savedAt),
           updatedAt: convertTimestampToString(rawData.updatedAt),
           // Computed values
-          startBalanceUAH: startBalances['UAH'] ?? null,
-          startBalanceUSD: startBalances['USD'] ?? null,
-          startBalanceEUR: startBalances['EUR'] ?? null,
           days: defaultBudget.days,
           selectedCurrencies: defaultBudget.selectedCurrencies,
           exchangeRates: defaultBudget.exchangeRates

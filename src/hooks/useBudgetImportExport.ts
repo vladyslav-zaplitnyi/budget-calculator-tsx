@@ -162,10 +162,10 @@ export function useBudgetImportExport() {
             setExchangeRates(loadedExchangeRates);
           }
 
-          // Підтримка нової структури startBalances та старої (для зворотної сумісності)
+          // Завантажуємо startBalances з нової структури
           const startBalancesFromSettings: Record<string, number | null> = {};
           
-          // Спочатку перевіряємо нову структуру startBalances
+          // Перевіряємо структуру startBalances
           if (data.settings.startBalances && typeof data.settings.startBalances === 'object') {
             Object.entries(data.settings.startBalances).forEach(([currencyCode, balance]) => {
               if (typeof balance === 'number') {
@@ -177,17 +177,6 @@ export function useBudgetImportExport() {
                 startBalancesFromSettings[currencyCode] = null;
               }
             });
-          }
-          
-          // Fallback на старі поля для зворотної сумісності
-          if (data.settings.startBalanceUAH !== undefined) {
-            startBalancesFromSettings['UAH'] = data.settings.startBalanceUAH;
-          }
-          if (data.settings.startBalanceUSD !== undefined) {
-            startBalancesFromSettings['USD'] = data.settings.startBalanceUSD;
-          }
-          if (data.settings.startBalanceEUR !== undefined) {
-            startBalancesFromSettings['EUR'] = data.settings.startBalanceEUR;
           }
           
           // Завантажуємо баланси для інших валют зі старих полів
