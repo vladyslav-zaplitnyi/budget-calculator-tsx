@@ -45,7 +45,6 @@ export const DaySchema = z.object({
 
 /**
  * Схема валідації для Budget
- * Чиста структура без legacy-полів
  */
 export const BudgetSchema: z.ZodType<Budget> = z.object({
   name: z.string().min(1),
@@ -65,7 +64,6 @@ export const BudgetsSchema: z.ZodType<Budgets> = z.record(
 
 /**
  * Схема валідації для UserData
- * Чиста структура без legacy-полів
  */
 export const UserDataSchema: z.ZodType<UserData> = z.object({
   activeBudgetId: z.string(),

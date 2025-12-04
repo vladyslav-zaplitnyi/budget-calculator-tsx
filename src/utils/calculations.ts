@@ -266,7 +266,7 @@ export const calculateTotals = (days: Day[], selectedCurrencies: string[] = ['UA
       totals[`totalExpense${code}`] += amounts[expenseKey] || 0;
     });
 
-    // Всі дані тепер в транзакціях, legacy-поля більше не підтримуються
+    // Всі дані в транзакціях
   });
 
   return {
