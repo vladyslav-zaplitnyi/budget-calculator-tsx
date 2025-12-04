@@ -73,6 +73,65 @@ export const loadFromLocalStorage = (): UserData | null => {
         budgets = migratedBudgets;
       }
 
+      // Завантажуємо початкові баланси для всіх валют з settings
+      // Якщо є budgets, оновлюємо startBalances активного бюджету
+      const activeBudgetId = parsedData.activeBudgetId || 'default';
+      const selectedCurrencies = settings.selectedCurrencies || ['UAH', 'USD', 'EUR'];
+      
+      // Функція для завантаження початкових балансів з settings
+      const loadStartBalancesFromSettings = (existingBalances: Record<string, number | null> = {}): Record<string, number | null> => {
+        const startBalances: Record<string, number | null> = { ...existingBalances };
+        
+        // Спочатку завантажуємо для валют з selectedCurrencies
+        selectedCurrencies.forEach((currencyCode: string) => {
+          const balanceKey = `startBalance${currencyCode}`;
+          if (settings[balanceKey] !== undefined) {
+            const balanceValue = settings[balanceKey];
+            startBalances[currencyCode] = balanceValue === null || balanceValue === '' ? null : balanceValue;
+          }
+        });
+        
+        // Також завантажуємо для всіх інших валют, які є в settings
+        // (наприклад, якщо файл містить startBalanceRON, startBalancePLN тощо)
+        Object.keys(settings).forEach((key: string) => {
+          if (key.startsWith('startBalance') && key !== 'startBalanceUAH' && key !== 'startBalanceUSD' && key !== 'startBalanceEUR') {
+            const currencyCode = key.replace('startBalance', '');
+            if (settings[key] !== undefined) {
+              const balanceValue = settings[key];
+              startBalances[currencyCode] = balanceValue === null || balanceValue === '' ? null : balanceValue;
+            }
+          }
+        });
+        
+        return startBalances;
+      };
+      
+      if (budgets && typeof budgets === 'object' && budgets[activeBudgetId]) {
+        // Оновлюємо startBalances активного бюджету з settings
+        const activeBudget = budgets[activeBudgetId];
+        const startBalances = loadStartBalancesFromSettings(activeBudget.startBalances);
+        
+        budgets[activeBudgetId] = {
+          ...activeBudget,
+          startBalances
+        };
+      } else if (!budgets || Object.keys(budgets).length === 0) {
+        // Якщо budgets немає, створюємо бюджет з початковими балансами для всіх валют
+        const startBalances = loadStartBalancesFromSettings();
+        
+        budgets = {
+          [activeBudgetId]: {
+            name: 'Основний',
+            startBalances: Object.keys(startBalances).length > 0 ? startBalances : {},
+            usdRate: settings.usdRate ?? 41.5,
+            eurRate: settings.eurRate ?? 45,
+            days: parsedData.days || settings.days || undefined,
+            selectedCurrencies: selectedCurrencies,
+            exchangeRates: settings.exchangeRates || undefined
+          }
+        };
+      }
+
       const data: UserData = {
         startBalanceUAH: settings.startBalanceUAH ?? null,
         startBalanceUSD: settings.startBalanceUSD ?? null,
@@ -84,7 +143,7 @@ export const loadFromLocalStorage = (): UserData | null => {
         exchangeRates: settings.exchangeRates || undefined,
         // Конвертуємо null в undefined для валідації
         budgets: budgets || undefined,
-        activeBudgetId: parsedData.activeBudgetId || undefined
+        activeBudgetId: activeBudgetId
       };
 
       // Валідація даних

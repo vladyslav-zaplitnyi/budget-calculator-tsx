@@ -408,16 +408,39 @@ export function useBudgetImportExport() {
             : selectedCurrencies;
           const finalExchangeRates = data.settings?.exchangeRates || exchangeRates;
           
-          saveToLocalStorage(
-            data.settings?.startBalanceUAH ?? null,
-            data.settings?.startBalanceUSD ?? null,
-            data.settings?.startBalanceEUR ?? null,
-            data.settings?.usdRate ?? 41.5,
-            data.settings?.eurRate ?? 45,
-            normalizedDays || days,
-            finalSelectedCurrencies,
-            finalExchangeRates
-          );
+          // Оновлюємо budgets з days та зберігаємо в localStorage
+          const currentId = activeBudgetId || 'default';
+          setBudgets((prevBudgets: Budgets) => {
+            const safePrev = prevBudgets || {};
+            const updatedBudget = safePrev[currentId] || { name: 'Основний' };
+            
+            // Оновлюємо days в бюджеті
+            const budgetWithDays = {
+              ...updatedBudget,
+              days: normalizedDays || days
+            };
+            
+            const updatedBudgets = {
+              ...safePrev,
+              [currentId]: budgetWithDays
+            };
+            
+            // Зберігаємо в localStorage з budgets
+            saveToLocalStorage(
+              data.settings?.startBalanceUAH ?? null,
+              data.settings?.startBalanceUSD ?? null,
+              data.settings?.startBalanceEUR ?? null,
+              data.settings?.usdRate ?? 41.5,
+              data.settings?.eurRate ?? 45,
+              normalizedDays || days,
+              finalSelectedCurrencies,
+              finalExchangeRates,
+              updatedBudgets,
+              currentId
+            );
+            
+            return updatedBudgets;
+          });
         }, 150);
 
         setLoadMessage(`✅ Імпортовано з файлу: ${file.name}`);
