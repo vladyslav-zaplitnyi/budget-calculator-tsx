@@ -104,12 +104,31 @@ export const saveToFirestore = async (
 
     const userDocRef = doc(db, 'users', user.uid);
     
+    // Читаємо displayCurrency та displayCurrencyIndex з localStorage
+    let displayCurrency: string | undefined;
+    let displayCurrencyIndex: number | undefined;
+    try {
+      const savedDisplayCurrency = localStorage.getItem('displayCurrency');
+      if (savedDisplayCurrency && ['UAH', 'USD', 'EUR', 'PLN', 'RON'].includes(savedDisplayCurrency)) {
+        displayCurrency = savedDisplayCurrency;
+      }
+      
+      const savedIndex = localStorage.getItem('displayCurrencyIndex');
+      if (savedIndex !== null && ['0', '1', '2', '3', '4'].includes(savedIndex)) {
+        displayCurrencyIndex = parseInt(savedIndex, 10);
+      }
+    } catch (error) {
+      console.error('Помилка при читанні displayCurrency з localStorage:', error);
+    }
+    
     // Перевіряємо, чи потрібно шифрувати дані
     if (encryptionPassword) {
       // Шифруємо дані
       const dataToEncrypt = {
         activeBudgetId: activeId,
-        budgets: budgetsToSave
+        budgets: budgetsToSave,
+        displayCurrency: displayCurrency,
+        displayCurrencyIndex: displayCurrencyIndex
       };
       const encryptedData = encryptData(dataToEncrypt, encryptionPassword);
       
@@ -125,12 +144,20 @@ export const saveToFirestore = async (
       
       await setDoc(userDocRef, data);
     } else {
-      const data = {
+      const data: any = {
         isEncrypted: false,
         activeBudgetId: activeId,
         budgets: budgetsToSave,
         updatedAt: serverTimestamp()
       };
+      
+      // Додаємо displayCurrency та displayCurrencyIndex, якщо вони є
+      if (displayCurrency !== undefined) {
+        data.displayCurrency = displayCurrency;
+      }
+      if (displayCurrencyIndex !== undefined) {
+        data.displayCurrencyIndex = displayCurrencyIndex;
+      }
       
       if (setIsEncrypted) {
         setIsEncrypted(false);
@@ -174,7 +201,7 @@ export const loadFromFirestore = async (
         }
 
         try {
-          const decryptedData = decryptData<{ activeBudgetId: string; budgets: Budgets }>(
+          const decryptedData = decryptData<{ activeBudgetId: string; budgets: Budgets; displayCurrency?: string; displayCurrencyIndex?: number }>(
             rawData.encryptedData,
             encryptionPassword
           );
@@ -185,6 +212,22 @@ export const loadFromFirestore = async (
             : Object.keys(budgets)[0] || 'default';
           
           const activeBudget = budgets[activeId];
+          
+          // Відновлюємо displayCurrency та displayCurrencyIndex в localStorage
+          if (decryptedData.displayCurrency) {
+            try {
+              localStorage.setItem('displayCurrency', decryptedData.displayCurrency);
+            } catch (error) {
+              console.error('Помилка при збереженні displayCurrency в localStorage:', error);
+            }
+          }
+          if (decryptedData.displayCurrencyIndex !== undefined) {
+            try {
+              localStorage.setItem('displayCurrencyIndex', decryptedData.displayCurrencyIndex.toString());
+            } catch (error) {
+              console.error('Помилка при збереженні displayCurrencyIndex в localStorage:', error);
+            }
+          }
           
           const result: LoadedUserData = {
             activeBudgetId: activeId,
@@ -214,6 +257,22 @@ export const loadFromFirestore = async (
           : Object.keys(budgets)[0] || 'default';
 
         const activeBudget = budgets[activeId];
+        
+        // Відновлюємо displayCurrency та displayCurrencyIndex в localStorage
+        if (rawData.displayCurrency && typeof rawData.displayCurrency === 'string') {
+          try {
+            localStorage.setItem('displayCurrency', rawData.displayCurrency);
+          } catch (error) {
+            console.error('Помилка при збереженні displayCurrency в localStorage:', error);
+          }
+        }
+        if (rawData.displayCurrencyIndex !== undefined && typeof rawData.displayCurrencyIndex === 'number') {
+          try {
+            localStorage.setItem('displayCurrencyIndex', rawData.displayCurrencyIndex.toString());
+          } catch (error) {
+            console.error('Помилка при збереженні displayCurrencyIndex в localStorage:', error);
+          }
+        }
         
         return {
           activeBudgetId: activeId,
