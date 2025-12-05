@@ -7,36 +7,31 @@ export const AVAILABLE_CURRENCIES: Record<string, CurrencyInfo> = {
     code: 'UAH',
     name: { uk: 'Гривня', en: 'Hryvnia' },
     symbol: '₴',
-    emoji: '🇺🇦',
-    defaultRate: 1 // Базова валюта
+    emoji: '🇺🇦'
   },
   USD: {
     code: 'USD',
     name: { uk: 'Долар', en: 'Dollar' },
     symbol: '$',
-    emoji: '🇺🇸',
-    defaultRate: 41.5
+    emoji: '🇺🇸'
   },
   EUR: {
     code: 'EUR',
     name: { uk: 'Євро', en: 'Euro' },
     symbol: '€',
-    emoji: '🇪🇺',
-    defaultRate: 45.0
+    emoji: '🇪🇺'
   },
   PLN: {
     code: 'PLN',
     name: { uk: 'Злотий', en: 'Zloty' },
     symbol: 'zł',
-    emoji: '🇵🇱',
-    defaultRate: 10.5
+    emoji: '🇵🇱'
   },
   RON: {
     code: 'RON',
     name: { uk: 'Румунський лей', en: 'Romanian Leu' },
     symbol: 'lei',
-    emoji: '🇷🇴',
-    defaultRate: 9.0
+    emoji: '🇷🇴'
   }
 };
 
@@ -65,12 +60,6 @@ export const getCurrencySymbol = (code: string): string => {
 export const getCurrencyEmoji = (code: string): string => {
   const currency = getCurrencyInfo(code);
   return currency ? currency.emoji : '';
-};
-
-// Отримати дефолтний курс валюти
-export const getDefaultRate = (code: string): number => {
-  const currency = getCurrencyInfo(code);
-  return currency ? currency.defaultRate : 1;
 };
 
 // Валідація вибраних валют

@@ -1,7 +1,7 @@
 import { useReducer, useEffect, useCallback, useMemo, useRef, useState } from 'react';
 import { loadFromLocalStorage } from '../utils/storageHelpers';
 import { normalizeDaysArray, createEmptyMonthDays } from '../utils/dayHelpers';
-import { DEFAULT_CURRENCIES, validateSelectedCurrencies, getDefaultRate } from '../utils/currencies';
+import { DEFAULT_CURRENCIES, validateSelectedCurrencies } from '../utils/currencies';
 import { LANGUAGE_STORAGE_KEY, LANGUAGE_COOKIE_KEY } from '../utils/constants';
 import { setCookie } from '../utils/cookieHelpers';
 import { currencyReducer, createCurrencyInitialState, currencyActions } from '../reducers/currencyReducer';
@@ -74,43 +74,24 @@ export function useBudgetState(): BudgetStateInterface {
       currencies.forEach(code => {
         if (code === BASE_CURRENCY) return;
         let rateValue = savedRates[code];
-        let rate: number;
-        if (!rateValue) {
-          rate = getDefaultRate(code);
-        } else {
-          rate = getBuyRate(rateValue, 1);
+        if (rateValue) {
+          const rate = getBuyRate(rateValue, 1);
+          const pairKey = `${BASE_CURRENCY}_${code}`;
+          const reversePairKey = `${code}_${BASE_CURRENCY}`;
+          newRates[pairKey] = {
+            buy: rate,
+            sell: rate * 1.005
+          };
+          newRates[reversePairKey] = {
+            buy: 1 / (rate * 1.005),
+            sell: 1 / rate
+          };
         }
-        const pairKey = `${BASE_CURRENCY}_${code}`;
-        const reversePairKey = `${code}_${BASE_CURRENCY}`;
-        newRates[pairKey] = {
-          buy: rate,
-          sell: rate * 1.005
-        };
-        newRates[reversePairKey] = {
-          buy: 1 / (rate * 1.005),
-          sell: 1 / rate
-        };
       });
       return newRates;
     }
-    // Створюємо курси за замовчуванням
-    const rates: ExchangeRates = {};
-    const currencies = validateSelectedCurrencies(savedCurrencies || DEFAULT_CURRENCIES);
-    currencies.forEach((code) => {
-      if (code === BASE_CURRENCY) return;
-      const rate = getDefaultRate(code);
-      const pairKey = `${BASE_CURRENCY}_${code}`;
-      const reversePairKey = `${code}_${BASE_CURRENCY}`;
-      rates[pairKey] = {
-        buy: rate,
-        sell: rate * 1.005
-      };
-      rates[reversePairKey] = {
-        buy: 1 / (rate * 1.005),
-        sell: 1 / rate
-      };
-    });
-    return rates;
+    // Якщо немає збережених курсів, повертаємо порожній об'єкт
+    return {};
   };
 
   const initialExchangeRates = initializeExchangeRates(
@@ -336,30 +317,8 @@ export function useBudgetState(): BudgetStateInterface {
     // Скидаємо вибрані валюти
     setSelectedCurrencies(DEFAULT_CURRENCIES);
     
-    // Створюємо дефолтні курси обміну
-    const defaultRates: ExchangeRates = {};
-    DEFAULT_CURRENCIES.forEach((code) => {
-      if (code === BASE_CURRENCY) return;
-      let rate: number;
-      if (code === 'USD') {
-        rate = 41.5;
-      } else if (code === 'EUR') {
-        rate = 45;
-      } else {
-        rate = getDefaultRate(code);
-      }
-      const pairKey = `${BASE_CURRENCY}_${code}`;
-      const reversePairKey = `${code}_${BASE_CURRENCY}`;
-      defaultRates[pairKey] = {
-        buy: rate,
-        sell: rate * 1.005
-      };
-      defaultRates[reversePairKey] = {
-        buy: 1 / (rate * 1.005),
-        sell: 1 / rate
-      };
-    });
-    setExchangeRates(defaultRates);
+    // Скидаємо курси обміну (порожній об'єкт)
+    setExchangeRates({});
     
     // Скидаємо валюту відображення
     setDisplayCurrency('UAH');

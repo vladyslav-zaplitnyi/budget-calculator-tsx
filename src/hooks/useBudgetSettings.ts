@@ -1,7 +1,7 @@
 import { useCallback, useState } from 'react';
 import { useBudgetContext } from '../contexts/BudgetContext';
 import { createEmptyMonthDays } from '../utils/dayHelpers';
-import { validateSelectedCurrencies, getDefaultRate } from '../utils/currencies';
+import { validateSelectedCurrencies } from '../utils/currencies';
 import { Budgets, ExchangeRates } from '../types';
 import { isExchangeRatePair } from '../utils/typeGuards';
 import { saveToFirestore, saveToLocalStorage } from '../utils/storageHelpers';
@@ -96,17 +96,8 @@ export function useBudgetSettings() {
         const pairKey = `${baseCurrency}_${code}`;
         const reversePairKey = `${code}_${baseCurrency}`;
 
-        if (!updatedRates[pairKey] || typeof updatedRates[pairKey] !== 'object') {
-          const defaultRate = getDefaultRate(code);
-          updatedRates[pairKey] = {
-            buy: defaultRate,
-            sell: defaultRate * 1.005
-          };
-          updatedRates[reversePairKey] = {
-            buy: 1 / (defaultRate * 1.005),
-            sell: 1 / defaultRate
-          };
-        }
+        // Якщо курсу немає, не створюємо дефолтний - залишаємо порожнім
+        // Курси повинні бути встановлені користувачем вручну
       });
 
       Object.keys(updatedRates).forEach(key => {
@@ -128,24 +119,7 @@ export function useBudgetSettings() {
 
     // Формуємо нові курси локально для подальшого використання (збереження в localStorage)
     const newRates: ExchangeRates = { ...exchangeRates };
-    validated.forEach(code => {
-      if (code === baseCurrency) return;
-
-      const pairKey = `${baseCurrency}_${code}`;
-      const reversePairKey = `${code}_${baseCurrency}`;
-
-      if (!newRates[pairKey] || typeof newRates[pairKey] !== 'object') {
-        const defaultRate = getDefaultRate(code);
-        newRates[pairKey] = {
-          buy: defaultRate,
-          sell: defaultRate * 1.005
-        };
-        newRates[reversePairKey] = {
-          buy: 1 / (defaultRate * 1.005),
-          sell: 1 / defaultRate
-        };
-      }
-    });
+    // Не створюємо дефолтні курси - користувач повинен встановити їх вручну
 
     Object.keys(newRates).forEach(key => {
       if (key.includes('_')) {
@@ -210,7 +184,8 @@ export function useBudgetSettings() {
       if (pairKey && type && (type === 'buy' || type === 'sell')) {
         const currentValue = newRates[pairKey];
         if (!isExchangeRatePair(currentValue)) {
-          newRates[pairKey] = { buy: 1, sell: 1 };
+          // Створюємо пару з 0 для обох значень, якщо її ще немає
+          newRates[pairKey] = { buy: 0, sell: 0 };
         }
         const pair = newRates[pairKey];
         if (isExchangeRatePair(pair)) {

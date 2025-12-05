@@ -20,7 +20,6 @@ export interface CurrencyInfo {
   };
   symbol: string;
   emoji: string;
-  defaultRate: number;
 }
 
 export interface ExchangeRates {

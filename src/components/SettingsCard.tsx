@@ -333,20 +333,20 @@ const SettingsCard: React.FC<SettingsCardProps> = ({
             const reversePairValue = exchangeRates[reversePairKey];
             
             if (isExchangeRatePair(pairValue)) {
-              buyRate = pairValue.buy || 1;
-              sellRate = pairValue.sell || 1;
+              buyRate = pairValue.buy || 0;
+              sellRate = pairValue.sell || 0;
             } else if (isExchangeRatePair(reversePairValue)) {
-              sellRate = reversePairValue.buy ? 1 / reversePairValue.buy : 1;
-              buyRate = reversePairValue.sell ? 1 / reversePairValue.sell : 1;
+              sellRate = reversePairValue.buy ? 1 / reversePairValue.buy : 0;
+              buyRate = reversePairValue.sell ? 1 / reversePairValue.sell : 0;
             } else {
               const rateVal = exchangeRates[currencyCode];
-              let oldRate: number;
+              let oldRate: number | undefined;
               if (typeof rateVal === 'number') {
                   oldRate = rateVal;
               } else if (isExchangeRatePair(rateVal)) {
-                  oldRate = getBuyRate(rateVal, 1);
+                  oldRate = getBuyRate(rateVal, 0);
               } else {
-                  // Отримуємо курс з exchangeRates або використовуємо дефолтне значення
+                  // Отримуємо курс з exchangeRates
                   const pairKey = `${baseCurrency}_${currencyCode}`;
                   const ratePair = exchangeRates[pairKey];
                   if (isExchangeRatePair(ratePair)) {
@@ -354,17 +354,12 @@ const SettingsCard: React.FC<SettingsCardProps> = ({
                   } else if (typeof ratePair === 'number') {
                     oldRate = ratePair;
                   } else {
-                    if (currencyCode === 'USD') {
-                      oldRate = 41.5;
-                    } else if (currencyCode === 'EUR') {
-                      oldRate = 45;
-                    } else {
-                      oldRate = 1;
-                    }
+                    // Якщо курсу немає, не встановлюємо дефолтне значення
+                    oldRate = undefined;
                   }
               }
-              buyRate = oldRate;
-              sellRate = oldRate * 1.01;
+              buyRate = oldRate ?? 0;
+              sellRate = oldRate ? oldRate * 1.01 : 0;
             }
             
             const colors = [
@@ -388,7 +383,8 @@ const SettingsCard: React.FC<SettingsCardProps> = ({
                     <input
                       type="number"
                       step="0.01"
-                      value={buyRate}
+                      placeholder="0"
+                      value={buyRate === 0 ? '' : buyRate}
                       onChange={(e) => {
                         const newRate = parseFloat(e.target.value) || 0;
                         if (handleExchangeRateChange) {
@@ -406,7 +402,8 @@ const SettingsCard: React.FC<SettingsCardProps> = ({
                     <input
                       type="number"
                       step="0.01"
-                      value={sellRate}
+                      placeholder="0"
+                      value={sellRate === 0 ? '' : sellRate}
                       onChange={(e) => {
                         const newRate = parseFloat(e.target.value) || 0;
                         if (handleExchangeRateChange) {

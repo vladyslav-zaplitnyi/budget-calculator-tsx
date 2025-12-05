@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { loadFromFirestore, loadFromLocalStorage } from '../utils/storageHelpers';
 import { normalizeDaysArray } from '../utils/dayHelpers';
-import { validateSelectedCurrencies, DEFAULT_CURRENCIES, getDefaultRate } from '../utils/currencies';
+import { validateSelectedCurrencies, DEFAULT_CURRENCIES } from '../utils/currencies';
 import { ACTIVE_BUDGET_COOKIE_KEY } from '../utils/constants';
 import { getCookie } from '../utils/cookieHelpers';
 import { BudgetStateWithSync } from '../contexts/BudgetContext';
@@ -101,42 +101,26 @@ export function useFirestoreSync(
         currencies.forEach(code => {
           if (code === BASE_CURRENCY) return;
           let rate = firestoreData.exchangeRates![code];
-          if (!rate) {
-            rate = getDefaultRate(code);
-          }
-          const pairKey = `${BASE_CURRENCY}_${code}`;
-          const reversePairKey = `${code}_${BASE_CURRENCY}`;
-          const rateVal = getBuyRate(rate, 1); 
+          if (rate) {
+            const pairKey = `${BASE_CURRENCY}_${code}`;
+            const reversePairKey = `${code}_${BASE_CURRENCY}`;
+            const rateVal = getBuyRate(rate, 1); 
 
-          rates[pairKey] = {
-            buy: rateVal,
-            sell: rateVal * 1.005
-          };
-          rates[reversePairKey] = {
-            buy: 1 / (rateVal * 1.005),
-            sell: 1 / rateVal
-          };
+            rates[pairKey] = {
+              buy: rateVal,
+              sell: rateVal * 1.005
+            };
+            rates[reversePairKey] = {
+              buy: 1 / (rateVal * 1.005),
+              sell: 1 / rateVal
+            };
+          }
         });
         setExchangeRates(rates);
       }
     } else {
-      const rates: ExchangeRates = {};
-      const currencies = validateSelectedCurrencies(firestoreData.selectedCurrencies || DEFAULT_CURRENCIES);
-      currencies.forEach(code => {
-        if (code === BASE_CURRENCY) return;
-        const rate = getDefaultRate(code);
-        const pairKey = `${BASE_CURRENCY}_${code}`;
-        const reversePairKey = `${code}_${BASE_CURRENCY}`;
-        rates[pairKey] = {
-          buy: rate,
-          sell: rate * 1.005
-        };
-        rates[reversePairKey] = {
-          buy: 1 / (rate * 1.005),
-          sell: 1 / rate
-        };
-      });
-      setExchangeRates(rates);
+      // Якщо немає курсів, встановлюємо порожній об'єкт
+      setExchangeRates({});
     }
     
     if (firestoreData.days && Array.isArray(firestoreData.days) && firestoreData.days.length === 31) {
