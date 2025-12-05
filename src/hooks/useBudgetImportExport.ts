@@ -31,7 +31,8 @@ export function useBudgetImportExport() {
     displayCurrency,
     displayCurrencyIndex,
     setDisplayCurrency,
-    setDisplayCurrencyIndex
+    setDisplayCurrencyIndex,
+    isUk
   } = context;
 
   const handleExportToJsonFile = useCallback(() => {
@@ -244,6 +245,17 @@ export function useBudgetImportExport() {
                 }
               }
 
+              // Валідація: максимум 5 транзакцій на день
+              if (validatedTransactions.length > 5) {
+                const excessCount = validatedTransactions.length - 5;
+                const warningMessage = isUk
+                  ? `⚠️ У день ${i} знайдено ${validatedTransactions.length} транзакцій. Максимум 5 транзакцій на день. Залишено перші 5 транзакцій.`
+                  : `⚠️ Day ${i} has ${validatedTransactions.length} transactions. Maximum 5 transactions per day. Keeping first 5 transactions.`;
+                console.warn(warningMessage);
+                setLoadMessage(warningMessage);
+                // Обрізаємо до 5 транзакцій
+                validatedTransactions.splice(5);
+              }
 
               const dayData: Day = {
                 day: loadedDay.day || i,
@@ -349,7 +361,7 @@ export function useBudgetImportExport() {
     };
 
     reader.readAsText(file, 'utf-8');
-  }, [activeBudgetId, days, setSelectedCurrencies, setExchangeRates, setBudgets, setDays, setIsLoading, setLoadMessage, setDisplayCurrency, setDisplayCurrencyIndex]);
+  }, [activeBudgetId, days, setSelectedCurrencies, setExchangeRates, setBudgets, setDays, setIsLoading, setLoadMessage, setDisplayCurrency, setDisplayCurrencyIndex, isUk]);
 
   return {
     handleExportToJsonFile,
