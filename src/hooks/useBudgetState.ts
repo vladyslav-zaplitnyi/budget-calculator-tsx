@@ -305,11 +305,29 @@ export function useBudgetState(): BudgetStateInterface {
 
   // Функція для скидання всіх стейтів до дефолтних значень
   const resetToDefaults = useCallback(() => {
-    // Скидаємо дні
-    setDays(createEmptyMonthDays());
+    // Спочатку створюємо порожні startBalances для всіх дефолтних валют
+    const emptyStartBalances: Record<string, number | null> = {};
+    DEFAULT_CURRENCIES.forEach(currencyCode => {
+      emptyStartBalances[currencyCode] = null;
+    });
     
-    // Скидаємо бюджети
-    setBudgets({});
+    // Створюємо новий порожній бюджет з порожніми startBalances
+    const emptyDays = createEmptyMonthDays();
+    const emptyBudget = {
+      'default': {
+        name: 'Основний',
+        startBalances: emptyStartBalances,
+        selectedCurrencies: DEFAULT_CURRENCIES,
+        exchangeRates: {},
+        days: emptyDays
+      }
+    };
+    
+    // Скидаємо дні
+    setDays(emptyDays);
+    
+    // Скидаємо бюджети з новим порожнім бюджетом
+    setBudgets(emptyBudget);
     
     // Скидаємо активний бюджет
     setActiveBudgetId('default');
@@ -323,6 +341,22 @@ export function useBudgetState(): BudgetStateInterface {
     // Скидаємо валюту відображення
     setDisplayCurrency('UAH');
     setDisplayCurrencyIndex(0);
+    
+    // Скидаємо мову до початкового значення
+    setLanguage('uk');
+    
+    // Очищаємо всі повідомлення та статуси
+    messageDispatch({ type: messageActions.CLEAR_MESSAGES });
+    setIsLoading(false);
+    setIsUpdatingRates(false);
+    setIsInitialLoad(false);
+    setSaveMessage('');
+    setLoadMessage('');
+    setRateUpdateMessage('');
+    
+    // Очищаємо шифрування
+    setEncryptionPassword(null);
+    setIsEncrypted(false);
   }, [
     setDays,
     setBudgets,
@@ -330,7 +364,17 @@ export function useBudgetState(): BudgetStateInterface {
     setSelectedCurrencies,
     setExchangeRates,
     setDisplayCurrency,
-    setDisplayCurrencyIndex
+    setDisplayCurrencyIndex,
+    setLanguage,
+    messageDispatch,
+    setIsLoading,
+    setIsUpdatingRates,
+    setIsInitialLoad,
+    setSaveMessage,
+    setLoadMessage,
+    setRateUpdateMessage,
+    setEncryptionPassword,
+    setIsEncrypted
   ]);
   
   // Need currencyStateRef for setExchangeRates functional update

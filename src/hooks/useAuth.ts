@@ -40,6 +40,7 @@ export function useAuth() {
     // Очищаємо всі дані користувача з localStorage
     localStorage.removeItem('budgetTrackerData');
     localStorage.removeItem('budgetTrackerLanguage');
+    localStorage.removeItem('language'); // Старий ключ для зворотної сумісності
     localStorage.removeItem('displayCurrency');
     localStorage.removeItem('displayCurrencyIndex');
     localStorage.removeItem('nbu_rates_cache');
@@ -79,6 +80,7 @@ export function useAuth() {
       // 5. Очищаємо localStorage після підтвердження виходу
       localStorage.removeItem('budgetTrackerData');
       localStorage.removeItem('budgetTrackerLanguage');
+      localStorage.removeItem('language'); // Старий ключ для зворотної сумісності
       localStorage.removeItem('displayCurrency');
       localStorage.removeItem('displayCurrencyIndex');
       localStorage.removeItem('nbu_rates_cache');

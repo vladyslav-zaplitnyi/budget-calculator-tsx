@@ -183,6 +183,13 @@ export function useFirestoreSync(
   };
 
   // Завантаження даних з Firestore при вході користувача
+  // Очищаємо loadedBudgetsRef коли користувач виходить з акаунту
+  useEffect(() => {
+    if (!user && !authLoading) {
+      loadedBudgetsRef.current = null;
+    }
+  }, [user, authLoading]);
+
   useEffect(() => {
     if (authLoading) return;
 
