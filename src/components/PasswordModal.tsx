@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
 
 interface PasswordModalProps {
@@ -82,9 +83,21 @@ const PasswordModal: React.FC<PasswordModalProps> = ({
 
   if (!isOpen) return null;
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 backdrop-blur-sm">
-      <div className="bg-white rounded-2xl shadow-2xl p-6 sm:p-8 max-w-md w-full mx-4 border-2 border-gray-200">
+  const handleBackdropClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (e.target === e.currentTarget) {
+      handleCancel();
+    }
+  };
+
+  const modalContent = (
+    <div 
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 backdrop-blur-sm"
+      onClick={handleBackdropClick}
+    >
+      <div 
+        className="bg-white rounded-2xl shadow-2xl p-6 sm:p-8 max-w-lg w-full mx-4 border-2 border-gray-200"
+        onClick={(e) => e.stopPropagation()}
+      >
         <h2 className="text-xl sm:text-2xl font-bold text-gray-800 mb-4 flex items-center">
           <span className="mr-2">🔒</span> {title}
         </h2>
@@ -181,6 +194,8 @@ const PasswordModal: React.FC<PasswordModalProps> = ({
       </div>
     </div>
   );
+
+  return createPortal(modalContent, document.body);
 };
 
 export default PasswordModal;
