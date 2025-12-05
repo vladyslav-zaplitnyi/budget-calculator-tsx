@@ -18,7 +18,9 @@ export function useBudgetStateSync(
     activeBudgetId,
     budgets,
     setBudgets,
-    isInitialLoad
+    isInitialLoad,
+    displayCurrency,
+    displayCurrencyIndex
   } = budgetState;
 
   // Допоміжна функція для створення бюджету з усіма обов'язковими полями
@@ -27,7 +29,9 @@ export function useBudgetStateSync(
     startBalances: {},
     selectedCurrencies: DEFAULT_CURRENCIES,
     exchangeRates: {},
-    days: []
+    days: [],
+    displayCurrency: 'RON',
+    displayCurrencyIndex: 0
   });
 
   // Синхронізація початкових балансів у активний бюджет
@@ -133,6 +137,40 @@ export function useBudgetStateSync(
       };
     });
   }, [days, activeBudgetId, isInitialLoad, setBudgets, loadedBudgetsRef]);
+
+  // Синхронізація displayCurrency та displayCurrencyIndex у активний бюджет
+  useEffect(() => {
+    if (isInitialLoad) return;
+    
+    const currentId = activeBudgetId || 'default';
+
+    setBudgets((prevBudgets: Budgets) => {
+      const prevKeys = prevBudgets ? Object.keys(prevBudgets) : [];
+      const refKeys = loadedBudgetsRef.current ? Object.keys(loadedBudgetsRef.current) : [];
+      const allKeys = Array.from(new Set([...prevKeys, ...refKeys]));
+      
+      const safePrev: Budgets = {};
+      allKeys.forEach(key => {
+        const existing = prevBudgets?.[key] || loadedBudgetsRef.current?.[key];
+        safePrev[key] = existing || createBudgetWithDefaults('Основний');
+      });
+      
+      const existingBudget = safePrev[currentId] || createBudgetWithDefaults('Основний');
+      
+      return {
+        ...safePrev,
+        [currentId]: {
+          ...existingBudget,
+          displayCurrency: displayCurrency || 'RON',
+          displayCurrencyIndex: displayCurrencyIndex ?? 0,
+          startBalances: existingBudget.startBalances || {},
+          selectedCurrencies: existingBudget.selectedCurrencies || DEFAULT_CURRENCIES,
+          exchangeRates: existingBudget.exchangeRates || {},
+          days: existingBudget.days || []
+        }
+      };
+    });
+  }, [displayCurrency, displayCurrencyIndex, activeBudgetId, isInitialLoad, setBudgets, loadedBudgetsRef]);
 
 
   // Оновлення loadedBudgetsRef при зміні budgets (після початкового завантаження)

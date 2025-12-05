@@ -35,7 +35,9 @@ export function useFirestoreSync(
     encryptionPassword,
     setEncryptionPassword,
     setIsEncrypted,
-    isUk
+    isUk,
+    setDisplayCurrency,
+    setDisplayCurrencyIndex
   } = budgetState;
 
   // Стан для модального вікна введення пароля
@@ -57,6 +59,20 @@ export function useFirestoreSync(
     // Використовуємо лише startBalances (вже в бюджеті)
     const startBalances = budget.startBalances || {};
     
+    // Встановлюємо displayCurrency та displayCurrencyIndex з бюджету
+    const budgetDisplayCurrency = budget.displayCurrency || 'RON';
+    const budgetDisplayCurrencyIndex = budget.displayCurrencyIndex ?? 0;
+    setDisplayCurrency(budgetDisplayCurrency);
+    setDisplayCurrencyIndex(budgetDisplayCurrencyIndex);
+    
+    // Зберігаємо в localStorage для синхронізації
+    try {
+      localStorage.setItem('displayCurrency', budgetDisplayCurrency);
+      localStorage.setItem('displayCurrencyIndex', budgetDisplayCurrencyIndex.toString());
+    } catch (error) {
+      console.error('Помилка при збереженні displayCurrency в localStorage:', error);
+    }
+    
     setBudgets((prevBudgets: Budgets) => {
       const baseBudgets = (prevBudgets && Object.keys(prevBudgets).length > 0) 
         ? prevBudgets 
@@ -66,7 +82,9 @@ export function useFirestoreSync(
         ...baseBudgets,
         [budgetId]: {
           ...budget,
-          startBalances: startBalances
+          startBalances: startBalances,
+          displayCurrency: budgetDisplayCurrency,
+          displayCurrencyIndex: budgetDisplayCurrencyIndex
         }
       };
     });
@@ -243,7 +261,9 @@ export function useFirestoreSync(
                     startBalances: currentBudget.startBalances || {},
                     selectedCurrencies: currentBudget.selectedCurrencies || DEFAULT_CURRENCIES,
                     exchangeRates: currentBudget.exchangeRates || {},
-                    days: currentBudget.days || []
+                    days: currentBudget.days || [],
+                    displayCurrency: currentBudget.displayCurrency || 'RON',
+                    displayCurrencyIndex: currentBudget.displayCurrencyIndex ?? 0
                   }
                 };
                 
@@ -346,6 +366,22 @@ export function useFirestoreSync(
               
               if (activeBudget.days) {
                 setDays(normalizeDaysArray(activeBudget.days));
+              }
+              
+              // Встановлюємо displayCurrency та displayCurrencyIndex з бюджету
+              const budgetDisplayCurrency = activeBudget.displayCurrency || 'RON';
+              const budgetDisplayCurrencyIndex = activeBudget.displayCurrencyIndex ?? 0;
+              if (setDisplayCurrency && setDisplayCurrencyIndex) {
+                setDisplayCurrency(budgetDisplayCurrency);
+                setDisplayCurrencyIndex(budgetDisplayCurrencyIndex);
+              }
+              
+              // Зберігаємо в localStorage для синхронізації
+              try {
+                localStorage.setItem('displayCurrency', budgetDisplayCurrency);
+                localStorage.setItem('displayCurrencyIndex', budgetDisplayCurrencyIndex.toString());
+              } catch (error) {
+                console.error('Помилка при збереженні displayCurrency в localStorage:', error);
               }
             }
           } else {

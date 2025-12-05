@@ -33,6 +33,10 @@ export interface Budget {
   days: Day[];
   selectedCurrencies: string[];
   exchangeRates: ExchangeRates;
+  /** Валюта для відображення конвертованих сум */
+  displayCurrency?: string;
+  /** Індекс валюти для відображення */
+  displayCurrencyIndex?: number;
 }
 
 export interface Budgets {

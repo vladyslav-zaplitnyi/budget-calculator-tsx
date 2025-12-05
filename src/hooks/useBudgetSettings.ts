@@ -56,7 +56,9 @@ export function useBudgetSettings() {
         startBalances: {},
         selectedCurrencies: DEFAULT_CURRENCIES,
         exchangeRates: {},
-        days: []
+        days: [],
+        displayCurrency: 'RON',
+        displayCurrencyIndex: 0
       };
       
       const clearedStartBalances: Record<string, number | null> = {};
@@ -69,7 +71,9 @@ export function useBudgetSettings() {
         startBalances: clearedStartBalances,
         days: emptyDays,
         selectedCurrencies: existingBudget.selectedCurrencies || selectedCurrencies || DEFAULT_CURRENCIES,
-        exchangeRates: existingBudget.exchangeRates || {}
+        exchangeRates: existingBudget.exchangeRates || {},
+        displayCurrency: existingBudget.displayCurrency || 'RON',
+        displayCurrencyIndex: existingBudget.displayCurrencyIndex ?? 0
       };
       
       const updatedBudgets: Budgets = {
@@ -154,7 +158,9 @@ export function useBudgetSettings() {
         startBalances: {},
         selectedCurrencies: DEFAULT_CURRENCIES,
         exchangeRates: {},
-        days: []
+        days: [],
+        displayCurrency: 'RON',
+        displayCurrencyIndex: 0
       };
       
       // Оновлюємо startBalances: залишаємо тільки обрані валюти
@@ -231,7 +237,9 @@ export function useBudgetSettings() {
         startBalances: {},
         selectedCurrencies: DEFAULT_CURRENCIES,
         exchangeRates: {},
-        days: []
+        days: [],
+        displayCurrency: 'RON',
+        displayCurrencyIndex: 0
       };
       
       const startBalances = { ...(existingBudget.startBalances || {}) };

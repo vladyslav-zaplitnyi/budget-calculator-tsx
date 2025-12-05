@@ -29,7 +29,9 @@ export function useBudgetManagement() {
     user,
     baseCurrency,
     encryptionPassword,
-    setIsEncrypted
+    setIsEncrypted,
+    setDisplayCurrency,
+    setDisplayCurrencyIndex
   } = context;
 
   const createNewBudget = useCallback((name: string) => {
@@ -70,12 +72,18 @@ export function useBudgetManagement() {
       newStartBalances[code] = currentBudget?.startBalances?.[code] ?? null;
     });
 
+    // Беремо displayCurrency та displayCurrencyIndex з поточного бюджету або встановлюємо дефолт
+    const currentDisplayCurrency = currentBudget?.displayCurrency || 'RON';
+    const currentDisplayCurrencyIndex = currentBudget?.displayCurrencyIndex ?? 0;
+
     const newBudget: Budget = {
       name: trimmedName,
       selectedCurrencies: [...selectedCurrencies],
       exchangeRates: newExchangeRates,
       startBalances: newStartBalances,
-      days: newDays
+      days: newDays,
+      displayCurrency: currentDisplayCurrency,
+      displayCurrencyIndex: currentDisplayCurrencyIndex
     };
 
     const updatedBudgets = {
@@ -187,7 +195,21 @@ export function useBudgetManagement() {
       console.log('📅 Завантажено днів:', normalizedDays.length, 'з бюджету', newId);
       setDays(normalizedDays);
       
-      // 5) Оновлюємо budgets, щоб зберегти поточний стан
+      // 5) Встановлюємо displayCurrency та displayCurrencyIndex з бюджету
+      const budgetDisplayCurrency = budget.displayCurrency || 'RON';
+      const budgetDisplayCurrencyIndex = budget.displayCurrencyIndex ?? 0;
+      setDisplayCurrency(budgetDisplayCurrency);
+      setDisplayCurrencyIndex(budgetDisplayCurrencyIndex);
+      
+      // Зберігаємо в localStorage для синхронізації
+      try {
+        localStorage.setItem('displayCurrency', budgetDisplayCurrency);
+        localStorage.setItem('displayCurrencyIndex', budgetDisplayCurrencyIndex.toString());
+      } catch (error) {
+        console.error('Помилка при збереженні displayCurrency в localStorage:', error);
+      }
+      
+      // 6) Оновлюємо budgets, щоб зберегти поточний стан
       setBudgets((prevBudgets: Budgets) => {
         const safePrev = prevBudgets || {};
         
@@ -196,7 +218,9 @@ export function useBudgetManagement() {
           [newId]: {
             ...budget,
             startBalances: budget.startBalances || {},
-            selectedCurrencies: appliedSelected
+            selectedCurrencies: appliedSelected,
+            displayCurrency: budgetDisplayCurrency,
+            displayCurrencyIndex: budgetDisplayCurrencyIndex
           }
         };
       });
@@ -204,7 +228,7 @@ export function useBudgetManagement() {
 
     // Викликаємо асинхронну функцію, але не чекаємо її в самому хендлері
     switchBudget();
-  }, [budgets, user, baseCurrency, encryptionPassword, setActiveBudgetId, setSelectedCurrencies, setExchangeRates, setBudgets, setDays]);
+  }, [budgets, user, baseCurrency, encryptionPassword, setActiveBudgetId, setSelectedCurrencies, setExchangeRates, setBudgets, setDays, setDisplayCurrency, setDisplayCurrencyIndex]);
 
   const handleAddBudgetClick = useCallback(() => {
     if (!user) {
