@@ -22,7 +22,14 @@ export function useAuth() {
   const loginWithGoogle = useCallback(async () => {
     try {
       await signInWithPopup(auth, googleProvider);
-    } catch (error) {
+    } catch (error: any) {
+      // Обробка помилок скасування входу користувачем - не показуємо помилку
+      if (error?.code === 'auth/cancelled-popup-request' || error?.code === 'auth/popup-closed-by-user') {
+        // Користувач просто передумав - це нормальна поведінка, не обробляємо як помилку
+        return;
+      }
+      
+      // Для інших помилок обробляємо як звичайно
       handleError(
         error instanceof Error ? error : new Error(String(error)),
         { context: 'useAuth', action: 'loginWithGoogle' }
