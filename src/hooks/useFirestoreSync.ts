@@ -188,7 +188,7 @@ export function useFirestoreSync(
     if (!user && !authLoading) {
       loadedBudgetsRef.current = null;
     }
-  }, [user, authLoading]);
+  }, [user, authLoading, loadedBudgetsRef]);
 
   useEffect(() => {
     if (authLoading) return;
