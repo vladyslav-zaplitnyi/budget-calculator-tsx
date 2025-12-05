@@ -1,7 +1,7 @@
 import { useCallback, useState } from 'react';
 import { useBudgetContext } from '../contexts/BudgetContext';
 import { createEmptyMonthDays } from '../utils/dayHelpers';
-import { validateSelectedCurrencies } from '../utils/currencies';
+import { validateSelectedCurrencies, DEFAULT_CURRENCIES } from '../utils/currencies';
 import { Budgets, ExchangeRates } from '../types';
 import { isExchangeRatePair } from '../utils/typeGuards';
 import { saveToFirestore, saveToLocalStorage } from '../utils/storageHelpers';
@@ -51,7 +51,13 @@ export function useBudgetSettings() {
       const emptyDays = createEmptyMonthDays();
       
       const safePrev = budgets || {};
-      const existingBudget = safePrev[currentId] || { name: 'Основний' };
+      const existingBudget = safePrev[currentId] || {
+        name: 'Основний',
+        startBalances: {},
+        selectedCurrencies: DEFAULT_CURRENCIES,
+        exchangeRates: {},
+        days: []
+      };
       
       const clearedStartBalances: Record<string, number | null> = {};
       selectedCurrencies.forEach(currencyCode => {
@@ -61,7 +67,9 @@ export function useBudgetSettings() {
       const clearedBudget = {
         ...existingBudget,
         startBalances: clearedStartBalances,
-        days: emptyDays
+        days: emptyDays,
+        selectedCurrencies: existingBudget.selectedCurrencies || selectedCurrencies || DEFAULT_CURRENCIES,
+        exchangeRates: existingBudget.exchangeRates || {}
       };
       
       const updatedBudgets: Budgets = {
@@ -141,7 +149,13 @@ export function useBudgetSettings() {
     const currentId = activeBudgetId || 'default';
     setBudgets((prevBudgets: Budgets) => {
       const safePrev = prevBudgets || {};
-      const existingBudget = safePrev[currentId] || { name: 'Основний' };
+      const existingBudget = safePrev[currentId] || {
+        name: 'Основний',
+        startBalances: {},
+        selectedCurrencies: DEFAULT_CURRENCIES,
+        exchangeRates: {},
+        days: []
+      };
       
       // Оновлюємо startBalances: залишаємо тільки обрані валюти
       // ВАЖЛИВО: Беремо значення з існуючого бюджету, а не з окремих станів
@@ -213,7 +227,11 @@ export function useBudgetSettings() {
     setBudgets((prevBudgets: Budgets) => {
       const safePrev = prevBudgets || {};
       const existingBudget = safePrev[currentId] || {
-        name: 'Основний'
+        name: 'Основний',
+        startBalances: {},
+        selectedCurrencies: DEFAULT_CURRENCIES,
+        exchangeRates: {},
+        days: []
       };
       
       const startBalances = { ...(existingBudget.startBalances || {}) };
@@ -261,10 +279,10 @@ export function useBudgetSettings() {
       // Зберігаємо дані з шифруванням
       const budgetsToSave = budgets && Object.keys(budgets).length > 0 ? budgets : {
         [activeBudgetId || 'default']: {
-          name: 'Основний',
+          name: isUk ? 'Основний' : 'Main',
           startBalances: {},
-          selectedCurrencies: selectedCurrencies,
-          exchangeRates: exchangeRates,
+          selectedCurrencies: selectedCurrencies || DEFAULT_CURRENCIES,
+          exchangeRates: exchangeRates || {},
           days: []
         }
       };
@@ -312,10 +330,10 @@ export function useBudgetSettings() {
       // Зберігаємо дані без шифрування
       const budgetsToSave = budgets && Object.keys(budgets).length > 0 ? budgets : {
         [activeBudgetId || 'default']: {
-          name: 'Основний',
+          name: isUk ? 'Основний' : 'Main',
           startBalances: {},
-          selectedCurrencies: selectedCurrencies,
-          exchangeRates: exchangeRates,
+          selectedCurrencies: selectedCurrencies || DEFAULT_CURRENCIES,
+          exchangeRates: exchangeRates || {},
           days: []
         }
       };

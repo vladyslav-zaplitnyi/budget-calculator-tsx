@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { BudgetStateWithSync } from '../contexts/BudgetContext';
-import { Budgets } from '../types';
+import { Budgets, Budget } from '../types';
+import { DEFAULT_CURRENCIES } from '../utils/currencies';
 
 /**
  * Hook для синхронізації стану бюджету (баланси, курси, дні) в об'єкт budgets
@@ -20,6 +21,15 @@ export function useBudgetStateSync(
     isInitialLoad
   } = budgetState;
 
+  // Допоміжна функція для створення бюджету з усіма обов'язковими полями
+  const createBudgetWithDefaults = (name: string = 'Основний'): Budget => ({
+    name,
+    startBalances: {},
+    selectedCurrencies: DEFAULT_CURRENCIES,
+    exchangeRates: {},
+    days: []
+  });
+
   // Синхронізація початкових балансів у активний бюджет
   useEffect(() => {
     if (isInitialLoad) return;
@@ -33,12 +43,11 @@ export function useBudgetStateSync(
       
       const safePrev: Budgets = {};
       allKeys.forEach(key => {
-        safePrev[key] = prevBudgets?.[key] || loadedBudgetsRef.current?.[key] || { name: 'Основний' };
+        const existing = prevBudgets?.[key] || loadedBudgetsRef.current?.[key];
+        safePrev[key] = existing || createBudgetWithDefaults('Основний');
       });
       
-      const existingBudget = safePrev[currentId] || {
-        name: 'Основний'
-      };
+      const existingBudget = safePrev[currentId] || createBudgetWithDefaults('Основний');
 
       // Оновлюємо startBalances: залишаємо тільки обрані валюти
       // ВАЖЛИВО: Беремо значення з існуючого бюджету, а не з окремих станів
@@ -53,7 +62,9 @@ export function useBudgetStateSync(
         [currentId]: {
           ...existingBudget,
           startBalances: updatedStartBalances,
-          selectedCurrencies
+          selectedCurrencies: selectedCurrencies || existingBudget.selectedCurrencies || DEFAULT_CURRENCIES,
+          exchangeRates: existingBudget.exchangeRates || {},
+          days: existingBudget.days || []
         }
       };
     });
@@ -72,18 +83,20 @@ export function useBudgetStateSync(
       
       const safePrev: Budgets = {};
       allKeys.forEach(key => {
-        safePrev[key] = prevBudgets?.[key] || loadedBudgetsRef.current?.[key] || { name: 'Основний' };
+        const existing = prevBudgets?.[key] || loadedBudgetsRef.current?.[key];
+        safePrev[key] = existing || createBudgetWithDefaults('Основний');
       });
       
-      const existingBudget = safePrev[currentId] || {
-        name: 'Основний'
-      };
+      const existingBudget = safePrev[currentId] || createBudgetWithDefaults('Основний');
       
       return {
         ...safePrev,
         [currentId]: {
           ...existingBudget,
-          exchangeRates
+          exchangeRates: exchangeRates || {},
+          startBalances: existingBudget.startBalances || {},
+          selectedCurrencies: existingBudget.selectedCurrencies || DEFAULT_CURRENCIES,
+          days: existingBudget.days || []
         }
       };
     });
@@ -102,18 +115,20 @@ export function useBudgetStateSync(
       
       const safePrev: Budgets = {};
       allKeys.forEach(key => {
-        safePrev[key] = prevBudgets?.[key] || loadedBudgetsRef.current?.[key] || { name: 'Основний' };
+        const existing = prevBudgets?.[key] || loadedBudgetsRef.current?.[key];
+        safePrev[key] = existing || createBudgetWithDefaults('Основний');
       });
       
-      const existingBudget = safePrev[currentId] || {
-        name: 'Основний'
-      };
+      const existingBudget = safePrev[currentId] || createBudgetWithDefaults('Основний');
       
       return {
         ...safePrev,
         [currentId]: {
           ...existingBudget,
-          days
+          days: days || [],
+          startBalances: existingBudget.startBalances || {},
+          selectedCurrencies: existingBudget.selectedCurrencies || DEFAULT_CURRENCIES,
+          exchangeRates: existingBudget.exchangeRates || {}
         }
       };
     });

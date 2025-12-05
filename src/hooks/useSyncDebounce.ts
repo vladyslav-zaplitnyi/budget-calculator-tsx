@@ -2,6 +2,7 @@ import { useRef, useEffect } from 'react';
 import { User } from 'firebase/auth';
 import { Budgets, Day, ExchangeRates } from '../types';
 import { saveToFirestore } from '../utils/storageHelpers';
+import { DEFAULT_CURRENCIES } from '../utils/currencies';
 
 interface UseSyncDebounceParams {
   budgets: Budgets;
@@ -18,6 +19,7 @@ interface UseSyncDebounceParams {
   getSyncStatusText: (key: string) => string;
   encryptionPassword?: string | null;
   setIsEncrypted?: (encrypted: boolean) => void;
+  isUk?: boolean;
 }
 
 /**
@@ -34,7 +36,8 @@ export function useSyncDebounce({
   setSyncStatus,
   getSyncStatusText,
   encryptionPassword,
-  setIsEncrypted
+  setIsEncrypted,
+  isUk = true
 }: UseSyncDebounceParams) {
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -52,11 +55,11 @@ export function useSyncDebounce({
       // Не використовуємо хардкодні значення startBalanceUAH/USD/EUR
       const safeBudgets: Budgets = budgets && Object.keys(budgets).length > 0 ? budgets : {
         [activeBudgetId || 'default']: {
-          name: 'Основний',
+          name: isUk ? 'Основний' : 'Main',
           startBalances: {},
-          selectedCurrencies: latestData.selectedCurrencies,
-          exchangeRates: latestData.exchangeRates,
-          days: latestData.days
+          selectedCurrencies: latestData.selectedCurrencies || DEFAULT_CURRENCIES,
+          exchangeRates: latestData.exchangeRates || {},
+          days: latestData.days || []
         }
       };
       const currentId = activeBudgetId || 'default';
@@ -68,7 +71,7 @@ export function useSyncDebounce({
         clearTimeout(saveTimeoutRef.current);
       }
     };
-  }, [budgets, activeBudgetId, user, isInitialLoad, authLoading, latestDataRef, setSyncStatus, getSyncStatusText, encryptionPassword, setIsEncrypted]);
+  }, [budgets, activeBudgetId, user, isInitialLoad, authLoading, latestDataRef, setSyncStatus, getSyncStatusText, encryptionPassword, setIsEncrypted, isUk]);
 
   return saveTimeoutRef;
 }

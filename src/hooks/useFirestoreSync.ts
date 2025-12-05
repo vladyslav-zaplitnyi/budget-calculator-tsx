@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
-import { loadFromFirestore, loadFromLocalStorage } from '../utils/storageHelpers';
-import { normalizeDaysArray } from '../utils/dayHelpers';
+import { loadFromFirestore, loadFromLocalStorage, saveToFirestore } from '../utils/storageHelpers';
+import { normalizeDaysArray, createEmptyMonthDays } from '../utils/dayHelpers';
 import { validateSelectedCurrencies, DEFAULT_CURRENCIES } from '../utils/currencies';
 import { ACTIVE_BUDGET_COOKIE_KEY } from '../utils/constants';
 import { getCookie } from '../utils/cookieHelpers';
@@ -72,6 +72,17 @@ export function useFirestoreSync(
     });
     
     setDays(normalizeDaysArray(budget.days || []));
+  };
+
+  // Допоміжна функція для ініціалізації порожнього бюджету
+  const initializeEmptyBudget = () => {
+    setSelectedCurrencies(DEFAULT_CURRENCIES);
+    setExchangeRates({});
+    setDays(createEmptyMonthDays());
+    setBudgets({});
+    loadedBudgetsRef.current = {};
+    setActiveBudgetId('default');
+    setSyncStatus(getSyncStatusText('local'));
   };
 
   // Функція для обробки даних з Firestore
@@ -196,20 +207,68 @@ export function useFirestoreSync(
           if (firestoreData) {
             processFirestoreData(firestoreData);
           } else {
-            // Новий користувач - очищаємо стан і ініціалізуємо з порожніми даними
-            console.log('📦 Новий користувач - ініціалізація порожнього стану');
+            // Новий користувач - перевіряємо чи є дані в localStorage для збереження
+            console.log('📦 Новий користувач - перевірка localStorage');
             
             // Очищаємо cookies від попереднього користувача
             document.cookie = 'budgetTrackerActiveBudgetId=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
             document.cookie = 'budgetTrackerLanguage=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
             
-            setSelectedCurrencies(DEFAULT_CURRENCIES);
-            setExchangeRates({});
-            setDays([]);
-            setBudgets({});
-            loadedBudgetsRef.current = {};
-            setActiveBudgetId('default');
-            setSyncStatus(getSyncStatusText('local'));
+            // Перевіряємо чи є дані в localStorage
+            const localData = loadFromLocalStorage();
+            
+            if (localData && localData.budgets && Object.keys(localData.budgets).length > 0) {
+              // Є дані в localStorage - зберігаємо їх як "Основний"/"Main" бюджет з id 'default'
+              console.log('📦 Збереження поточного бюджету з localStorage як Основний/Main');
+              
+              const currentBudgets = localData.budgets;
+              const currentActiveId = localData.activeBudgetId || 'default';
+              const currentBudget = currentBudgets[currentActiveId];
+              
+              if (currentBudget) {
+                // Оновлюємо назву бюджету залежно від мови та використовуємо id 'default'
+                const budgetName = isUk ? 'Основний' : 'Main';
+                const budgetsToSave: Budgets = {
+                  'default': {
+                    ...currentBudget,
+                    name: budgetName,
+                    // Переконаємося, що всі обов'язкові поля присутні
+                    startBalances: currentBudget.startBalances || {},
+                    selectedCurrencies: currentBudget.selectedCurrencies || DEFAULT_CURRENCIES,
+                    exchangeRates: currentBudget.exchangeRates || {},
+                    days: currentBudget.days || []
+                  }
+                };
+                
+                // Зберігаємо в Firestore з activeBudgetId = 'default'
+                saveToFirestore(
+                  user,
+                  budgetsToSave,
+                  'default',
+                  false,
+                  setSyncStatus,
+                  getSyncStatusText,
+                  null,
+                  setIsEncrypted
+                ).then(() => {
+                  // Після збереження, завантажуємо дані назад
+                  loadFromFirestore(user, null).then((savedData) => {
+                    if (savedData && !('isEncrypted' in savedData && 'needsPassword' in savedData)) {
+                      processFirestoreData(savedData);
+                    }
+                  });
+                }).catch((error) => {
+                  console.error('Помилка при збереженні бюджету:', error);
+                  initializeEmptyBudget();
+                });
+              } else {
+                // Немає поточного бюджету - створюємо порожній
+                initializeEmptyBudget();
+              }
+            } else {
+              // Немає даних в localStorage - створюємо порожній бюджет
+              initializeEmptyBudget();
+            }
           }
         } catch (error) {
           console.error('Помилка при завантаженні даних з Firestore:', error);

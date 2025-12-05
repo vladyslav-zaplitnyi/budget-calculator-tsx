@@ -26,7 +26,8 @@ export function useBudgetSync(
     isInitialLoad,
     setSyncStatus,
     encryptionPassword,
-    setIsEncrypted
+    setIsEncrypted,
+    isUk
   } = budgetState;
 
   // ВАЖЛИВО: Не зберігаємо хардкодні значення startBalanceUAH/USD/EUR
@@ -81,7 +82,8 @@ export function useBudgetSync(
     setSyncStatus,
     getSyncStatusText,
     encryptionPassword,
-    setIsEncrypted
+    setIsEncrypted,
+    isUk
   });
 
   return {

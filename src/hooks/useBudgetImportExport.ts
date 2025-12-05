@@ -2,7 +2,7 @@ import { useRef, useCallback, ChangeEvent } from 'react';
 import { useBudgetContext } from '../contexts/BudgetContext';
 import { normalizeDaysArray } from '../utils/dayHelpers';
 import { saveToLocalStorage } from '../utils/storageHelpers';
-import { validateSelectedCurrencies } from '../utils/currencies';
+import { validateSelectedCurrencies, DEFAULT_CURRENCIES } from '../utils/currencies';
 import { Budgets, Day, Transaction } from '../types';
 import { validateDay, validateTransaction } from '../schemas/budgetSchema';
 import { handleError } from '../utils/errorHandler';
@@ -173,7 +173,13 @@ export function useBudgetImportExport() {
           
           setBudgets((prevBudgets: Budgets) => {
             const safePrev = prevBudgets || {};
-            const existingBudget = safePrev[currentId] || { name: 'Основний' };
+            const existingBudget = safePrev[currentId] || {
+              name: 'Основний',
+              startBalances: {},
+              selectedCurrencies: DEFAULT_CURRENCIES,
+              exchangeRates: {},
+              days: []
+            };
             
             const startBalances: Record<string, number | null> = { ...(existingBudget.startBalances || {}) };
             
@@ -192,7 +198,8 @@ export function useBudgetImportExport() {
                 ...existingBudget,
                 startBalances,
                 selectedCurrencies: loadedCurrencies,
-                exchangeRates: loadedExchangeRates
+                exchangeRates: loadedExchangeRates,
+                days: existingBudget.days || []
               }
             };
           });
@@ -291,12 +298,21 @@ export function useBudgetImportExport() {
           const currentId = activeBudgetId || 'default';
           setBudgets((prevBudgets: Budgets) => {
             const safePrev = prevBudgets || {};
-            const updatedBudget = safePrev[currentId] || { name: 'Основний' };
+            const updatedBudget = safePrev[currentId] || {
+              name: 'Основний',
+              startBalances: {},
+              selectedCurrencies: DEFAULT_CURRENCIES,
+              exchangeRates: {},
+              days: []
+            };
             
             // Оновлюємо days в бюджеті
             const budgetWithDays = {
               ...updatedBudget,
-              days: normalizedDays || days
+              days: normalizedDays || days,
+              startBalances: updatedBudget.startBalances || {},
+              selectedCurrencies: updatedBudget.selectedCurrencies || DEFAULT_CURRENCIES,
+              exchangeRates: updatedBudget.exchangeRates || {}
             };
             
             const updatedBudgets = {
