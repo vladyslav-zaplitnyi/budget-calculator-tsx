@@ -5,6 +5,8 @@ import { Budgets, UserData, LoadedUserData } from '../types';
 import { validateBudgets } from '../schemas/budgetSchema';
 import { handleError } from './errorHandler';
 import { encryptData, decryptData, WrongPasswordError } from './encryption';
+import { createEmptyMonthDays } from './dayHelpers';
+import { DEFAULT_CURRENCIES } from './currencies';
 
 // Допоміжна функція для конвертації Firestore Timestamp в рядок ISO
 const convertTimestampToString = (value: unknown): string | undefined => {
@@ -19,6 +21,26 @@ const convertTimestampToString = (value: unknown): string | undefined => {
     return (value as any).toDate().toISOString();
   }
   return undefined;
+};
+
+// Функція для створення пустого дефолтного бюджету (як після "стерти всі поля")
+export const createEmptyDefaultBudget = (): Budgets => {
+  const emptyStartBalances: Record<string, number | null> = {};
+  DEFAULT_CURRENCIES.forEach(currencyCode => {
+    emptyStartBalances[currencyCode] = null;
+  });
+  
+  const emptyDays = createEmptyMonthDays();
+  
+  return {
+    'default': {
+      name: 'Основний',
+      startBalances: emptyStartBalances,
+      selectedCurrencies: DEFAULT_CURRENCIES,
+      exchangeRates: {},
+      days: emptyDays
+    }
+  };
 };
 
 // Функція для завантаження даних з localStorage

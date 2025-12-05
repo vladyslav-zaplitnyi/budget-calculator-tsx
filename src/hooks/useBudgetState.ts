@@ -1,5 +1,5 @@
 import { useReducer, useEffect, useCallback, useMemo, useRef, useState } from 'react';
-import { loadFromLocalStorage } from '../utils/storageHelpers';
+import { loadFromLocalStorage, saveToLocalStorage, createEmptyDefaultBudget } from '../utils/storageHelpers';
 import { normalizeDaysArray, createEmptyMonthDays } from '../utils/dayHelpers';
 import { DEFAULT_CURRENCIES, validateSelectedCurrencies } from '../utils/currencies';
 import { LANGUAGE_STORAGE_KEY, LANGUAGE_COOKIE_KEY } from '../utils/constants';
@@ -305,23 +305,9 @@ export function useBudgetState(): BudgetStateInterface {
 
   // Функція для скидання всіх стейтів до дефолтних значень
   const resetToDefaults = useCallback(() => {
-    // Спочатку створюємо порожні startBalances для всіх дефолтних валют
-    const emptyStartBalances: Record<string, number | null> = {};
-    DEFAULT_CURRENCIES.forEach(currencyCode => {
-      emptyStartBalances[currencyCode] = null;
-    });
-    
-    // Створюємо новий порожній бюджет з порожніми startBalances
-    const emptyDays = createEmptyMonthDays();
-    const emptyBudget = {
-      'default': {
-        name: 'Основний',
-        startBalances: emptyStartBalances,
-        selectedCurrencies: DEFAULT_CURRENCIES,
-        exchangeRates: {},
-        days: emptyDays
-      }
-    };
+    // Використовуємо спільну функцію для створення пустого бюджету (DRY принцип)
+    const emptyBudget = createEmptyDefaultBudget();
+    const emptyDays = emptyBudget['default'].days;
     
     // Скидаємо дні
     setDays(emptyDays);
@@ -337,6 +323,9 @@ export function useBudgetState(): BudgetStateInterface {
     
     // Скидаємо курси обміну (порожній об'єкт)
     setExchangeRates({});
+    
+    // Скидаємо баланси валют (UAH, USD, EUR) через currency reducer
+    currencyDispatch({ type: currencyActions.RESET_BALANCES });
     
     // Скидаємо валюту відображення
     setDisplayCurrency('UAH');
@@ -357,6 +346,9 @@ export function useBudgetState(): BudgetStateInterface {
     // Очищаємо шифрування
     setEncryptionPassword(null);
     setIsEncrypted(false);
+    
+    // Зберігаємо в localStorage
+    saveToLocalStorage(emptyBudget, 'default');
   }, [
     setDays,
     setBudgets,
@@ -374,7 +366,8 @@ export function useBudgetState(): BudgetStateInterface {
     setLoadMessage,
     setRateUpdateMessage,
     setEncryptionPassword,
-    setIsEncrypted
+    setIsEncrypted,
+    currencyDispatch
   ]);
   
   // Need currencyStateRef for setExchangeRates functional update

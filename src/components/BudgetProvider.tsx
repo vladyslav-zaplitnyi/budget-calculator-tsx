@@ -18,17 +18,18 @@ export function BudgetProvider({ children }: BudgetProviderProps) {
   // Обгортка для logout з м'яким скиданням стану
   const logout = useCallback(async () => {
     try {
-      // КРОК 1: Викликаємо logout з useAuth
+      // КРОК 1: Викликаємо logout з useAuth (видаляє budgetTrackerData і створює новий пустий)
       await logoutFromAuth();
       
       // КРОК 2: Тільки якщо крок 1 успішний
-      // Викликаємо resetToDefaults для м'якого скидання стану
+      // Викликаємо resetToDefaults для м'якого скидання стану React компонентів
       budgetState.resetToDefaults();
       
-      // Показуємо повідомлення про успіх
-      alert(translate('header.logoutSuccess'));
+      // КРОК 3: Перезавантажуємо сторінку для гарантованого чистого стану
+      // Це гарантує, що всі дані очищені і завантажуються тільки новий пустий бюджет
+      window.location.reload();
     } catch (error) {
-      // КРОК 3: Обробка помилок - НЕ очищаємо дані, показуємо повідомлення про помилку
+      // КРОК 4: Обробка помилок - НЕ очищаємо дані, показуємо повідомлення про помилку
       alert(translate('header.logoutError'));
       // Прокидаємо помилку далі, щоб обробник знав про невдачу
       throw error;

@@ -3,6 +3,8 @@ import { onAuthStateChanged, signInWithPopup, signOut, User, deleteUser } from '
 import { doc, deleteDoc } from 'firebase/firestore';
 import { auth, googleProvider, db } from '../firebase';
 import { handleError } from '../utils/errorHandler';
+import { saveToLocalStorage, createEmptyDefaultBudget } from '../utils/storageHelpers';
+import { Budgets } from '../types';
 
 export function useAuth() {
   const [user, setUser] = useState<User | null>(null);
@@ -33,12 +35,45 @@ export function useAuth() {
     // КРОК 1: Виходимо з акаунту
     await signOut(auth);
     
-    // КРОК 2: Тільки якщо крок 1 успішний - очищаємо localStorage
+    // КРОК 2: Тільки якщо крок 1 успішний - видаляємо budgetTrackerData та створюємо новий пустий
     // Чекаємо трохи, щоб переконатися, що signOut завершився
     await new Promise(resolve => setTimeout(resolve, 100));
     
-    // Очищаємо всі дані користувача з localStorage
+    // Видаляємо budgetTrackerData з localStorage
     localStorage.removeItem('budgetTrackerData');
+    
+    // Створюємо новий пустий бюджет (як після натискання "стерти всі поля")
+    // Використовуємо спільну функцію для дотримання DRY принципу
+    const emptyBudgets = createEmptyDefaultBudget();
+    
+    // Переконуємося, що в emptyBudgets тільки один бюджет 'default'
+    // Видаляємо всі інші бюджети, якщо вони є (на випадок помилки)
+    const cleanedBudgets: Budgets = {
+      'default': emptyBudgets['default']
+    };
+    
+    // Зберігаємо новий пустий бюджет в localStorage
+    saveToLocalStorage(cleanedBudgets, 'default');
+    
+    // Додаткова перевірка: переконуємося, що в localStorage завжди тільки один бюджет
+    const verifyData = localStorage.getItem('budgetTrackerData');
+    if (verifyData) {
+      try {
+        const parsed = JSON.parse(verifyData);
+        if (parsed.budgets && Object.keys(parsed.budgets).length > 1) {
+          // Якщо є більше одного бюджету, залишаємо тільки 'default'
+          const fixedBudgets: Budgets = {
+            'default': parsed.budgets['default'] || emptyBudgets['default']
+          };
+          saveToLocalStorage(fixedBudgets, 'default');
+        }
+      } catch (e) {
+        // Якщо помилка парсингу, створюємо новий пустий бюджет
+        saveToLocalStorage(cleanedBudgets, 'default');
+      }
+    }
+    
+    // Очищаємо інші дані користувача з localStorage
     localStorage.removeItem('budgetTrackerLanguage');
     localStorage.removeItem('language'); // Старий ключ для зворотної сумісності
     localStorage.removeItem('displayCurrency');

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { loadFromFirestore, loadFromLocalStorage, saveToFirestore } from '../utils/storageHelpers';
+import { loadFromFirestore, loadFromLocalStorage, saveToFirestore, createEmptyDefaultBudget, saveToLocalStorage } from '../utils/storageHelpers';
 import { normalizeDaysArray, createEmptyMonthDays } from '../utils/dayHelpers';
 import { validateSelectedCurrencies, DEFAULT_CURRENCIES } from '../utils/currencies';
 import { ACTIVE_BUDGET_COOKIE_KEY } from '../utils/constants';
@@ -313,17 +313,27 @@ export function useFirestoreSync(
         const localData = loadFromLocalStorage();
         if (localData) {
           if (localData.budgets && Object.keys(localData.budgets).length > 0) {
+            // Після logout має бути тільки один бюджет 'default'
+            // Якщо є більше одного бюджету, залишаємо тільки 'default'
+            let budgetsToLoad = localData.budgets;
+            if (Object.keys(budgetsToLoad).length > 1 || !budgetsToLoad['default']) {
+              // Виправляємо дані: залишаємо тільки 'default' або створюємо новий пустий
+              budgetsToLoad = createEmptyDefaultBudget();
+              // Зберігаємо виправлені дані
+              saveToLocalStorage(budgetsToLoad, 'default');
+            }
+            
             // ВАЖЛИВО: Оновлюємо loadedBudgetsRef перед встановленням budgets
             // щоб useBudgetStateSync міг зберегти всі бюджети
-            loadedBudgetsRef.current = localData.budgets;
-            setBudgets(localData.budgets);
+            loadedBudgetsRef.current = budgetsToLoad;
+            setBudgets(budgetsToLoad);
             
-            if (localData.activeBudgetId && localData.budgets[localData.activeBudgetId]) {
-              setActiveBudgetId(localData.activeBudgetId);
-              const activeBudget = localData.budgets[localData.activeBudgetId];
-              
-              // Використовуємо лише startBalances (вже в бюджеті)
-              
+            // Завжди використовуємо 'default' як активний бюджет після logout
+            const activeId = 'default';
+            setActiveBudgetId(activeId);
+            const activeBudget = budgetsToLoad[activeId];
+            
+            if (activeBudget) {
               if (activeBudget.selectedCurrencies) {
                 setSelectedCurrencies(validateSelectedCurrencies(activeBudget.selectedCurrencies));
               }
