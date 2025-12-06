@@ -60,6 +60,7 @@
       "importing": "⏳ Importing..."
     },
     "clearAll": "🗑️ Clear all fields",
+    "clearAllDays": "🗑️ Clear all days",
     "security": {
       "title": "Security",
       "description": "Protect your data with End-to-End encryption. Password is stored only in memory and never sent to the server.",

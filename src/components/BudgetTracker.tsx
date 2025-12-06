@@ -50,6 +50,7 @@ export default function BudgetTracker() {
 
   const {
     handleClearAll,
+    handleClearAllDays,
     handleBudgetChange,
     handleAddBudgetClick,
     handleDeleteBudget,
@@ -190,6 +191,7 @@ export default function BudgetTracker() {
             saveMessage={saveMessage}
             loadMessage={loadMessage}
             handleClearAll={handleClearAll}
+            handleClearAllDays={handleClearAllDays}
             baseCurrency={baseCurrency}
             handleUpdateNbuRates={handleUpdateNbuRates}
             isUpdatingRates={isUpdatingRates}

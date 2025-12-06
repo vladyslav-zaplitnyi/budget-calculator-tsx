@@ -27,6 +27,7 @@ interface SettingsCardProps {
   saveMessage: string;
   loadMessage: string;
   handleClearAll: () => void;
+  handleClearAllDays: () => void;
   baseCurrency: string;
   handleUpdateNbuRates: () => Promise<void>;
   isUpdatingRates: boolean;
@@ -65,6 +66,7 @@ const SettingsCard: React.FC<SettingsCardProps> = ({
   saveMessage,
   loadMessage,
   handleClearAll,
+  handleClearAllDays,
   baseCurrency = 'UAH',
   handleUpdateNbuRates,
   isUpdatingRates,
@@ -512,6 +514,12 @@ const SettingsCard: React.FC<SettingsCardProps> = ({
 
         {/* Очищення даних */}
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-4">
+          <button
+            onClick={handleClearAllDays}
+            className="w-full px-4 sm:px-6 py-3 rounded-xl font-bold transition-all text-sm sm:text-base bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white shadow-lg hover:shadow-xl active:scale-95"
+          >
+            {t('settings.clearAllDays')}
+          </button>
           <button
             onClick={handleClearAll}
             className="w-full px-4 sm:px-6 py-3 rounded-xl font-bold transition-all text-sm sm:text-base bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white shadow-lg hover:shadow-xl active:scale-95"

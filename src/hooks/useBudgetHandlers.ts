@@ -19,6 +19,7 @@ export function useBudgetHandlers() {
     
     // Settings
     handleClearAll: budgetSettings.handleClearAll,
+    handleClearAllDays: budgetSettings.handleClearAllDays,
     handleCurrencyChange: budgetSettings.handleCurrencyChange,
     handleExchangeRateChange: budgetSettings.handleExchangeRateChange,
     handleStartBalanceChange: budgetSettings.handleStartBalanceChange,

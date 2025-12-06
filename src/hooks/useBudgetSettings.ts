@@ -93,6 +93,49 @@ export function useBudgetSettings() {
     }
   }, [isUk, activeBudgetId, selectedCurrencies, budgets, setBudgets, setDays, setLoadMessage, setSaveMessage]);
 
+  const handleClearAllDays = useCallback(() => {
+    const confirmed = window.confirm(
+      isUk
+        ? 'Ви впевнені? Це стере всі дані за всі дні (транзакції, описи), але залишить початкові баланси та налаштування!'
+        : 'Are you sure? This will clear all data for all days (transactions, descriptions), but will keep starting balances and settings!'
+    );
+    
+    if (confirmed) {
+      const currentId = activeBudgetId || 'default';
+      const emptyDays = createEmptyMonthDays();
+      
+      const safePrev = budgets || {};
+      const existingBudget = safePrev[currentId] || {
+        name: 'Основний',
+        startBalances: {},
+        selectedCurrencies: DEFAULT_CURRENCIES,
+        exchangeRates: {},
+        days: [],
+        displayCurrency: 'RON',
+        displayCurrencyIndex: 0
+      };
+      
+      // Очищаємо тільки дні, залишаємо все інше без змін
+      const clearedBudget = {
+        ...existingBudget,
+        days: emptyDays
+      };
+      
+      const updatedBudgets: Budgets = {
+        ...safePrev,
+        [currentId]: clearedBudget
+      };
+      
+      setBudgets(updatedBudgets);
+      setDays(emptyDays);
+      
+      // Оновлюємо localStorage з очищеними даними
+      saveToLocalStorage(updatedBudgets, currentId);
+      
+      console.log('✅ Всі дні очищено');
+    }
+  }, [isUk, activeBudgetId, budgets, setBudgets, setDays]);
+
   const handleCurrencyChange = useCallback((newCurrencies: string[]) => {
     const validated = validateSelectedCurrencies(newCurrencies);
     setSelectedCurrencies(validated);
@@ -329,6 +372,7 @@ export function useBudgetSettings() {
 
   return {
     handleClearAll,
+    handleClearAllDays,
     handleCurrencyChange,
     handleExchangeRateChange,
     handleStartBalanceChange,
