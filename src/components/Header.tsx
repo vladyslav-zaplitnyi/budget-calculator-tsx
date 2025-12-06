@@ -96,18 +96,7 @@ const Header: React.FC<HeaderProps> = ({
   setShowDisableEncryptionModal
 }) => {
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
-  const [passwordInput, setPasswordInput] = useState('');
   const { t } = useTranslation();
-
-  const handlePasswordEnter = () => {
-    if (passwordInput.trim() && handlePasswordSubmit) {
-      handlePasswordSubmit(passwordInput);
-      setPasswordInput('');
-    } else if (passwordInput.trim() && setEncryptionPassword) {
-      setEncryptionPassword(passwordInput);
-      setPasswordInput('');
-    }
-  };
   return (
     <div className="bg-gradient-to-r from-indigo-600 via-blue-600 to-indigo-700 rounded-2xl shadow-2xl p-4 sm:p-6 md:p-8 mb-4 sm:mb-6 text-white">
       {/* Десктоп / планшет: заголовок зліва, панель дій справа */}
@@ -168,13 +157,15 @@ const Header: React.FC<HeaderProps> = ({
                     {t('header.signedIn')}
                   </span>
                 </div>
-                <button
-                  onClick={() => setIsSettingsModalOpen(true)}
-                  className="text-[11px] sm:text-xs font-semibold bg-white/95 hover:bg-white text-slate-800 px-3 py-1 rounded-full shadow-lg border border-white/30 transition-all"
-                  title={t('settings.title')}
-                >
-                  ⚙️
-                </button>
+                {!(showPasswordModal && user) && (
+                  <button
+                    onClick={() => setIsSettingsModalOpen(true)}
+                    className="text-[11px] sm:text-xs font-semibold bg-white/95 hover:bg-white text-slate-800 px-3 py-1 rounded-full shadow-lg border border-white/30 transition-all"
+                    title={t('settings.title')}
+                  >
+                    ⚙️
+                  </button>
+                )}
                 <button
                   onClick={logout}
                   className="text-[11px] sm:text-xs font-semibold bg-red-500/90 hover:bg-red-600 px-2.5 py-1 rounded-full shadow-sm transition-all"
@@ -194,41 +185,6 @@ const Header: React.FC<HeaderProps> = ({
 
             {/* Тонка роздільна лінія */}
             <span className="hidden sm:block h-6 w-px bg-white/25" />
-
-            {/* Поле введення пароля для розблокування */}
-            {(showPasswordModal || (isEncrypted && !encryptionPassword)) && user && (
-              <>
-                <div className="flex flex-col items-start gap-1">
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="password"
-                      value={passwordInput}
-                      onChange={(e) => setPasswordInput(e.target.value)}
-                      onKeyPress={(e) => e.key === 'Enter' && handlePasswordEnter()}
-                      placeholder={isUk ? 'Пароль для розблокування' : 'Password to unlock'}
-                      className={`px-3 py-1.5 text-xs rounded-full bg-white/20 text-white placeholder-white/70 border focus:outline-none focus:ring-2 ${
-                        passwordError
-                          ? 'border-red-300 focus:ring-red-400'
-                          : 'border-white/30 focus:ring-white/50'
-                      }`}
-                      style={{ minWidth: '150px' }}
-                    />
-                    <button
-                      onClick={handlePasswordEnter}
-                      className="text-[11px] sm:text-xs font-semibold bg-green-500/90 hover:bg-green-600 px-2.5 py-1 rounded-full shadow-sm transition-all"
-                    >
-                      🔓 {isUk ? 'Розблокувати' : 'Unlock'}
-                    </button>
-                  </div>
-                  {passwordError && (
-                    <span className="text-[10px] text-red-200">
-                      {passwordError}
-                    </span>
-                  )}
-                </div>
-                <span className="hidden sm:block h-6 w-px bg-white/25" />
-              </>
-            )}
 
             {/* Перемикач мови */}
             <div className="flex items-center gap-2">
@@ -337,26 +293,6 @@ const Header: React.FC<HeaderProps> = ({
             </div>
           </div>
 
-          {/* Поле введення пароля для розблокування (мобільна версія) */}
-          {(showPasswordModal || (isEncrypted && !encryptionPassword)) && user && (
-            <div className="flex items-center gap-2 bg-white/10 backdrop-blur-xl rounded-2xl px-3 py-2 shadow-lg border border-white/20 mb-2">
-              <input
-                type="password"
-                value={passwordInput}
-                onChange={(e) => setPasswordInput(e.target.value)}
-                onKeyPress={(e) => e.key === 'Enter' && handlePasswordEnter()}
-                placeholder={isUk ? 'Пароль для розблокування' : 'Password to unlock'}
-                className="flex-1 px-3 py-2 text-xs rounded-lg bg-white/20 text-white placeholder-white/70 border border-white/30 focus:outline-none focus:ring-2 focus:ring-white/50"
-              />
-              <button
-                onClick={handlePasswordEnter}
-                className="text-xs font-semibold bg-green-500/90 hover:bg-green-600 px-3 py-2 rounded-lg shadow-sm transition-all whitespace-nowrap"
-              >
-                🔓 {isUk ? 'Розблокувати' : 'Unlock'}
-              </button>
-            </div>
-          )}
-
           {/* Авторизація */}
           <div className="flex items-center justify-center">
             {authLoading ? (
@@ -380,13 +316,15 @@ const Header: React.FC<HeaderProps> = ({
                 <span className="text-xs sm:text-sm font-semibold text-white truncate max-w-[120px] sm:max-w-[200px]">
                   {user.displayName || user.email}
                 </span>
-                <button
-                  onClick={() => setIsSettingsModalOpen(true)}
-                  className="text-[11px] sm:text-xs font-semibold bg-white/95 hover:bg-white text-slate-800 px-3 py-1 rounded-full shadow-lg border border-white/30 transition-all flex-shrink-0"
-                  title={t('settings.title')}
-                >
-                  ⚙️
-                </button>
+                {!(showPasswordModal && user) && (
+                  <button
+                    onClick={() => setIsSettingsModalOpen(true)}
+                    className="text-[11px] sm:text-xs font-semibold bg-white/95 hover:bg-white text-slate-800 px-3 py-1 rounded-full shadow-lg border border-white/30 transition-all flex-shrink-0"
+                    title={t('settings.title')}
+                  >
+                    ⚙️
+                  </button>
+                )}
                 <button
                   onClick={logout}
                   className="text-[11px] sm:text-xs font-semibold bg-red-500/90 hover:bg-red-600 px-2.5 sm:px-3 py-1 rounded-full transition-all flex-shrink-0 whitespace-nowrap"

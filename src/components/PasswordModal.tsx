@@ -73,16 +73,9 @@ const PasswordModal: React.FC<PasswordModalProps> = ({
 
   if (!isOpen) return null;
 
-  const handleBackdropClick = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (e.target === e.currentTarget) {
-      handleCancel();
-    }
-  };
-
   const modalContent = (
     <div 
       className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 backdrop-blur-sm"
-      onClick={handleBackdropClick}
     >
       <div 
         className="bg-white rounded-2xl shadow-2xl p-6 sm:p-8 max-w-lg w-full mx-4 border-2 border-gray-200"

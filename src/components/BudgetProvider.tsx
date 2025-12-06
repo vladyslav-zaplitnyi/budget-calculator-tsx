@@ -77,7 +77,21 @@ export function BudgetProvider({ children }: BudgetProviderProps) {
   }), [budgetState, syncStatus, getSyncStatusText]);
 
   // Використовуємо синхронізацію
-  const { showPasswordModal, passwordError, handlePasswordSubmit, handlePasswordCancel } = useBudgetSync(budgetStateWithSync, getSyncStatusText, user, authLoading);
+  const { showPasswordModal, passwordError, handlePasswordSubmit, handlePasswordCancel: originalHandlePasswordCancel } = useBudgetSync(budgetStateWithSync, getSyncStatusText, user, authLoading);
+  
+  // Обгортка для handlePasswordCancel з автоматичним виходом
+  const handlePasswordCancel = useCallback(async () => {
+    originalHandlePasswordCancel();
+    // Автоматично виконуємо вихід при скасуванні
+    if (user) {
+      try {
+        await logout();
+      } catch (error) {
+        // Помилка вже обробляється в logout
+        console.error('Помилка при виході після скасування:', error);
+      }
+    }
+  }, [originalHandlePasswordCancel, user, logout]);
   
   // Використовуємо курси валют
   const currencyRates = useCurrencyRates(budgetStateWithSync);
