@@ -128,8 +128,8 @@
     "incomeMinusExpensesConverted": "надбавки - витрати (конвертовано)"
   },
   "footer": {
-    "copyright": "© 2025 Розроблено",
-    "by": "Владиславом Заплітним"
+    "copyright": "© 2025 Budget Tracker. Всі права захищено.",
+    "cookie": "🍪 На печиво"
   },
   "errors": {
     "exportError": "❌ Помилка при експорті JSON",

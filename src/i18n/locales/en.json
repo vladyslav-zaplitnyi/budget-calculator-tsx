@@ -128,8 +128,8 @@
     "incomeMinusExpensesConverted": "income - expenses (converted)"
   },
   "footer": {
-    "copyright": "© 2025 Developed by",
-    "by": "Vladyslav Zaplitnyi"
+    "copyright": "© 2025 Budget Tracker. All rights reserved.",
+    "cookie": "🍪 Buy me a cookie"
   },
   "errors": {
     "exportError": "❌ Error while exporting JSON",
