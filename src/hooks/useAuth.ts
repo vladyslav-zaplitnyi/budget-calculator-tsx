@@ -81,15 +81,17 @@ export function useAuth() {
     }
     
     // Очищаємо інші дані користувача з localStorage
-    localStorage.removeItem('budgetTrackerLanguage');
-    localStorage.removeItem('language'); // Старий ключ для зворотної сумісності
+    // НЕ видаляємо мову - це налаштування користувача, не пов'язане з акаунтом
+    // localStorage.removeItem('budgetTrackerLanguage'); // ЗАЛИШАЄМО МОВУ
+    // localStorage.removeItem('language'); // Старий ключ - також залишаємо для зворотної сумісності
     localStorage.removeItem('displayCurrency');
     localStorage.removeItem('displayCurrencyIndex');
     localStorage.removeItem('nbu_rates_cache');
     localStorage.removeItem('app_errors');
     
     // Очищаємо cookies
-    document.cookie = 'budgetTrackerLanguage=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
+    // НЕ видаляємо cookie з мовою - залишаємо налаштування користувача
+    // document.cookie = 'budgetTrackerLanguage=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
     document.cookie = 'budgetTrackerActiveBudgetId=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
     
     // Якщо signOut впав з помилкою, вона буде викинута автоматично
@@ -121,15 +123,17 @@ export function useAuth() {
 
       // 5. Очищаємо localStorage після підтвердження виходу
       localStorage.removeItem('budgetTrackerData');
-      localStorage.removeItem('budgetTrackerLanguage');
-      localStorage.removeItem('language'); // Старий ключ для зворотної сумісності
+      // НЕ видаляємо мову - це налаштування користувача, не пов'язане з акаунтом
+      // localStorage.removeItem('budgetTrackerLanguage'); // ЗАЛИШАЄМО МОВУ
+      // localStorage.removeItem('language'); // Старий ключ - також залишаємо
       localStorage.removeItem('displayCurrency');
       localStorage.removeItem('displayCurrencyIndex');
       localStorage.removeItem('nbu_rates_cache');
       localStorage.removeItem('app_errors');
       
       // Очищаємо cookies
-      document.cookie = 'budgetTrackerLanguage=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
+      // НЕ видаляємо cookie з мовою - залишаємо налаштування користувача
+      // document.cookie = 'budgetTrackerLanguage=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
       document.cookie = 'budgetTrackerActiveBudgetId=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
     } catch (error: any) {
       // Обробка помилки requires-recent-login

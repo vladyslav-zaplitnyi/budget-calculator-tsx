@@ -331,8 +331,9 @@ export function useBudgetState(): BudgetStateInterface {
     setDisplayCurrency('UAH');
     setDisplayCurrencyIndex(0);
     
-    // Скидаємо мову до початкового значення
-    setLanguage('uk');
+    // НЕ скидаємо мову - зберігаємо поточну мову користувача
+    // Мова залишається такою, яку вибрав користувач
+    // setLanguage('uk'); // ВИДАЛЕНО - мова не скидається при logout
     
     // Очищаємо всі повідомлення та статуси
     messageDispatch({ type: messageActions.CLEAR_MESSAGES });
