@@ -142,6 +142,13 @@
     "passwordPlaceholder": "Введіть пароль",
     "confirmPassword": "Підтвердіть пароль",
     "confirmPasswordPlaceholder": "Введіть пароль ще раз",
-    "passwordsDoNotMatch": "Паролі не співпадають"
+    "passwordsDoNotMatch": "Паролі не співпадають",
+    "wrongPassword": "Не правельний пароль. Спробуйте ще раз.",
+    "unlock": {
+      "title": "Введіть пароль для розблокування",
+      "message": "Ваші дані зашифровані. Введіть пароль для доступу до них.",
+      "confirmButton": "Розблокувати",
+      "cancelButton": "Скасувати"
+    }
   }
 }

@@ -142,7 +142,14 @@
     "passwordPlaceholder": "Enter password",
     "confirmPassword": "Confirm Password",
     "confirmPasswordPlaceholder": "Enter password again",
-    "passwordsDoNotMatch": "Passwords do not match"
+    "passwordsDoNotMatch": "Passwords do not match",
+    "wrongPassword": "Wrong password. Please try again.",
+    "unlock": {
+      "title": "Enter password to unlock",
+      "message": "Your data is encrypted. Enter your password to access it.",
+      "confirmButton": "Unlock",
+      "cancelButton": "Cancel"
+    }
   }
 }
 

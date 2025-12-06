@@ -77,7 +77,7 @@ export function BudgetProvider({ children }: BudgetProviderProps) {
   }), [budgetState, syncStatus, getSyncStatusText]);
 
   // Використовуємо синхронізацію
-  const { showPasswordModal, passwordError, handlePasswordSubmit, handlePasswordCancel, isUk: passwordModalIsUk } = useBudgetSync(budgetStateWithSync, getSyncStatusText, user, authLoading);
+  const { showPasswordModal, passwordError, handlePasswordSubmit, handlePasswordCancel } = useBudgetSync(budgetStateWithSync, getSyncStatusText, user, authLoading);
   
   // Використовуємо курси валют
   const currencyRates = useCurrencyRates(budgetStateWithSync);
@@ -108,8 +108,9 @@ export function BudgetProvider({ children }: BudgetProviderProps) {
     logout,
     deleteUserAccount,
     showPasswordModal,
-    handlePasswordSubmit
-  }), [budgetStateWithSync, currencyRates, user, authLoading, loginWithGoogle, logout, deleteUserAccount, showPasswordModal, handlePasswordSubmit]);
+    handlePasswordSubmit,
+    passwordError
+  }), [budgetStateWithSync, currencyRates, user, authLoading, loginWithGoogle, logout, deleteUserAccount, showPasswordModal, handlePasswordSubmit, passwordError]);
 
   return (
     <BudgetContext.Provider value={value}>
@@ -118,12 +119,10 @@ export function BudgetProvider({ children }: BudgetProviderProps) {
         isOpen={showPasswordModal}
         onClose={handlePasswordCancel}
         onConfirm={handlePasswordSubmit}
-        title={passwordModalIsUk ? 'Введіть пароль для розблокування' : 'Enter password to unlock'}
-        message={passwordModalIsUk 
-          ? 'Ваші дані зашифровані. Введіть пароль для доступу до них.' 
-          : 'Your data is encrypted. Enter your password to access it.'}
-        confirmButtonText={passwordModalIsUk ? 'Розблокувати' : 'Unlock'}
-        cancelButtonText={passwordModalIsUk ? 'Скасувати' : 'Cancel'}
+        title={translate('encryption.unlock.title')}
+        message={translate('encryption.unlock.message')}
+        confirmButtonText={translate('encryption.unlock.confirmButton')}
+        cancelButtonText={translate('encryption.unlock.cancelButton')}
         errorMessage={passwordError}
       />
     </BudgetContext.Provider>

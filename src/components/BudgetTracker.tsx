@@ -45,7 +45,8 @@ export default function BudgetTracker() {
     setEncryptionPassword,
     isEncrypted,
     showPasswordModal,
-    handlePasswordSubmit
+    handlePasswordSubmit,
+    passwordError
   } = context;
 
   const {
@@ -160,6 +161,7 @@ export default function BudgetTracker() {
             setEncryptionPassword={setEncryptionPassword}
             showPasswordModal={showPasswordModal}
             handlePasswordSubmit={handlePasswordSubmit}
+            passwordError={passwordError}
             handleEnableEncryptionClick={handleEnableEncryptionClick}
             handleDisableEncryptionClick={handleDisableEncryptionClick}
             handleEnableEncryption={handleEnableEncryption}

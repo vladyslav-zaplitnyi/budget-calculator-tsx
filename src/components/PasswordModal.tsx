@@ -32,7 +32,6 @@ const PasswordModal: React.FC<PasswordModalProps> = ({
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [localError, setLocalError] = useState<string | undefined>();
   const passwordInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -47,16 +46,8 @@ const PasswordModal: React.FC<PasswordModalProps> = ({
       setConfirmPassword('');
       setShowPassword(false);
       setShowConfirmPassword(false);
-      setLocalError(undefined);
     }
   }, [isOpen]);
-
-  // Оновлюємо локальну помилку при зміні errorMessage з пропсів
-  useEffect(() => {
-    if (errorMessage) {
-      setLocalError(errorMessage);
-    }
-  }, [errorMessage]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -77,7 +68,6 @@ const PasswordModal: React.FC<PasswordModalProps> = ({
   const handleCancel = () => {
     setPassword('');
     setConfirmPassword('');
-    setLocalError(undefined);
     onClose();
   };
 
@@ -114,8 +104,14 @@ const PasswordModal: React.FC<PasswordModalProps> = ({
                 ref={passwordInputRef}
                 type={showPassword ? 'text' : 'password'}
                 value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="w-full px-4 py-3 pr-12 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all"
+                onChange={(e) => {
+                  setPassword(e.target.value);
+                }}
+                className={`w-full px-4 py-3 pr-12 border-2 rounded-lg focus:ring-2 transition-all ${
+                  errorMessage
+                    ? 'border-red-300 focus:ring-red-500 focus:border-red-500'
+                    : 'border-gray-300 focus:ring-indigo-500 focus:border-indigo-500'
+                }`}
                 placeholder={t('encryption.passwordPlaceholder')}
                 required
               />
@@ -128,6 +124,11 @@ const PasswordModal: React.FC<PasswordModalProps> = ({
                 {showPassword ? '👁️' : '👁️‍🗨️'}
               </button>
             </div>
+            {errorMessage && (
+              <p className="mt-2 text-sm text-red-600 font-medium">
+                {errorMessage}
+              </p>
+            )}
           </div>
 
           {isConfirmPassword && (
@@ -162,12 +163,6 @@ const PasswordModal: React.FC<PasswordModalProps> = ({
                   {t('encryption.passwordsDoNotMatch')}
                 </p>
               )}
-            </div>
-          )}
-
-          {(errorMessage || localError) && (
-            <div className="mb-4 p-3 bg-red-100 border border-red-300 rounded-lg">
-              <p className="text-sm text-red-700">{errorMessage || localError}</p>
             </div>
           )}
 

@@ -18,6 +18,7 @@ export interface BudgetContextValue extends BudgetStateWithSync {
   // Password modal props
   showPasswordModal?: boolean;
   handlePasswordSubmit?: (password: string) => void;
+  passwordError?: string;
 }
 
 export const BudgetContext = createContext<BudgetContextValue | null>(null);

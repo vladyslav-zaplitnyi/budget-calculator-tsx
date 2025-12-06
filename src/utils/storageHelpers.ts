@@ -356,6 +356,11 @@ export const loadFromFirestore = async (
       return null;
     }
   } catch (error) {
+    // ВАЖЛИВО: WrongPasswordError має бути кинута далі, щоб бути обробленою в компоненті
+    if (error instanceof WrongPasswordError) {
+      throw error;
+    }
+    // Інші помилки обробляємо через handleError
     handleError(
       error instanceof Error ? error : new Error(String(error)),
       { context: 'storageHelpers', action: 'loadFromFirestore' }

@@ -21,6 +21,7 @@ interface HeaderProps {
   setEncryptionPassword?: (password: string | null) => void;
   handlePasswordSubmit?: (password: string) => void;
   showPasswordModal?: boolean;
+  passwordError?: string;
   // Encryption handlers
   handleEnableEncryptionClick?: () => void;
   handleDisableEncryptionClick?: () => void;
@@ -84,6 +85,7 @@ const Header: React.FC<HeaderProps> = ({
   setEncryptionPassword,
   handlePasswordSubmit,
   showPasswordModal = false,
+  passwordError,
   handleEnableEncryptionClick,
   handleDisableEncryptionClick,
   handleEnableEncryption,
@@ -196,22 +198,33 @@ const Header: React.FC<HeaderProps> = ({
             {/* Поле введення пароля для розблокування */}
             {(showPasswordModal || (isEncrypted && !encryptionPassword)) && user && (
               <>
-                <div className="flex items-center gap-2">
-                  <input
-                    type="password"
-                    value={passwordInput}
-                    onChange={(e) => setPasswordInput(e.target.value)}
-                    onKeyPress={(e) => e.key === 'Enter' && handlePasswordEnter()}
-                    placeholder={isUk ? 'Пароль для розблокування' : 'Password to unlock'}
-                    className="px-3 py-1.5 text-xs rounded-full bg-white/20 text-white placeholder-white/70 border border-white/30 focus:outline-none focus:ring-2 focus:ring-white/50"
-                    style={{ minWidth: '150px' }}
-                  />
-                  <button
-                    onClick={handlePasswordEnter}
-                    className="text-[11px] sm:text-xs font-semibold bg-green-500/90 hover:bg-green-600 px-2.5 py-1 rounded-full shadow-sm transition-all"
-                  >
-                    🔓 {isUk ? 'Розблокувати' : 'Unlock'}
-                  </button>
+                <div className="flex flex-col items-start gap-1">
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="password"
+                      value={passwordInput}
+                      onChange={(e) => setPasswordInput(e.target.value)}
+                      onKeyPress={(e) => e.key === 'Enter' && handlePasswordEnter()}
+                      placeholder={isUk ? 'Пароль для розблокування' : 'Password to unlock'}
+                      className={`px-3 py-1.5 text-xs rounded-full bg-white/20 text-white placeholder-white/70 border focus:outline-none focus:ring-2 ${
+                        passwordError
+                          ? 'border-red-300 focus:ring-red-400'
+                          : 'border-white/30 focus:ring-white/50'
+                      }`}
+                      style={{ minWidth: '150px' }}
+                    />
+                    <button
+                      onClick={handlePasswordEnter}
+                      className="text-[11px] sm:text-xs font-semibold bg-green-500/90 hover:bg-green-600 px-2.5 py-1 rounded-full shadow-sm transition-all"
+                    >
+                      🔓 {isUk ? 'Розблокувати' : 'Unlock'}
+                    </button>
+                  </div>
+                  {passwordError && (
+                    <span className="text-[10px] text-red-200">
+                      {passwordError}
+                    </span>
+                  )}
                 </div>
                 <span className="hidden sm:block h-6 w-px bg-white/25" />
               </>

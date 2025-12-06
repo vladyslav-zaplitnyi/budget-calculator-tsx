@@ -9,6 +9,7 @@ import { User } from 'firebase/auth';
 import { Budgets, ExchangeRates } from '../types';
 import { getBuyRate, hasPairStructure } from '../utils/typeGuards';
 import { WrongPasswordError } from '../utils/encryption';
+import { translate } from '../i18n/config';
 
 const BASE_CURRENCY = 'UAH';
 
@@ -287,6 +288,7 @@ export function useFirestoreSync(
             setIsRemoteDataEncrypted(true);
             console.warn('🔒 Виявлено зашифровані дані в Firestore. Запис заблоковано до введення пароля.');
             // Потрібен пароль - показуємо модальне вікно
+            // НЕ очищаємо passwordError тут, щоб зберегти попередню помилку, якщо вона була
             setShowPasswordModal(true);
             setIsInitialLoad(false);
             return;
@@ -365,8 +367,9 @@ export function useFirestoreSync(
           if (isMounted) {
             if (error instanceof WrongPasswordError) {
               // Невірний пароль - показуємо помилку в модальному вікні
-              setPasswordError(isUk ? 'Невірний пароль. Спробуйте ще раз.' : 'Wrong password. Please try again.');
+              setPasswordError(translate('encryption.wrongPassword'));
               setShowPasswordModal(true);
+              setIsInitialLoad(false);
             } else {
               setSyncStatus(getSyncStatusText('error'));
             }
@@ -490,37 +493,49 @@ export function useFirestoreSync(
   // Обробка введення пароля
   const handlePasswordSubmit = async (password: string) => {
     console.log('🔑 Обробка введення пароля...');
-    setPasswordError(undefined);
-    setEncryptionPassword(password);
-    setShowPasswordModal(false);
+    // НЕ очищаємо помилку тут - вона очиститься автоматично, коли пароль буде правильним
+    // або залишиться, якщо пароль невірний
     
-    // ВАЖЛИВО: Очищаємо localStorage перед завантаженням даних з БД,
-    // щоб уникнути конфлікту між локальними даними та даними з БД
-    try {
-      localStorage.removeItem('budgetTrackerData');
-      console.log('🔑 Очищено localStorage перед завантаженням з БД');
-    } catch (error) {
-      console.error('Помилка при очищенні localStorage:', error);
-    }
+    // ВАЖЛИВО: НЕ встановлюємо пароль і НЕ закриваємо модальне вікно ДО перевірки пароля
+    // Спочатку перевіряємо пароль, і тільки якщо він правильний - встановлюємо та закриваємо
     
-    // Перезавантажуємо дані з новим паролем
+    // Перезавантажуємо дані з новим паролем для перевірки
     // ВАЖЛИВО: Викликаємо loadFromFirestore безпосередньо з паролем, оскільки state може не встигнути оновитися
     if (user) {
       setIsInitialLoad(true);
       try {
-        console.log('🔑 Завантаження даних з паролем...');
+        console.log('🔑 Завантаження даних з паролем для перевірки...');
         const firestoreData = await loadFromFirestore(user, password);
         
         // Обробляємо дані так само, як в основному useEffect
         if (firestoreData && 'isEncrypted' in firestoreData && 'needsPassword' in firestoreData) {
           console.log('🔑 ⚠️ Пароль не прийнято, потрібен пароль');
+          const errorText = translate('encryption.wrongPassword');
+          // НЕВІРНИЙ ПАРОЛЬ: не закриваємо модальне вікно, не встановлюємо пароль, не очищаємо localStorage
+          setPasswordError(errorText);
           setShowPasswordModal(true);
           setIsInitialLoad(false);
+          // 🔒 ЗАПОБІЖНИК: Залишаємо isRemoteDataEncrypted = true, щоб захист від запису продовжував працювати
           return;
         }
         
         if (firestoreData) {
           console.log('🔑 ✅ Дані успішно завантажено з паролем');
+          
+          // ПАРОЛЬ ПРАВИЛЬНИЙ: тепер можна встановити пароль, очистити localStorage та закрити модальне вікно
+          setPasswordError(undefined); // Очищаємо помилку при успішному вході
+          setEncryptionPassword(password);
+          setShowPasswordModal(false);
+          
+          // ВАЖЛИВО: Очищаємо localStorage перед завантаженням даних з БД,
+          // щоб уникнути конфлікту між локальними даними та даними з БД
+          try {
+            localStorage.removeItem('budgetTrackerData');
+            console.log('🔑 Очищено localStorage перед завантаженням з БД');
+          } catch (error) {
+            console.error('Помилка при очищенні localStorage:', error);
+          }
+          
           processFirestoreData(firestoreData);
           
           // ВАЖЛИВО: Збільшуємо затримку перед встановленням isInitialLoad в false,
@@ -535,9 +550,13 @@ export function useFirestoreSync(
       } catch (error) {
         console.error('❌ Помилка при завантаженні даних з Firestore (з паролем):', error);
         if (error instanceof WrongPasswordError) {
-          console.error('❌ Невірний пароль!');
-          setPasswordError(isUk ? 'Невірний пароль. Спробуйте ще раз.' : 'Wrong password. Please try again.');
+          console.error('❌ Невірний пароль! Встановлюємо помилку...');
+          const errorText = translate('encryption.wrongPassword');
+          // НЕВІРНИЙ ПАРОЛЬ: не закриваємо модальне вікно, не встановлюємо пароль, не очищаємо localStorage
+          // ВАЖЛИВО: Встановлюємо помилку ПЕРЕД відкриттям модального вікна
+          setPasswordError(errorText);
           setShowPasswordModal(true);
+          // 🔒 ЗАПОБІЖНИК: Залишаємо isRemoteDataEncrypted = true, щоб захист від запису продовжував працювати
         } else {
           setSyncStatus(getSyncStatusText('error'));
         }
