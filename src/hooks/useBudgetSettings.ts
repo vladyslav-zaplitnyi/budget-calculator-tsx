@@ -25,7 +25,6 @@ export function useBudgetSettings() {
     setDays,
     setSaveMessage,
     setLoadMessage,
-    baseCurrency,
     user,
     encryptionPassword,
     setEncryptionPassword,
@@ -154,7 +153,6 @@ export function useBudgetSettings() {
     });
   }, [
     exchangeRates,
-    baseCurrency,
     activeBudgetId,
     setSelectedCurrencies,
     setExchangeRates,

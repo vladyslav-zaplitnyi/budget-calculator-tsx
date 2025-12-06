@@ -1,6 +1,6 @@
 import { useReducer, useEffect, useCallback, useMemo, useRef, useState } from 'react';
 import { loadFromLocalStorage, saveToLocalStorage, createEmptyDefaultBudget } from '../utils/storageHelpers';
-import { normalizeDaysArray, createEmptyMonthDays } from '../utils/dayHelpers';
+import { normalizeDaysArray } from '../utils/dayHelpers';
 import { DEFAULT_CURRENCIES, validateSelectedCurrencies } from '../utils/currencies';
 import { LANGUAGE_STORAGE_KEY, LANGUAGE_COOKIE_KEY } from '../utils/constants';
 import { setCookie } from '../utils/cookieHelpers';
