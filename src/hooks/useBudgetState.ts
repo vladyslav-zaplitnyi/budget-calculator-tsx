@@ -358,7 +358,6 @@ export function useBudgetState(): BudgetStateInterface {
     setExchangeRates,
     setDisplayCurrency,
     setDisplayCurrencyIndex,
-    setLanguage,
     messageDispatch,
     setIsLoading,
     setIsUpdatingRates,

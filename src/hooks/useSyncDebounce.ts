@@ -2,7 +2,6 @@ import { useRef, useEffect } from 'react';
 import { User } from 'firebase/auth';
 import { Budgets, Day, ExchangeRates } from '../types';
 import { saveToFirestore } from '../utils/storageHelpers';
-import { DEFAULT_CURRENCIES } from '../utils/currencies';
 
 interface UseSyncDebounceParams {
   budgets: Budgets;
