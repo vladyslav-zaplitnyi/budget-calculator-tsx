@@ -92,6 +92,8 @@ const SettingsCard: React.FC<SettingsCardProps> = ({
   const [pendingCurrencyChange, setPendingCurrencyChange] = useState<{ currencies: string[]; index: number; previousValue: string } | null>(null);
   // Локальний стан для відображення валют у select (для відновлення при скасуванні)
   const [displayCurrencies, setDisplayCurrencies] = useState<string[]>(selectedCurrencies);
+  // Стан для згортання/розгортання секції локальної взаємодії
+  const [isLocalInteractionExpanded, setIsLocalInteractionExpanded] = useState(false);
   
   // Синхронізуємо displayCurrencies з selectedCurrencies, коли немає pending зміни
   React.useEffect(() => {
@@ -455,60 +457,73 @@ const SettingsCard: React.FC<SettingsCardProps> = ({
       {/* Action Buttons */}
       <div className="space-y-3 sm:space-y-4">
         {/* Для локальної взаємодії */}
-        <div className="bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 p-3 sm:p-4 rounded-xl border-2 border-slate-200 space-y-3">
-          <h3 className="text-xs sm:text-sm font-bold text-gray-800 mb-1 flex items-center">
-            <span className="mr-2">💾</span>{' '}
-            {t('settings.localInteraction.title')}
-          </h3>
-          <p className="text-[10px] sm:text-xs text-gray-500">
-            {t('settings.localInteraction.description')}
-          </p>
-          <div className="flex flex-col sm:flex-row gap-2">
-            <button
-              onClick={handleExportToJsonFile}
-              className="flex-1 px-4 sm:px-6 py-2 sm:py-3 rounded-xl font-bold transition-all text-xs sm:text-sm bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white shadow-lg hover:shadow-xl active:scale-95"
-            >
-              {t('settings.localInteraction.export')}
-            </button>
-            <button
-              type="button"
-              onClick={handleImportFromJsonFile}
-              disabled={isLoading}
-              className={`flex-1 px-4 sm:px-6 py-2 sm:py-3 rounded-xl font-bold transition-all text-xs sm:text-sm ${
-                isLoading
-                  ? 'bg-gray-400 cursor-not-allowed text-white'
-                  : 'bg-gradient-to-r from-indigo-500 to-violet-500 hover:from-indigo-600 hover:to-violet-600 text-white shadow-lg hover:shadow-xl active:scale-95'
-              }`}
-            >
-              {isLoading
-                ? t('settings.localInteraction.importing')
-                : t('settings.localInteraction.import')}
-            </button>
-          </div>
-          <input
-            type="file"
-            accept="application/json"
-            ref={fileInputRef}
-            onChange={handleJsonFileSelected}
-            className="hidden"
-          />
-          {saveMessage && (
-            <span
-              className={`block text-xs sm:text-sm font-semibold px-3 py-2 rounded-lg ${
-                saveMessage.includes('✅') ? 'text-green-700 bg-green-100' : 'text-red-700 bg-red-100'
-              }`}
-            >
-              {saveMessage}
+        <div className="bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 p-3 sm:p-4 rounded-xl border-2 border-slate-200">
+          <button
+            type="button"
+            onClick={() => setIsLocalInteractionExpanded(!isLocalInteractionExpanded)}
+            className="w-full flex items-center justify-between text-left mb-1 focus:outline-none focus:ring-2 focus:ring-indigo-400 rounded-lg p-1 -m-1"
+          >
+            <h3 className="text-xs sm:text-sm font-bold text-gray-800 flex items-center">
+              <span className="mr-2">💾</span>{' '}
+              {t('settings.localInteraction.title')}
+            </h3>
+            <span className="text-gray-600 text-lg transition-transform duration-200">
+              {isLocalInteractionExpanded ? '▼' : '▶'}
             </span>
-          )}
-          {loadMessage && (
-            <span
-              className={`block text-xs sm:text-sm font-semibold px-3 py-2 rounded-lg ${
-                loadMessage.includes('✅') ? 'text-green-700 bg-green-100' : 'text-red-700 bg-red-100'
-              }`}
-            >
-              {loadMessage}
-            </span>
+          </button>
+          {isLocalInteractionExpanded && (
+            <div className="space-y-3 mt-3">
+              <p className="text-[10px] sm:text-xs text-gray-500">
+                {t('settings.localInteraction.description')}
+              </p>
+              <div className="flex flex-col sm:flex-row gap-2">
+                <button
+                  onClick={handleExportToJsonFile}
+                  className="flex-1 px-4 sm:px-6 py-2 sm:py-3 rounded-xl font-bold transition-all text-xs sm:text-sm bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white shadow-lg hover:shadow-xl active:scale-95"
+                >
+                  {t('settings.localInteraction.export')}
+                </button>
+                <button
+                  type="button"
+                  onClick={handleImportFromJsonFile}
+                  disabled={isLoading}
+                  className={`flex-1 px-4 sm:px-6 py-2 sm:py-3 rounded-xl font-bold transition-all text-xs sm:text-sm ${
+                    isLoading
+                      ? 'bg-gray-400 cursor-not-allowed text-white'
+                      : 'bg-gradient-to-r from-indigo-500 to-violet-500 hover:from-indigo-600 hover:to-violet-600 text-white shadow-lg hover:shadow-xl active:scale-95'
+                  }`}
+                >
+                  {isLoading
+                    ? t('settings.localInteraction.importing')
+                    : t('settings.localInteraction.import')}
+                </button>
+              </div>
+              <input
+                type="file"
+                accept="application/json"
+                ref={fileInputRef}
+                onChange={handleJsonFileSelected}
+                className="hidden"
+              />
+              {saveMessage && (
+                <span
+                  className={`block text-xs sm:text-sm font-semibold px-3 py-2 rounded-lg ${
+                    saveMessage.includes('✅') ? 'text-green-700 bg-green-100' : 'text-red-700 bg-red-100'
+                  }`}
+                >
+                  {saveMessage}
+                </span>
+              )}
+              {loadMessage && (
+                <span
+                  className={`block text-xs sm:text-sm font-semibold px-3 py-2 rounded-lg ${
+                    loadMessage.includes('✅') ? 'text-green-700 bg-green-100' : 'text-red-700 bg-red-100'
+                  }`}
+                >
+                  {loadMessage}
+                </span>
+              )}
+            </div>
           )}
         </div>
 
