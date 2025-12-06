@@ -43,11 +43,18 @@ export function useBudgetStateSync(
     setBudgets((prevBudgets: Budgets) => {
       const prevKeys = prevBudgets ? Object.keys(prevBudgets) : [];
       const refKeys = loadedBudgetsRef.current ? Object.keys(loadedBudgetsRef.current) : [];
-      const allKeys = Array.from(new Set([...prevKeys, ...refKeys]));
+      
+      // ВАЖЛИВО: Визначаємо, чи це сценарій відновлення (login/initial load) чи нормальна синхронізація
+      // Якщо prevBudgets порожній або має тільки 'default', а ref має більше - це відновлення з Firestore
+      // Якщо prevBudgets має бюджети - це нормальна синхронізація, не відновлюємо видалені
+      const isRestoreScenario = (prevKeys.length === 0 || (prevKeys.length === 1 && prevKeys[0] === 'default')) 
+        && refKeys.length > prevKeys.length;
+      const allKeys = isRestoreScenario ? Array.from(new Set([...prevKeys, ...refKeys])) : prevKeys;
       
       const safePrev: Budgets = {};
       allKeys.forEach(key => {
-        const existing = prevBudgets?.[key] || loadedBudgetsRef.current?.[key];
+        // Спочатку беремо з prevBudgets, потім з ref (якщо це сценарій відновлення)
+        const existing = prevBudgets?.[key] || (isRestoreScenario ? loadedBudgetsRef.current?.[key] : undefined);
         safePrev[key] = existing || createBudgetWithDefaults('Основний');
       });
       
@@ -83,11 +90,14 @@ export function useBudgetStateSync(
     setBudgets((prevBudgets: Budgets) => {
       const prevKeys = prevBudgets ? Object.keys(prevBudgets) : [];
       const refKeys = loadedBudgetsRef.current ? Object.keys(loadedBudgetsRef.current) : [];
-      const allKeys = Array.from(new Set([...prevKeys, ...refKeys]));
+      
+      const isRestoreScenario = (prevKeys.length === 0 || (prevKeys.length === 1 && prevKeys[0] === 'default')) 
+        && refKeys.length > prevKeys.length;
+      const allKeys = isRestoreScenario ? Array.from(new Set([...prevKeys, ...refKeys])) : prevKeys;
       
       const safePrev: Budgets = {};
       allKeys.forEach(key => {
-        const existing = prevBudgets?.[key] || loadedBudgetsRef.current?.[key];
+        const existing = prevBudgets?.[key] || (isRestoreScenario ? loadedBudgetsRef.current?.[key] : undefined);
         safePrev[key] = existing || createBudgetWithDefaults('Основний');
       });
       
@@ -115,11 +125,14 @@ export function useBudgetStateSync(
     setBudgets((prevBudgets: Budgets) => {
       const prevKeys = prevBudgets ? Object.keys(prevBudgets) : [];
       const refKeys = loadedBudgetsRef.current ? Object.keys(loadedBudgetsRef.current) : [];
-      const allKeys = Array.from(new Set([...prevKeys, ...refKeys]));
+      
+      const isRestoreScenario = (prevKeys.length === 0 || (prevKeys.length === 1 && prevKeys[0] === 'default')) 
+        && refKeys.length > prevKeys.length;
+      const allKeys = isRestoreScenario ? Array.from(new Set([...prevKeys, ...refKeys])) : prevKeys;
       
       const safePrev: Budgets = {};
       allKeys.forEach(key => {
-        const existing = prevBudgets?.[key] || loadedBudgetsRef.current?.[key];
+        const existing = prevBudgets?.[key] || (isRestoreScenario ? loadedBudgetsRef.current?.[key] : undefined);
         safePrev[key] = existing || createBudgetWithDefaults('Основний');
       });
       
@@ -147,11 +160,14 @@ export function useBudgetStateSync(
     setBudgets((prevBudgets: Budgets) => {
       const prevKeys = prevBudgets ? Object.keys(prevBudgets) : [];
       const refKeys = loadedBudgetsRef.current ? Object.keys(loadedBudgetsRef.current) : [];
-      const allKeys = Array.from(new Set([...prevKeys, ...refKeys]));
+      
+      const isRestoreScenario = (prevKeys.length === 0 || (prevKeys.length === 1 && prevKeys[0] === 'default')) 
+        && refKeys.length > prevKeys.length;
+      const allKeys = isRestoreScenario ? Array.from(new Set([...prevKeys, ...refKeys])) : prevKeys;
       
       const safePrev: Budgets = {};
       allKeys.forEach(key => {
-        const existing = prevBudgets?.[key] || loadedBudgetsRef.current?.[key];
+        const existing = prevBudgets?.[key] || (isRestoreScenario ? loadedBudgetsRef.current?.[key] : undefined);
         safePrev[key] = existing || createBudgetWithDefaults('Основний');
       });
       
@@ -184,9 +200,11 @@ export function useBudgetStateSync(
       // 1. Не початкове завантаження
       // 2. Поточні бюджети містять всі ключі з ref (збереження всіх бюджетів)
       // 3. Або поточні бюджети мають більше/рівну кількість ключів
+      // 4. АБО всі поточні ключі є в ref (видалення бюджету - дозволяємо оновлення)
       if (isInitialLoad === false) {
         const allRefKeysPreserved = refKeys.length === 0 || refKeys.every(key => currentKeys.includes(key));
-        if (allRefKeysPreserved && currentKeys.length >= refKeys.length) {
+        const allCurrentKeysInRef = currentKeys.length === 0 || currentKeys.every(key => refKeys.includes(key));
+        if ((allRefKeysPreserved && currentKeys.length >= refKeys.length) || allCurrentKeysInRef) {
           loadedBudgetsRef.current = { ...budgets };
         }
       }

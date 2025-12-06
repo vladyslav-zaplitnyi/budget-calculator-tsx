@@ -4,7 +4,7 @@ import { createEmptyMonthDays, normalizeDaysArray } from '../utils/dayHelpers';
 import { validateSelectedCurrencies, DEFAULT_CURRENCIES } from '../utils/currencies';
 import { ACTIVE_BUDGET_COOKIE_KEY } from '../utils/constants';
 import { setCookie } from '../utils/cookieHelpers';
-import { saveToFirestore, loadFromFirestore } from '../utils/storageHelpers';
+import { saveToFirestore, loadFromFirestore, saveToLocalStorage } from '../utils/storageHelpers';
 import { Budgets, Budget, UserData } from '../types';
 import { translate } from '../i18n/config';
 
@@ -289,6 +289,22 @@ export function useBudgetManagement() {
     const newActiveId = 'default';
     const defaultBudget = updatedBudgets[newActiveId];
 
+    // Оновлюємо default budget перед встановленням стану
+    if (defaultBudget) {
+      updatedBudgets[newActiveId] = {
+        ...defaultBudget,
+        startBalances: defaultBudget.startBalances || {}
+      };
+    }
+
+    // КРОК 1: Спочатку видаляємо з localStorage (локально)
+    try {
+      saveToLocalStorage(updatedBudgets, newActiveId);
+    } catch (error) {
+      console.error('Помилка при оновленні localStorage після видалення бюджету:', error);
+    }
+
+    // КРОК 2: Потім оновлюємо стан (локально)
     setBudgets(updatedBudgets);
     setActiveBudgetId(newActiveId);
 
@@ -298,6 +314,7 @@ export function useBudgetManagement() {
       console.error('Помилка при збереженні вибору бюджету в cookie:', error);
     }
 
+    // КРОК 3: Оновлюємо інші стани на основі default budget
     if (defaultBudget) {
       if (defaultBudget.selectedCurrencies) {
         setSelectedCurrencies(validateSelectedCurrencies(defaultBudget.selectedCurrencies));
@@ -309,23 +326,20 @@ export function useBudgetManagement() {
         setExchangeRates({});
       }
       
-      // Використовуємо startBalances (вже в бюджеті)
-      
-      setBudgets((prevBudgets: Budgets) => {
-        return {
-          ...prevBudgets,
-          [newActiveId]: {
-            ...defaultBudget,
-            startBalances: defaultBudget.startBalances || {}
-          }
-        };
-      });
-      
       setDays(normalizeDaysArray(defaultBudget.days || []));
     }
 
+    // КРОК 4: Синхронізуємо з Firestore НЕГАЙНО (await, щоб завершити перед будь-якими іншими операціями)
+    // Це гарантує, що видалений бюджет буде видалений з DB перед будь-яким перезавантаженням
     if (user) {
-      saveToFirestore(user, updatedBudgets, newActiveId, true, setSyncStatus, getSyncStatusText, encryptionPassword, setIsEncrypted);
+      (async () => {
+        try {
+          await saveToFirestore(user, updatedBudgets, newActiveId, true, setSyncStatus, getSyncStatusText, encryptionPassword, setIsEncrypted);
+          console.log('✅ Бюджет успішно видалено з Firestore');
+        } catch (error) {
+          console.error('❌ Помилка при видаленні бюджету з Firestore:', error);
+        }
+      })();
     }
   }, [isUk, user, budgets, activeBudgetId, setBudgets, setActiveBudgetId, setSelectedCurrencies, setExchangeRates, setDays, setSyncStatus, getSyncStatusText, encryptionPassword, setIsEncrypted]);
 

@@ -74,19 +74,32 @@ export function useFirestoreSync(
     }
     
     setBudgets((prevBudgets: Budgets) => {
-      const baseBudgets = (prevBudgets && Object.keys(prevBudgets).length > 0) 
+      // ВАЖЛИВО: Під час завантаження з Firestore, використовуємо allBudgets як базовий набір
+      // щоб гарантувати, що всі бюджети зберігаються
+      const baseBudgets = (prevBudgets && Object.keys(prevBudgets).length > 0 && 
+                           Object.keys(prevBudgets).length >= Object.keys(allBudgets).length)
         ? prevBudgets 
-        : (loadedBudgetsRef.current || allBudgets || {});
+        : (allBudgets && Object.keys(allBudgets).length > 0 ? allBudgets : (loadedBudgetsRef.current || {}));
       
-      return {
-        ...baseBudgets,
-        [budgetId]: {
-          ...budget,
-          startBalances: startBalances,
-          displayCurrency: budgetDisplayCurrency,
-          displayCurrencyIndex: budgetDisplayCurrencyIndex
+      // Гарантуємо, що всі бюджети з allBudgets присутні
+      const result: Budgets = { ...baseBudgets };
+      
+      // Додаємо всі бюджети з allBudgets, якщо їх немає
+      Object.keys(allBudgets).forEach(key => {
+        if (!result[key]) {
+          result[key] = allBudgets[key];
         }
+      });
+      
+      // Оновлюємо активний бюджет
+      result[budgetId] = {
+        ...budget,
+        startBalances: startBalances,
+        displayCurrency: budgetDisplayCurrency,
+        displayCurrencyIndex: budgetDisplayCurrencyIndex
       };
+      
+      return result;
     });
     
     setDays(normalizeDaysArray(budget.days || []));
@@ -162,20 +175,19 @@ export function useFirestoreSync(
     if (firestoreData.budgets) {
       const budgetsToSet = firestoreData.budgets;
       console.log('📦 Завантажено бюджетів з Firestore:', Object.keys(budgetsToSet).length, Object.keys(budgetsToSet));
-      loadedBudgetsRef.current = budgetsToSet;
-      setBudgets(budgetsToSet);
       
-      if (firestoreData.activeBudgetId && budgetsToSet[firestoreData.activeBudgetId]) {
-        setActiveBudgetId(firestoreData.activeBudgetId);
-      }
+      // ВАЖЛИВО: Спочатку встановлюємо loadedBudgetsRef, щоб він був доступний для loadBudgetData
+      loadedBudgetsRef.current = budgetsToSet;
       
       // Відновлюємо вибір бюджету з cookie або Firestore
       try {
         const savedBudgetId = getCookie(ACTIVE_BUDGET_COOKIE_KEY);
         if (savedBudgetId && firestoreData.budgets[savedBudgetId]) {
+          // Завантажуємо дані бюджету (це встановить всі бюджети через loadBudgetData)
           loadBudgetData(firestoreData.budgets[savedBudgetId], savedBudgetId, budgetsToSet);
           setActiveBudgetId(savedBudgetId);
         } else if (firestoreData.activeBudgetId && firestoreData.budgets[firestoreData.activeBudgetId]) {
+          // Завантажуємо дані бюджету (це встановить всі бюджети через loadBudgetData)
           loadBudgetData(firestoreData.budgets[firestoreData.activeBudgetId], firestoreData.activeBudgetId, budgetsToSet);
           setActiveBudgetId(firestoreData.activeBudgetId);
         } else {
@@ -183,16 +195,34 @@ export function useFirestoreSync(
           const budgetKeys = Object.keys(firestoreData.budgets);
           if (budgetKeys.length > 0) {
             const firstBudgetId = budgetKeys[0];
+            // Завантажуємо дані бюджету (це встановить всі бюджети через loadBudgetData)
             loadBudgetData(firestoreData.budgets[firstBudgetId], firstBudgetId, budgetsToSet);
             setActiveBudgetId(firstBudgetId);
+          } else {
+            // Якщо немає бюджетів, встановлюємо порожній набір
+            setBudgets(budgetsToSet);
           }
         }
       } catch (error) {
         console.error('Помилка при відновленні вибору бюджету з cookie:', error);
         if (firestoreData.activeBudgetId && firestoreData.budgets[firestoreData.activeBudgetId]) {
+          // Завантажуємо дані бюджету (це встановить всі бюджети через loadBudgetData)
+          loadBudgetData(firestoreData.budgets[firestoreData.activeBudgetId], firestoreData.activeBudgetId, budgetsToSet);
           setActiveBudgetId(firestoreData.activeBudgetId);
+        } else {
+          // Якщо не вдалося завантажити, встановлюємо всі бюджети
+          setBudgets(budgetsToSet);
         }
       }
+      
+      // ВАЖЛИВО: Після завантаження всіх даних, переконуємося що loadedBudgetsRef містить всі бюджети
+      // Використовуємо setTimeout, щоб гарантувати, що setBudgets завершився
+      setTimeout(() => {
+        if (loadedBudgetsRef.current && Object.keys(loadedBudgetsRef.current).length < Object.keys(budgetsToSet).length) {
+          console.log('⚠️ Відновлення loadedBudgetsRef з повним набором бюджетів');
+          loadedBudgetsRef.current = budgetsToSet;
+        }
+      }, 50);
     } else if (firestoreData.activeBudgetId) {
       setActiveBudgetId(firestoreData.activeBudgetId);
     }
@@ -310,7 +340,14 @@ export function useFirestoreSync(
           }
         } finally {
           if (isMounted && !showPasswordModal) {
-            setIsInitialLoad(false);
+            // ВАЖЛИВО: Затримка перед встановленням isInitialLoad в false,
+            // щоб гарантувати, що всі оновлення стану (setBudgets) завершилися
+            // Це запобігає збереженню неповних даних через useSyncDebounce
+            setTimeout(() => {
+              if (isMounted) {
+                setIsInitialLoad(false);
+              }
+            }, 100);
           }
         }
       } else {
