@@ -98,58 +98,8 @@ export function useBudgetSettings() {
     const validated = validateSelectedCurrencies(newCurrencies);
     setSelectedCurrencies(validated);
 
-    // Оновлюємо курси через сеттер з колбеком (щоб не втратити поточний стан)
-    setExchangeRates((prevRates: ExchangeRates) => {
-      const updatedRates: ExchangeRates = { ...prevRates };
-
-      validated.forEach(code => {
-        if (code === baseCurrency) return;
-
-        const pairKey = `${baseCurrency}_${code}`;
-        const reversePairKey = `${code}_${baseCurrency}`;
-
-        // Якщо курсу немає, не створюємо дефолтний - залишаємо порожнім
-        // Курси повинні бути встановлені користувачем вручну
-      });
-
-      Object.keys(updatedRates).forEach(key => {
-        if (key.includes('_')) {
-          const [from, to] = key.split('_');
-          if (!validated.includes(from) || !validated.includes(to)) {
-            delete updatedRates[key];
-          }
-        } else {
-          if (!validated.includes(key)) {
-            delete updatedRates[key];
-          }
-        }
-      });
-
-      // Повертаємо нові курси в стан
-      return updatedRates;
-    });
-
-    // Формуємо нові курси локально для подальшого використання (збереження в localStorage)
-    const newRates: ExchangeRates = { ...exchangeRates };
-    // Не створюємо дефолтні курси - користувач повинен встановити їх вручну
-
-    Object.keys(newRates).forEach(key => {
-      if (key.includes('_')) {
-        const [from, to] = key.split('_');
-        if (!validated.includes(from) || !validated.includes(to)) {
-          delete newRates[key];
-        }
-      } else {
-        if (!validated.includes(key)) {
-          delete newRates[key];
-        }
-      }
-    });
-
-    setExchangeRates(newRates);
-
     // Оновлюємо budgets безпосередньо: встановлюємо selectedCurrencies та оновлюємо startBalances
-    // (залишаємо тільки обрані валюти, видаляємо необрані)
+    // ВАЖЛИВО: Зберігаємо всі курси обміну, навіть для валют, які тимчасово не вибрані
     const currentId = activeBudgetId || 'default';
     setBudgets((prevBudgets: Budgets) => {
       const safePrev = prevBudgets || {};
@@ -171,17 +121,31 @@ export function useBudgetSettings() {
         updatedStartBalances[code] = existingBudget.startBalances?.[code] ?? null;
       });
       
+      // ВАЖЛИВО: Зберігаємо всі курси з існуючого бюджету, не видаляємо їх
+      // Це дозволяє зберігати курси для валют, які тимчасово не вибрані
+      const preservedExchangeRates = existingBudget.exchangeRates || {};
+      
+      // Об'єднуємо збережені курси з поточними курсами зі стану
+      // Це гарантує, що нові курси, введені користувачем, також зберігаються
+      const mergedRates: ExchangeRates = {
+        ...preservedExchangeRates,
+        ...exchangeRates
+      };
+      
       const updatedBudget = {
         ...existingBudget,
         selectedCurrencies: validated,
         startBalances: updatedStartBalances,
-        exchangeRates: newRates
+        exchangeRates: mergedRates
       };
       
       const updatedBudgets: Budgets = {
         ...safePrev,
         [currentId]: updatedBudget
       };
+      
+      // Оновлюємо стан курсів, зберігаючи всі курси
+      setExchangeRates(mergedRates);
       
       // Зберігаємо оновлені дані в localStorage
       saveToLocalStorage(updatedBudgets, currentId);

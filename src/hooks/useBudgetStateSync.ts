@@ -68,13 +68,17 @@ export function useBudgetStateSync(
         updatedStartBalances[code] = existingBudget.startBalances?.[code] ?? null;
       });
       
+      // ВАЖЛИВО: Зберігаємо всі курси з існуючого бюджету
+      // Не замінюємо їх, щоб не втратити курси для невибраних валют
+      const preservedExchangeRates = existingBudget.exchangeRates || {};
+      
       return {
         ...safePrev,
         [currentId]: {
           ...existingBudget,
           startBalances: updatedStartBalances,
           selectedCurrencies: selectedCurrencies || existingBudget.selectedCurrencies || DEFAULT_CURRENCIES,
-          exchangeRates: existingBudget.exchangeRates || {},
+          exchangeRates: preservedExchangeRates,
           days: existingBudget.days || []
         }
       };
@@ -103,11 +107,18 @@ export function useBudgetStateSync(
       
       const existingBudget = safePrev[currentId] || createBudgetWithDefaults('Основний');
       
+      // ВАЖЛИВО: Зберігаємо всі курси з існуючого бюджету та об'єднуємо з поточними курсами зі стану
+      // Це гарантує, що курси для невибраних валют не втрачаються
+      const mergedExchangeRates = {
+        ...(existingBudget.exchangeRates || {}),
+        ...(exchangeRates || {})
+      };
+      
       return {
         ...safePrev,
         [currentId]: {
           ...existingBudget,
-          exchangeRates: exchangeRates || {},
+          exchangeRates: mergedExchangeRates,
           startBalances: existingBudget.startBalances || {},
           selectedCurrencies: existingBudget.selectedCurrencies || DEFAULT_CURRENCIES,
           days: existingBudget.days || []
@@ -138,6 +149,10 @@ export function useBudgetStateSync(
       
       const existingBudget = safePrev[currentId] || createBudgetWithDefaults('Основний');
       
+      // ВАЖЛИВО: Зберігаємо всі курси з існуючого бюджету
+      // Курси не повинні втрачатися при синхронізації днів
+      const preservedExchangeRates = existingBudget.exchangeRates || {};
+      
       return {
         ...safePrev,
         [currentId]: {
@@ -145,7 +160,7 @@ export function useBudgetStateSync(
           days: days || [],
           startBalances: existingBudget.startBalances || {},
           selectedCurrencies: existingBudget.selectedCurrencies || DEFAULT_CURRENCIES,
-          exchangeRates: existingBudget.exchangeRates || {}
+          exchangeRates: preservedExchangeRates
         }
       };
     });
@@ -173,6 +188,10 @@ export function useBudgetStateSync(
       
       const existingBudget = safePrev[currentId] || createBudgetWithDefaults('Основний');
       
+      // ВАЖЛИВО: Зберігаємо всі курси з існуючого бюджету
+      // Курси не повинні втрачатися при синхронізації displayCurrency
+      const preservedExchangeRates = existingBudget.exchangeRates || {};
+      
       return {
         ...safePrev,
         [currentId]: {
@@ -181,7 +200,7 @@ export function useBudgetStateSync(
           displayCurrencyIndex: displayCurrencyIndex ?? 0,
           startBalances: existingBudget.startBalances || {},
           selectedCurrencies: existingBudget.selectedCurrencies || DEFAULT_CURRENCIES,
-          exchangeRates: existingBudget.exchangeRates || {},
+          exchangeRates: preservedExchangeRates,
           days: existingBudget.days || []
         }
       };
