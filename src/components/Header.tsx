@@ -21,6 +21,15 @@ interface HeaderProps {
   setEncryptionPassword?: (password: string | null) => void;
   handlePasswordSubmit?: (password: string) => void;
   showPasswordModal?: boolean;
+  // Encryption handlers
+  handleEnableEncryptionClick?: () => void;
+  handleDisableEncryptionClick?: () => void;
+  handleEnableEncryption?: (password: string, confirmPassword: string) => void;
+  handleDisableEncryption?: (password: string) => void;
+  showEnableEncryptionModal?: boolean;
+  showDisableEncryptionModal?: boolean;
+  setShowEnableEncryptionModal?: (show: boolean) => void;
+  setShowDisableEncryptionModal?: (show: boolean) => void;
 }
 
 const GoogleIcon = () => (
@@ -74,7 +83,15 @@ const Header: React.FC<HeaderProps> = ({
   encryptionPassword,
   setEncryptionPassword,
   handlePasswordSubmit,
-  showPasswordModal = false
+  showPasswordModal = false,
+  handleEnableEncryptionClick,
+  handleDisableEncryptionClick,
+  handleEnableEncryption,
+  handleDisableEncryption,
+  showEnableEncryptionModal = false,
+  showDisableEncryptionModal = false,
+  setShowEnableEncryptionModal,
+  setShowDisableEncryptionModal
 }) => {
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
   const [passwordInput, setPasswordInput] = useState('');
@@ -383,6 +400,16 @@ const Header: React.FC<HeaderProps> = ({
         onClose={() => setIsSettingsModalOpen(false)}
         deleteUserAccount={deleteUserAccount}
         isUk={isUk}
+        user={user}
+        isEncrypted={isEncrypted}
+        handleEnableEncryptionClick={handleEnableEncryptionClick}
+        handleDisableEncryptionClick={handleDisableEncryptionClick}
+        handleEnableEncryption={handleEnableEncryption}
+        handleDisableEncryption={handleDisableEncryption}
+        showEnableEncryptionModal={showEnableEncryptionModal}
+        showDisableEncryptionModal={showDisableEncryptionModal}
+        setShowEnableEncryptionModal={setShowEnableEncryptionModal}
+        setShowDisableEncryptionModal={setShowDisableEncryptionModal}
       />
     </div>
   );

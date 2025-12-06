@@ -159,6 +159,14 @@ export default function BudgetTracker() {
             setEncryptionPassword={setEncryptionPassword}
             showPasswordModal={showPasswordModal}
             handlePasswordSubmit={handlePasswordSubmit}
+            handleEnableEncryptionClick={handleEnableEncryptionClick}
+            handleDisableEncryptionClick={handleDisableEncryptionClick}
+            handleEnableEncryption={handleEnableEncryption}
+            handleDisableEncryption={handleDisableEncryption}
+            showEnableEncryptionModal={showEnableEncryptionModal}
+            showDisableEncryptionModal={showDisableEncryptionModal}
+            setShowEnableEncryptionModal={setShowEnableEncryptionModal}
+            setShowDisableEncryptionModal={setShowDisableEncryptionModal}
           />
 
           <SettingsCard
