@@ -148,7 +148,8 @@
       "title": "Enter password to unlock",
       "message": "Your data is encrypted. Enter your password to access it.",
       "confirmButton": "Unlock",
-      "cancelButton": "Cancel"
+      "cancelButton": "Cancel",
+      "deleteAccountLink": "🗑️ Delete account"
     }
   }
 }

@@ -13,6 +13,7 @@ interface PasswordModalProps {
   errorMessage?: string;
   isConfirmPassword?: boolean;
   onConfirmPassword?: (password: string, confirmPassword: string) => void;
+  onDeleteAccountClick?: () => void;
 }
 
 const PasswordModal: React.FC<PasswordModalProps> = ({
@@ -25,7 +26,8 @@ const PasswordModal: React.FC<PasswordModalProps> = ({
   cancelButtonText,
   errorMessage,
   isConfirmPassword = false,
-  onConfirmPassword
+  onConfirmPassword,
+  onDeleteAccountClick
 }) => {
   const { t } = useTranslation();
   const [password, setPassword] = useState('');
@@ -178,6 +180,18 @@ const PasswordModal: React.FC<PasswordModalProps> = ({
               {confirmButtonText}
             </button>
           </div>
+          
+          {onDeleteAccountClick && (
+            <div className="mt-4 pt-4 border-t border-gray-200">
+              <button
+                type="button"
+                onClick={onDeleteAccountClick}
+                className="w-full text-sm text-red-600 hover:text-red-700 underline transition-colors"
+              >
+                {t('encryption.unlock.deleteAccountLink')}
+              </button>
+            </div>
+          )}
         </form>
       </div>
     </div>

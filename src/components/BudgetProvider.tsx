@@ -6,6 +6,7 @@ import { useCurrencyRates } from '../hooks/useCurrencyRates';
 import { useAuth } from '../hooks/useAuth';
 import { translate } from '../i18n/config';
 import PasswordModal from './PasswordModal';
+import DeleteAccountModal from './DeleteAccountModal';
 
 interface BudgetProviderProps {
   children: ReactNode;
@@ -92,6 +93,19 @@ export function BudgetProvider({ children }: BudgetProviderProps) {
       }
     }
   }, [originalHandlePasswordCancel, user, logout]);
+
+  // Стан для модального вікна видалення акаунта
+  const [isDeleteAccountModalOpen, setIsDeleteAccountModalOpen] = useState(false);
+
+  // Обробник для відкриття модального вікна видалення акаунта
+  const handleDeleteAccountClick = useCallback(() => {
+    setIsDeleteAccountModalOpen(true);
+  }, []);
+
+  // Обробник для закриття модального вікна видалення акаунта
+  const handleDeleteAccountModalClose = useCallback(() => {
+    setIsDeleteAccountModalOpen(false);
+  }, []);
   
   // Використовуємо курси валют
   const currencyRates = useCurrencyRates(budgetStateWithSync);
@@ -138,6 +152,13 @@ export function BudgetProvider({ children }: BudgetProviderProps) {
         confirmButtonText={translate('encryption.unlock.confirmButton')}
         cancelButtonText={translate('encryption.unlock.cancelButton')}
         errorMessage={passwordError}
+        onDeleteAccountClick={user ? handleDeleteAccountClick : undefined}
+      />
+      <DeleteAccountModal
+        isOpen={isDeleteAccountModalOpen}
+        onClose={handleDeleteAccountModalClose}
+        onConfirm={deleteUserAccount}
+        isUk={budgetState.isUk}
       />
     </BudgetContext.Provider>
   );
