@@ -15,6 +15,27 @@ const BASE_CURRENCY = 'UAH';
 /**
  * Hook для завантаження та синхронізації даних з Firestore
  * Обробляє завантаження даних при вході користувача та синхронізацію з localStorage
+ * 
+ * 🔒 WRITE GUARD (ЗАПОБІЖНИК ЗАПИСУ):
+ * Цей хук реалізує захист від перезапису зашифрованих даних у Firestore.
+ * 
+ * ПРОБЛЕМА, ЯКУ ВИРІШУЄ:
+ * 1. У Firestore зберігаються зашифровані дані (isEncrypted: true)
+ * 2. Користувач заходить на сайт без пароля
+ * 3. Локально дані порожні або дефолтні
+ * 4. БЕЗ ЗАХИСТУ: Синхронізація перезаписує зашифровані дані порожніми → ВТРАТА ДАНИХ
+ * 
+ * РІШЕННЯ:
+ * - Стан isRemoteDataEncrypted відстежує наявність зашифрованих даних у Firestore
+ * - Встановлюється в true при виявленні зашифрованих даних
+ * - Передається в useSyncDebounce, який блокує запис якщо isRemoteDataEncrypted=true && !encryptionPassword
+ * - Скидається в false тільки після успішного розшифрування або явного вимкнення шифрування
+ * 
+ * ЖИТТЄВИЙ ЦИКЛ:
+ * 1. loadFromFirestore повертає { isEncrypted: true, needsPassword: true } → isRemoteDataEncrypted = true
+ * 2. Показується модальне вікно для введення пароля
+ * 3. Після успішного розшифрування processFirestoreData() → isRemoteDataEncrypted = false
+ * 4. Тепер синхронізація працює нормально
  */
 export function useFirestoreSync(
   budgetState: BudgetStateWithSync,
@@ -43,6 +64,9 @@ export function useFirestoreSync(
   // Стан для модального вікна введення пароля
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [passwordError, setPasswordError] = useState<string | undefined>();
+  
+  // 🔒 ЗАПОБІЖНИК ЗАПИСУ: Стан для відстеження зашифрованих даних у Firestore
+  const [isRemoteDataEncrypted, setIsRemoteDataEncrypted] = useState(false);
 
   // Допоміжна функція для завантаження даних бюджету
   const loadBudgetData = (budget: typeof budgets[string], budgetId: string, allBudgets: Budgets) => {
@@ -123,6 +147,12 @@ export function useFirestoreSync(
     // Встановлюємо isEncrypted, якщо дані зашифровані
     if (firestoreData.isEncrypted) {
       setIsEncrypted(true);
+      // 🔒 ЗАПОБІЖНИК: Дані успішно розшифровано, скидаємо блокування
+      setIsRemoteDataEncrypted(false);
+      console.log('🔓 Дані успішно розшифровано. Запис розблоковано.');
+    } else {
+      // Дані не зашифровані
+      setIsRemoteDataEncrypted(false);
     }
     // Використовуємо startBalances з бюджетів
     
@@ -253,6 +283,9 @@ export function useFirestoreSync(
           
           // Перевіряємо, чи дані зашифровані і потрібен пароль
           if (firestoreData && 'isEncrypted' in firestoreData && 'needsPassword' in firestoreData) {
+            // 🔒 ЗАПОБІЖНИК: Встановлюємо прапорець, що в хмарі є зашифровані дані
+            setIsRemoteDataEncrypted(true);
+            console.warn('🔒 Виявлено зашифровані дані в Firestore. Запис заблоковано до введення пароля.');
             // Потрібен пароль - показуємо модальне вікно
             setShowPasswordModal(true);
             setIsInitialLoad(false);
@@ -343,11 +376,12 @@ export function useFirestoreSync(
             // ВАЖЛИВО: Затримка перед встановленням isInitialLoad в false,
             // щоб гарантувати, що всі оновлення стану (setBudgets) завершилися
             // Це запобігає збереженню неповних даних через useSyncDebounce
+            // Збільшуємо затримку до 500мс для надійності
             setTimeout(() => {
               if (isMounted) {
                 setIsInitialLoad(false);
               }
-            }, 100);
+            }, 500);
           }
         }
       } else {
@@ -460,6 +494,15 @@ export function useFirestoreSync(
     setEncryptionPassword(password);
     setShowPasswordModal(false);
     
+    // ВАЖЛИВО: Очищаємо localStorage перед завантаженням даних з БД,
+    // щоб уникнути конфлікту між локальними даними та даними з БД
+    try {
+      localStorage.removeItem('budgetTrackerData');
+      console.log('🔑 Очищено localStorage перед завантаженням з БД');
+    } catch (error) {
+      console.error('Помилка при очищенні localStorage:', error);
+    }
+    
     // Перезавантажуємо дані з новим паролем
     // ВАЖЛИВО: Викликаємо loadFromFirestore безпосередньо з паролем, оскільки state може не встигнути оновитися
     if (user) {
@@ -479,6 +522,15 @@ export function useFirestoreSync(
         if (firestoreData) {
           console.log('🔑 ✅ Дані успішно завантажено з паролем');
           processFirestoreData(firestoreData);
+          
+          // ВАЖЛИВО: Збільшуємо затримку перед встановленням isInitialLoad в false,
+          // щоб гарантувати, що всі оновлення стану (setBudgets, setSelectedCurrencies, тощо) завершилися
+          // і useSyncDebounce не збереже старі дані з localStorage в БД
+          setTimeout(() => {
+            setIsInitialLoad(false);
+            console.log('🔑 ✅ isInitialLoad встановлено в false після завантаження з БД');
+          }, 500);
+          return;
         }
       } catch (error) {
         console.error('❌ Помилка при завантаженні даних з Firestore (з паролем):', error);
@@ -489,7 +541,6 @@ export function useFirestoreSync(
         } else {
           setSyncStatus(getSyncStatusText('error'));
         }
-      } finally {
         setIsInitialLoad(false);
       }
     }
@@ -506,7 +557,9 @@ export function useFirestoreSync(
     passwordError,
     handlePasswordSubmit,
     handlePasswordCancel,
-    isUk
+    isUk,
+    isRemoteDataEncrypted
   };
 }
+
 
