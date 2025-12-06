@@ -3,7 +3,7 @@ import { User } from 'firebase/auth';
 import { useTranslation } from 'react-i18next';
 import { translate } from '../i18n/config';
 import i18n from '../i18n/config';
-import DeleteAccountModal from './DeleteAccountModal';
+import SettingsModal from './SettingsModal';
 
 interface HeaderProps {
   isUk: boolean;
@@ -76,7 +76,7 @@ const Header: React.FC<HeaderProps> = ({
   handlePasswordSubmit,
   showPasswordModal = false
 }) => {
-  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
   const [passwordInput, setPasswordInput] = useState('');
   const { t } = useTranslation();
 
@@ -150,11 +150,11 @@ const Header: React.FC<HeaderProps> = ({
                   </span>
                 </div>
                 <button
-                  onClick={() => setIsDeleteModalOpen(true)}
-                  className="text-[11px] sm:text-xs font-semibold bg-red-600/90 hover:bg-red-700 px-2.5 py-1 rounded-full shadow-sm transition-all"
-                  title={t('settings.deleteAccount.button')}
+                  onClick={() => setIsSettingsModalOpen(true)}
+                  className="text-[11px] sm:text-xs font-semibold bg-white/95 hover:bg-white text-slate-800 px-3 py-1 rounded-full shadow-lg border border-white/30 transition-all"
+                  title={t('settings.title')}
                 >
-                  🗑️
+                  ⚙️
                 </button>
                 <button
                   onClick={logout}
@@ -351,11 +351,11 @@ const Header: React.FC<HeaderProps> = ({
                   {user.displayName || user.email}
                 </span>
                 <button
-                  onClick={() => setIsDeleteModalOpen(true)}
-                  className="text-[11px] sm:text-xs font-semibold bg-red-600/90 hover:bg-red-700 px-2.5 sm:px-3 py-1 rounded-full transition-all flex-shrink-0"
-                  title={t('settings.deleteAccount.button')}
+                  onClick={() => setIsSettingsModalOpen(true)}
+                  className="text-[11px] sm:text-xs font-semibold bg-white/95 hover:bg-white text-slate-800 px-3 py-1 rounded-full shadow-lg border border-white/30 transition-all flex-shrink-0"
+                  title={t('settings.title')}
                 >
-                  🗑️
+                  ⚙️
                 </button>
                 <button
                   onClick={logout}
@@ -377,11 +377,11 @@ const Header: React.FC<HeaderProps> = ({
         </div>
       </div>
 
-      {/* Модальне вікно видалення акаунту */}
-      <DeleteAccountModal
-        isOpen={isDeleteModalOpen}
-        onClose={() => setIsDeleteModalOpen(false)}
-        onConfirm={deleteUserAccount}
+      {/* Модальне вікно налаштувань */}
+      <SettingsModal
+        isOpen={isSettingsModalOpen}
+        onClose={() => setIsSettingsModalOpen(false)}
+        deleteUserAccount={deleteUserAccount}
         isUk={isUk}
       />
     </div>
