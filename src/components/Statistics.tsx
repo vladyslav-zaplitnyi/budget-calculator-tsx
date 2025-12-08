@@ -1,6 +1,6 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { convertCurrency } from '../utils/calculations';
+import { convertCurrency, formatNumber } from '../utils/calculations';
 import { getCurrencyInfo, getCurrencySymbol } from '../utils/currencies';
 import { ExchangeRates } from '../types';
 import CurrencyFlag from './CurrencyFlag';
@@ -67,8 +67,8 @@ const Statistics: React.FC<StatisticsProps> = ({
                   </p>
                   <CurrencyFlag currencyCode={currencyCode} size={14} />
                 </div>
-                <p className="text-base sm:text-xl font-bold text-emerald-600 font-sans">
-                  {symbol}{totalIncome.toFixed(2)}
+                <p className="text-base sm:text-xl font-bold text-emerald-600 font-sans break-words overflow-hidden">
+                  {symbol}{formatNumber(totalIncome, 2)}
                 </p>
                 <p className="text-[10px] text-gray-500 font-sans">{currencyCode}</p>
               </div>
@@ -81,8 +81,8 @@ const Statistics: React.FC<StatisticsProps> = ({
                   </p>
                   <CurrencyFlag currencyCode={currencyCode} size={14} />
                 </div>
-                <p className="text-base sm:text-xl font-bold text-rose-600 font-sans">
-                  {symbol}{totalExpense.toFixed(2)}
+                <p className="text-base sm:text-xl font-bold text-rose-600 font-sans break-words overflow-hidden">
+                  {symbol}{formatNumber(totalExpense, 2)}
                 </p>
                 <p className="text-[10px] text-gray-500 font-sans">{currencyCode}</p>
               </div>
@@ -111,10 +111,10 @@ const Statistics: React.FC<StatisticsProps> = ({
                   {t('statistics.difference')} {currencyCode} <CurrencyFlag currencyCode={currencyCode} size={14} className="ml-1" />
                 </p>
               </div>
-              <p className={`text-xl sm:text-2xl font-bold font-sans ${
+              <p className={`text-xl sm:text-2xl font-bold font-sans break-words overflow-hidden ${
                 difference >= 0 ? 'text-emerald-600' : 'text-rose-600'
               }`}>
-                {symbol}{difference.toFixed(2)}
+                {symbol}{formatNumber(difference, 2)}
               </p>
               <p className="text-xs text-gray-500 mt-1 font-sans">
                 {t('statistics.incomeMinusExpenses')}
@@ -132,10 +132,10 @@ const Statistics: React.FC<StatisticsProps> = ({
               {t('statistics.totalDifference')} {displayCurrency} <CurrencyFlag currencyCode={displayCurrency} size={14} className="ml-1" />
             </p>
           </div>
-          <p className={`text-xl sm:text-2xl font-bold font-sans ${
+          <p className={`text-xl sm:text-2xl font-bold font-sans break-words overflow-hidden ${
             (totalIncomeConverted - totalExpenseConverted) >= 0 ? 'text-emerald-600' : 'text-rose-600'
           }`}>
-            {displaySymbol}{(totalIncomeConverted - totalExpenseConverted).toFixed(2)}
+            {displaySymbol}{formatNumber(totalIncomeConverted - totalExpenseConverted, 2)}
           </p>
           <p className="text-xs text-gray-500 mt-1 font-sans">
             {t('statistics.incomeMinusExpensesConverted')}

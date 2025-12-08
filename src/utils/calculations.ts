@@ -3,6 +3,32 @@ import { isExchangeRatePair, isExchangeRateNumber } from './typeGuards';
 
 // Calculation functions for budget tracker
 
+// Функція для форматування чисел з роздільниками тисяч та фіксованою кількістю десяткових знаків
+export const formatNumber = (value: number, decimals: number = 2): string => {
+  if (isNaN(value) || !isFinite(value)) {
+    return '0.00';
+  }
+  
+  // Округлюємо до потрібної кількості десяткових знаків
+  const rounded = Number(value.toFixed(decimals));
+  
+  // Розділяємо на цілу та дробову частини
+  const parts = rounded.toString().split('.');
+  const integerPart = parts[0];
+  const decimalPart = parts[1] || '';
+  
+  // Додаємо роздільники тисяч до цілої частини
+  const formattedInteger = integerPart.replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+  
+  // Повертаємо відформатоване число
+  if (decimals > 0) {
+    const paddedDecimal = decimalPart.padEnd(decimals, '0');
+    return `${formattedInteger}.${paddedDecimal}`;
+  }
+  
+  return formattedInteger;
+};
+
 // Функція для конвертації суми з однієї валюти в іншу
 export const convertCurrency = (amount: number, fromCurrency: string, toCurrency: string, exchangeRates: ExchangeRates = {}): number => {
   if (!amount || fromCurrency === toCurrency) {

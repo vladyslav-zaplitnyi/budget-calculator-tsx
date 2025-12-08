@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { getCurrencyInfo, getCurrencySymbol, AVAILABLE_CURRENCIES, getCurrencyName } from '../utils/currencies';
-import { convertCurrency } from '../utils/calculations';
+import { convertCurrency, formatNumber } from '../utils/calculations';
 import { ExchangeRates } from '../types';
 import CurrencyFlag from './CurrencyFlag';
 
@@ -54,7 +54,7 @@ const BudgetStatus: React.FC<BudgetStatusProps> = ({
     // Використовуємо функцію convertCurrency для правильної конвертації з урахуванням buy/sell курсів
     const convertedValue = convertCurrency(finalBalance, currencyCode, displayCurrency, exchangeRates);
     
-    return `≈ ${convertedValue.toFixed(2)} ${displaySymbol}`;
+    return `≈ ${formatNumber(convertedValue, 2)} ${displaySymbol}`;
   };
 
   return (
@@ -83,8 +83,8 @@ const BudgetStatus: React.FC<BudgetStatusProps> = ({
                 </p>
                 <CurrencyFlag currencyCode={currencyCode} size={16} />
               </div>
-              <p className={`text-2xl sm:text-3xl font-bold mb-1 font-sans ${isPositive ? 'text-emerald-600' : 'text-rose-600'}`}>
-                {currency.symbol}{finalBalance.toFixed(2)}
+              <p className={`text-2xl sm:text-3xl font-bold mb-1 font-sans break-words overflow-hidden ${isPositive ? 'text-emerald-600' : 'text-rose-600'}`}>
+                {currency.symbol}{formatNumber(finalBalance, 2)}
               </p>
               <p className="text-xs text-gray-500 font-sans">
                 {getConvertedValue(currencyCode, finalBalance) || (currencyCode === displayCurrency ? displayCurrency : '')}
@@ -102,9 +102,9 @@ const BudgetStatus: React.FC<BudgetStatusProps> = ({
             <span className="text-lg">💎</span>
           </div>
           <div className="flex items-center justify-between mb-1">
-            <p className="text-2xl sm:text-3xl font-bold font-sans">
+            <p className="text-2xl sm:text-3xl font-bold font-sans break-words overflow-hidden">
               {getCurrencySymbol(displayCurrency)}
-              {totalInDisplayCurrency !== undefined ? totalInDisplayCurrency.toFixed(2) : (totalInBaseCurrency !== undefined ? totalInBaseCurrency.toFixed(2) : totalInUAH.toFixed(2))}
+              {totalInDisplayCurrency !== undefined ? formatNumber(totalInDisplayCurrency, 2) : (totalInBaseCurrency !== undefined ? formatNumber(totalInBaseCurrency, 2) : formatNumber(totalInUAH, 2))}
             </p>
             {/* Випадаюче меню з прапорами */}
             <div className="relative">
@@ -175,11 +175,11 @@ const BudgetStatus: React.FC<BudgetStatusProps> = ({
               )}
             </div>
           </div>
-          <p className="text-xs opacity-90 font-sans">
+          <p className="text-xs opacity-90 font-sans break-words overflow-hidden">
             {displayCurrency} ({selectedCurrencies.map((code, idx) => {
               const balance = finalBalances[`finalBalance${code}`] || 0;
               const symbol = getCurrencySymbol(code);
-              return `${idx > 0 ? ' + ' : ''}${symbol}${balance.toFixed(0)}`;
+              return `${idx > 0 ? ' + ' : ''}${symbol}${formatNumber(balance, 0)}`;
             }).join('')})
           </p>
         </div>
