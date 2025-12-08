@@ -81,7 +81,7 @@ const BudgetStatus: React.FC<BudgetStatusProps> = ({
                 </p>
                 <CurrencyFlag currencyCode={currencyCode} size={18} />
               </div>
-              <p className={`text-2xl sm:text-3xl lg:text-4xl font-bold mb-1 font-display break-words overflow-hidden tabular-nums ${isPositive ? 'text-emerald-600' : 'text-rose-600'}`}>
+              <p className={`text-2xl sm:text-3xl lg:text-4xl font-extrabold mb-1 font-display break-words overflow-hidden tabular-nums budget-number ${isPositive ? 'text-emerald-600' : 'text-rose-600'}`}>
                 {currency.symbol}{formatNumber(finalBalance, 2)}
               </p>
               <p className="text-xs sm:text-sm text-gray-500 font-sans tabular-nums">
@@ -100,7 +100,7 @@ const BudgetStatus: React.FC<BudgetStatusProps> = ({
             <span className="text-xl">💎</span>
           </div>
           <div className="flex items-center justify-between mb-1">
-            <p className="text-2xl sm:text-3xl lg:text-4xl font-bold font-display break-words overflow-hidden tabular-nums">
+            <p className="text-2xl sm:text-3xl lg:text-4xl font-extrabold font-display break-words overflow-hidden tabular-nums budget-number">
               {getCurrencySymbol(displayCurrency)}
               {(() => {
                 if (totalInDisplayCurrency !== undefined) {
