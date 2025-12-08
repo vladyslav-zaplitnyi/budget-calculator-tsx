@@ -28,7 +28,13 @@
       "namePrompt": "Enter budget name",
       "signInRequired": "Sign in with Google to create multiple budgets.",
       "signInRequiredDelete": "Sign in with Google to delete budgets.",
-      "description": "Free version allows up to 3 budgets. Main budget (Main/Основний) cannot be deleted."
+      "description": "Free version allows up to 3 budgets. Main budget (Main/Основний) cannot be deleted.",
+      "deleteConfirm": {
+        "title": "Delete budget?",
+        "message": "Are you sure you want to delete budget \"{{budgetName}}\"? This action cannot be undone.",
+        "confirm": "Yes, delete",
+        "cancel": "Cancel"
+      }
     },
     "currency": {
       "selection": "💱 Currency Selection (3 currencies)",
@@ -60,7 +66,19 @@
       "importing": "⏳ Importing..."
     },
     "clearAll": "🗑️ Clear all fields",
+    "clearAllConfirm": {
+      "title": "Are you sure?",
+      "message": "This will clear all entered data and reset the selected file (the file will not be deleted from disk)!",
+      "confirm": "Yes, clear all",
+      "cancel": "Cancel"
+    },
     "clearAllDays": "🗑️ Clear all days",
+    "clearAllDaysConfirm": {
+      "title": "Are you sure?",
+      "message": "This will clear all data for all days (transactions, descriptions), but will keep starting balances and settings!",
+      "confirm": "Yes, clear days",
+      "cancel": "Cancel"
+    },
     "startNewMonth": {
       "button": "📅 Start new month",
       "title": "Start new month",

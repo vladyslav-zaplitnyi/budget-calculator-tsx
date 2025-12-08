@@ -41,15 +41,20 @@ export function useBudgetSettings() {
   const [showDisableEncryptionModal, setShowDisableEncryptionModal] = useState(false);
   // Стан для модального вікна "Почати новий місяць"
   const [showStartNewMonthModal, setShowStartNewMonthModal] = useState(false);
+  // Стан для AlertModal
+  const [showAlertModal, setShowAlertModal] = useState(false);
+  const [alertMessage, setAlertMessage] = useState('');
+  const [alertType, setAlertType] = useState<'info' | 'success' | 'warning' | 'error'>('info');
+  // Стан для ConfirmModal
+  const [showClearAllConfirmModal, setShowClearAllConfirmModal] = useState(false);
+  const [showClearAllDaysConfirmModal, setShowClearAllDaysConfirmModal] = useState(false);
 
   const handleClearAll = useCallback(() => {
-    const confirmed = window.confirm(
-      isUk
-        ? 'Ви впевнені? Це стере всі введені дані та очистить вибір файлу (файл не буде видалено з диску)!'
-        : 'Are you sure? This will clear all entered data and reset the selected file (the file will not be deleted from disk)!'
-    );
-    
-    if (confirmed) {
+    setShowClearAllConfirmModal(true);
+  }, []);
+
+  const handleConfirmClearAll = useCallback(() => {
+    setShowClearAllConfirmModal(false);
       const currentId = activeBudgetId || 'default';
       const emptyDays = createEmptyMonthDays();
       
@@ -94,17 +99,18 @@ export function useBudgetSettings() {
       saveToLocalStorage(updatedBudgets, currentId);
       
       console.log('✅ Всі поля очищено');
-    }
-  }, [isUk, activeBudgetId, selectedCurrencies, budgets, setBudgets, setDays, setLoadMessage, setSaveMessage]);
+  }, [activeBudgetId, selectedCurrencies, budgets, setBudgets, setDays, setLoadMessage, setSaveMessage]);
+
+  const handleCancelClearAll = useCallback(() => {
+    setShowClearAllConfirmModal(false);
+  }, []);
 
   const handleClearAllDays = useCallback(() => {
-    const confirmed = window.confirm(
-      isUk
-        ? 'Ви впевнені? Це стере всі дані за всі дні (транзакції, описи), але залишить початкові баланси та налаштування!'
-        : 'Are you sure? This will clear all data for all days (transactions, descriptions), but will keep starting balances and settings!'
-    );
-    
-    if (confirmed) {
+    setShowClearAllDaysConfirmModal(true);
+  }, []);
+
+  const handleConfirmClearAllDays = useCallback(() => {
+    setShowClearAllDaysConfirmModal(false);
       const currentId = activeBudgetId || 'default';
       const emptyDays = createEmptyMonthDays();
       
@@ -137,8 +143,11 @@ export function useBudgetSettings() {
       saveToLocalStorage(updatedBudgets, currentId);
       
       console.log('✅ Всі дні очищено');
-    }
-  }, [isUk, activeBudgetId, budgets, setBudgets, setDays]);
+  }, [activeBudgetId, budgets, setBudgets, setDays]);
+
+  const handleCancelClearAllDays = useCallback(() => {
+    setShowClearAllDaysConfirmModal(false);
+  }, []);
 
   const handleStartNewMonth = useCallback(() => {
     setShowStartNewMonthModal(true);
@@ -360,17 +369,23 @@ export function useBudgetSettings() {
 
   const handleEnableEncryption = useCallback(async (password: string, confirmPassword: string) => {
     if (password !== confirmPassword) {
-      alert(isUk ? 'Паролі не співпадають!' : 'Passwords do not match!');
+      setAlertMessage(isUk ? 'Паролі не співпадають!' : 'Passwords do not match!');
+      setAlertType('error');
+      setShowAlertModal(true);
       return;
     }
 
     if (!password.trim()) {
-      alert(isUk ? 'Пароль не може бути порожнім!' : 'Password cannot be empty!');
+      setAlertMessage(isUk ? 'Пароль не може бути порожнім!' : 'Password cannot be empty!');
+      setAlertType('error');
+      setShowAlertModal(true);
       return;
     }
 
     if (!user) {
-      alert(isUk ? 'Потрібна авторизація для шифрування!' : 'Authentication required for encryption!');
+      setAlertMessage(isUk ? 'Потрібна авторизація для шифрування!' : 'Authentication required for encryption!');
+      setAlertType('warning');
+      setShowAlertModal(true);
       return;
     }
 
@@ -401,27 +416,37 @@ export function useBudgetSettings() {
       );
       
       setShowEnableEncryptionModal(false);
-      alert(isUk ? '✅ Шифрування увімкнено!' : '✅ Encryption enabled!');
+      setAlertMessage(isUk ? 'Шифрування увімкнено!' : 'Encryption enabled!');
+      setAlertType('success');
+      setShowAlertModal(true);
     } catch (error) {
       console.error('Помилка при увімкненні шифрування:', error);
-      alert(isUk ? '❌ Помилка при увімкненні шифрування!' : '❌ Error enabling encryption!');
+      setAlertMessage(isUk ? 'Помилка при увімкненні шифрування!' : 'Error enabling encryption!');
+      setAlertType('error');
+      setShowAlertModal(true);
     }
   }, [isUk, user, budgets, activeBudgetId, selectedCurrencies, exchangeRates, setEncryptionPassword, setIsEncrypted, setSyncStatus, getSyncStatusText]);
 
   const handleDisableEncryption = useCallback(async (password: string) => {
     if (!password.trim()) {
-      alert(isUk ? 'Введіть пароль!' : 'Enter password!');
+      setAlertMessage(isUk ? 'Введіть пароль!' : 'Enter password!');
+      setAlertType('error');
+      setShowAlertModal(true);
       return;
     }
 
     if (!user) {
-      alert(isUk ? 'Потрібна авторизація!' : 'Authentication required!');
+      setAlertMessage(isUk ? 'Потрібна авторизація!' : 'Authentication required!');
+      setAlertType('warning');
+      setShowAlertModal(true);
       return;
     }
 
     // Перевіряємо пароль, спробувавши розшифрувати дані
     if (encryptionPassword !== password) {
-      alert(isUk ? 'Невірний пароль!' : 'Wrong password!');
+      setAlertMessage(isUk ? 'Неправильний пароль' : 'Wrong password!');
+      setAlertType('error');
+      setShowAlertModal(true);
       return;
     }
 
@@ -452,10 +477,14 @@ export function useBudgetSettings() {
       );
       
       setShowDisableEncryptionModal(false);
-      alert(isUk ? '✅ Шифрування вимкнено!' : '✅ Encryption disabled!');
+      setAlertMessage(isUk ? 'Шифрування вимкнено!' : 'Encryption disabled!');
+      setAlertType('success');
+      setShowAlertModal(true);
     } catch (error) {
       console.error('Помилка при вимкненні шифрування:', error);
-      alert(isUk ? '❌ Помилка при вимкненні шифрування!' : '❌ Error disabling encryption!');
+      setAlertMessage(isUk ? 'Помилка при вимкненні шифрування!' : 'Error disabling encryption!');
+      setAlertType('error');
+      setShowAlertModal(true);
     }
   }, [isUk, user, budgets, activeBudgetId, selectedCurrencies, exchangeRates, encryptionPassword, setEncryptionPassword, setIsEncrypted, setSyncStatus, getSyncStatusText]);
 
@@ -477,7 +506,19 @@ export function useBudgetSettings() {
     showDisableEncryptionModal,
     setShowEnableEncryptionModal,
     setShowDisableEncryptionModal,
-    isEncrypted
+    isEncrypted,
+    showAlertModal,
+    setShowAlertModal,
+    alertMessage,
+    alertType,
+    showClearAllConfirmModal,
+    setShowClearAllConfirmModal,
+    handleConfirmClearAll,
+    handleCancelClearAll,
+    showClearAllDaysConfirmModal,
+    setShowClearAllDaysConfirmModal,
+    handleConfirmClearAllDays,
+    handleCancelClearAllDays
   };
 }
 

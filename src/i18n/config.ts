@@ -43,8 +43,8 @@ i18n
   });
 
 // Типізована функція для перекладів поза React компонентами
-export const translate = (key: string): string => {
-  return (i18n as any).t(key);
+export const translate = (key: string, options?: Record<string, any>): string => {
+  return (i18n as any).t(key, options);
 };
 
 export default i18n;

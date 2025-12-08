@@ -6,9 +6,13 @@ import BudgetStatus from './BudgetStatus';
 import DaysTable from './DaysTable';
 import DaysCards from './DaysCards';
 import Statistics from './Statistics';
+import AlertModal from './AlertModal';
+import PromptModal from './PromptModal';
+import ConfirmModal from './ConfirmModal';
 import { useBudgetContext } from '../contexts/BudgetContext';
 import { useBudgetHandlers } from '../hooks/useBudgetHandlers';
 import { calculateTotals, calculateFinalBalances, convertCurrency } from '../utils/calculations';
+import { translate } from '../i18n/config';
 
 export default function BudgetTracker() {
   const context = useBudgetContext();
@@ -73,7 +77,31 @@ export default function BudgetTracker() {
     showEnableEncryptionModal,
     showDisableEncryptionModal,
     setShowEnableEncryptionModal,
-    setShowDisableEncryptionModal
+    setShowDisableEncryptionModal,
+    showPromptModal,
+    setShowPromptModal,
+    handlePromptConfirm,
+    showAlertModal,
+    setShowAlertModal,
+    alertMessage,
+    alertType,
+    showSettingsAlertModal,
+    setShowSettingsAlertModal,
+    settingsAlertMessage,
+    settingsAlertType,
+    showClearAllConfirmModal,
+    setShowClearAllConfirmModal,
+    handleConfirmClearAll,
+    handleCancelClearAll,
+    showClearAllDaysConfirmModal,
+    setShowClearAllDaysConfirmModal,
+    handleConfirmClearAllDays,
+    handleCancelClearAllDays,
+    showDeleteBudgetConfirmModal,
+    setShowDeleteBudgetConfirmModal,
+    handleConfirmDeleteBudget,
+    handleCancelDeleteBudget,
+    budgetToDeleteName
   } = handlers;
 
   // Створюємо об'єкт початкових балансів для вибраних валют
@@ -267,6 +295,65 @@ export default function BudgetTracker() {
         </div>
       </div>
       <Footer language={language} />
+      
+      {/* Модальні вікна */}
+      <PromptModal
+        isOpen={showPromptModal}
+        onClose={() => setShowPromptModal(false)}
+        onConfirm={handlePromptConfirm}
+        title={translate('settings.budget.namePrompt')}
+        confirmButtonText={isUk ? 'Створити' : 'Create'}
+        cancelButtonText={isUk ? 'Скасувати' : 'Cancel'}
+      />
+      
+      <AlertModal
+        isOpen={showAlertModal}
+        onClose={() => setShowAlertModal(false)}
+        message={alertMessage}
+        type={alertType}
+        buttonText={isUk ? 'OK' : 'OK'}
+      />
+      
+      <AlertModal
+        isOpen={showSettingsAlertModal}
+        onClose={() => setShowSettingsAlertModal(false)}
+        message={settingsAlertMessage}
+        type={settingsAlertType}
+        buttonText={isUk ? 'OK' : 'OK'}
+      />
+      
+      {/* ConfirmModal для очищення всіх полів */}
+      <ConfirmModal
+        isOpen={showClearAllConfirmModal}
+        onClose={handleCancelClearAll}
+        onConfirm={handleConfirmClearAll}
+        title={translate('settings.clearAllConfirm.title')}
+        message={translate('settings.clearAllConfirm.message')}
+        confirmButtonText={translate('settings.clearAllConfirm.confirm')}
+        cancelButtonText={translate('settings.clearAllConfirm.cancel')}
+      />
+      
+      {/* ConfirmModal для очищення всіх днів */}
+      <ConfirmModal
+        isOpen={showClearAllDaysConfirmModal}
+        onClose={handleCancelClearAllDays}
+        onConfirm={handleConfirmClearAllDays}
+        title={translate('settings.clearAllDaysConfirm.title')}
+        message={translate('settings.clearAllDaysConfirm.message')}
+        confirmButtonText={translate('settings.clearAllDaysConfirm.confirm')}
+        cancelButtonText={translate('settings.clearAllDaysConfirm.cancel')}
+      />
+      
+      {/* ConfirmModal для видалення бюджету */}
+      <ConfirmModal
+        isOpen={showDeleteBudgetConfirmModal}
+        onClose={handleCancelDeleteBudget}
+        onConfirm={handleConfirmDeleteBudget}
+        title={translate('settings.budget.deleteConfirm.title')}
+        message={translate('settings.budget.deleteConfirm.message', { budgetName: budgetToDeleteName || translate('settings.budget.untitled') })}
+        confirmButtonText={translate('settings.budget.deleteConfirm.confirm')}
+        cancelButtonText={translate('settings.budget.deleteConfirm.cancel')}
+      />
     </div>
   );
 }

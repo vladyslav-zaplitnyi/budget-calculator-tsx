@@ -7,6 +7,7 @@ import { useAuth } from '../hooks/useAuth';
 import { translate } from '../i18n/config';
 import PasswordModal from './PasswordModal';
 import DeleteAccountModal from './DeleteAccountModal';
+import AlertModal from './AlertModal';
 
 interface BudgetProviderProps {
   children: ReactNode;
@@ -31,7 +32,8 @@ export function BudgetProvider({ children }: BudgetProviderProps) {
       window.location.reload();
     } catch (error) {
       // КРОК 4: Обробка помилок - НЕ очищаємо дані, показуємо повідомлення про помилку
-      alert(translate('header.logoutError'));
+      setAlertMessage(translate('header.logoutError'));
+      setShowAlertModal(true);
       // Прокидаємо помилку далі, щоб обробник знав про невдачу
       throw error;
     }
@@ -96,6 +98,9 @@ export function BudgetProvider({ children }: BudgetProviderProps) {
 
   // Стан для модального вікна видалення акаунта
   const [isDeleteAccountModalOpen, setIsDeleteAccountModalOpen] = useState(false);
+  // Стан для AlertModal
+  const [showAlertModal, setShowAlertModal] = useState(false);
+  const [alertMessage, setAlertMessage] = useState('');
 
   // Обробник для відкриття модального вікна видалення акаунта
   const handleDeleteAccountClick = useCallback(() => {
@@ -159,6 +164,13 @@ export function BudgetProvider({ children }: BudgetProviderProps) {
         onClose={handleDeleteAccountModalClose}
         onConfirm={deleteUserAccount}
         isUk={budgetState.isUk}
+      />
+      <AlertModal
+        isOpen={showAlertModal}
+        onClose={() => setShowAlertModal(false)}
+        message={alertMessage}
+        type="error"
+        buttonText={budgetState.isUk ? 'OK' : 'OK'}
       />
     </BudgetContext.Provider>
   );

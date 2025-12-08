@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import AlertModal from './AlertModal';
 
 interface DeleteAccountModalProps {
   isOpen: boolean;
@@ -18,6 +19,7 @@ const DeleteAccountModal: React.FC<DeleteAccountModalProps> = ({
   const [confirmationText, setConfirmationText] = useState('');
   const [isDeleting, setIsDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
 
   const requiredText = isUk ? 'ВИДАЛИТИ' : 'DELETE';
   const isConfirmEnabled = confirmationText === requiredText && !isDeleting;
@@ -31,9 +33,11 @@ const DeleteAccountModal: React.FC<DeleteAccountModalProps> = ({
     try {
       await onConfirm();
       // Показуємо повідомлення про успіх
-      alert(t('settings.deleteAccount.success'));
-      // Оновлюємо сторінку, щоб користувач став гостем
-      window.location.reload();
+      setShowSuccessModal(true);
+      // Оновлюємо сторінку через короткий час, щоб користувач побачив повідомлення
+      setTimeout(() => {
+        window.location.reload();
+      }, 1500);
     } catch (err: any) {
       if (err?.name === 'RequiresRecentLoginError' || err?.message === 'REQUIRES_RECENT_LOGIN') {
         setError(t('settings.deleteAccount.requiresRecentLogin'));
@@ -141,6 +145,14 @@ const DeleteAccountModal: React.FC<DeleteAccountModalProps> = ({
           </button>
         </div>
       </div>
+      
+      <AlertModal
+        isOpen={showSuccessModal}
+        onClose={() => {}}
+        message={t('settings.deleteAccount.success')}
+        type="success"
+        buttonText={isUk ? 'OK' : 'OK'}
+      />
     </div>
   );
 };

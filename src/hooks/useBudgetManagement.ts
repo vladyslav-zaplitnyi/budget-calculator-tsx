@@ -1,4 +1,4 @@
-import { useCallback, ChangeEvent } from 'react';
+import { useCallback, ChangeEvent, useState } from 'react';
 import { useBudgetContext } from '../contexts/BudgetContext';
 import { createEmptyMonthDays, normalizeDaysArray } from '../utils/dayHelpers';
 import { validateSelectedCurrencies, DEFAULT_CURRENCIES } from '../utils/currencies';
@@ -34,6 +34,15 @@ export function useBudgetManagement() {
     setDisplayCurrencyIndex
   } = context;
 
+  // Стан для модальних вікон
+  const [showPromptModal, setShowPromptModal] = useState(false);
+  const [showAlertModal, setShowAlertModal] = useState(false);
+  const [alertMessage, setAlertMessage] = useState('');
+  const [alertType, setAlertType] = useState<'info' | 'success' | 'warning' | 'error'>('info');
+  // Стан для ConfirmModal видалення бюджету
+  const [showDeleteBudgetConfirmModal, setShowDeleteBudgetConfirmModal] = useState(false);
+  const [budgetToDeleteName, setBudgetToDeleteName] = useState('');
+
   const createNewBudget = useCallback((name: string) => {
     const trimmedName = (name || '').trim();
     if (!trimmedName) return;
@@ -41,11 +50,13 @@ export function useBudgetManagement() {
     const currentBudgets = budgets || {};
     const count = Object.keys(currentBudgets).length;
     if (count >= 3) {
-      alert(
+      setAlertMessage(
         isUk
           ? 'Досягнуто ліміт безкоштовної версії (макс. 3 бюджети).'
           : 'Free version limit reached (max. 3 budgets).'
       );
+      setAlertType('warning');
+      setShowAlertModal(true);
       return;
     }
 
@@ -232,22 +243,25 @@ export function useBudgetManagement() {
 
   const handleAddBudgetClick = useCallback(() => {
     if (!user) {
-      alert(
-        translate('settings.budget.signInRequired')
-      );
+      setAlertMessage(translate('settings.budget.signInRequired'));
+      setAlertType('warning');
+      setShowAlertModal(true);
       return;
     }
 
-    const namePrompt = translate('settings.budget.namePrompt');
-    const name = window.prompt(namePrompt);
-    if (!name || !name.trim()) return;
+    setShowPromptModal(true);
+  }, [user]);
 
+  const handlePromptConfirm = useCallback((name: string) => {
+    if (!name || !name.trim()) return;
     createNewBudget(name);
-  }, [user, createNewBudget]);
+  }, [createNewBudget]);
 
   const handleDeleteBudget = useCallback(() => {
     if (!user) {
-      alert(translate('settings.budget.signInRequiredDelete'));
+      setAlertMessage(translate('settings.budget.signInRequiredDelete'));
+      setAlertType('warning');
+      setShowAlertModal(true);
       return;
     }
 
@@ -255,33 +269,39 @@ export function useBudgetManagement() {
     const budgetCount = Object.keys(currentBudgets).length;
 
     if (budgetCount <= 1) {
-      alert(
+      setAlertMessage(
         isUk
           ? 'Не можна видалити останній бюджет. Має залишитися хоча б один бюджет.'
           : 'Cannot delete the last budget. At least one budget must remain.'
       );
+      setAlertType('warning');
+      setShowAlertModal(true);
       return;
     }
 
     if (activeBudgetId === 'default') {
-      alert(
+      setAlertMessage(
         isUk
           ? 'Не можна видалити основний бюджет (Main/Основний).'
           : 'Cannot delete the main budget (Main/Основний).'
       );
+      setAlertType('warning');
+      setShowAlertModal(true);
       return;
     }
 
     const budgetToDelete = currentBudgets[activeBudgetId];
     const budgetName = budgetToDelete?.name || activeBudgetId;
+    
+    setBudgetToDeleteName(budgetName);
+    setShowDeleteBudgetConfirmModal(true);
+  }, [isUk, user, budgets, activeBudgetId]);
 
-    const confirmMessage = isUk
-      ? `Ви впевнені, що хочете видалити бюджет "${budgetName}"? Цю дію неможливо скасувати.`
-      : `Are you sure you want to delete budget "${budgetName}"? This action cannot be undone.`;
-
-    if (!window.confirm(confirmMessage)) {
-      return;
-    }
+  const handleConfirmDeleteBudget = useCallback(() => {
+    setShowDeleteBudgetConfirmModal(false);
+    
+    const currentBudgets = budgets || {};
+    const currentActiveBudgetId = activeBudgetId;
 
     const updatedBudgets = { ...currentBudgets };
     delete updatedBudgets[activeBudgetId];
@@ -341,13 +361,30 @@ export function useBudgetManagement() {
         }
       })();
     }
-  }, [isUk, user, budgets, activeBudgetId, setBudgets, setActiveBudgetId, setSelectedCurrencies, setExchangeRates, setDays, setSyncStatus, getSyncStatusText, encryptionPassword, setIsEncrypted]);
+  }, [budgets, activeBudgetId, setBudgets, setActiveBudgetId, setSelectedCurrencies, setExchangeRates, setDays, setSyncStatus, getSyncStatusText, encryptionPassword, setIsEncrypted, user]);
+
+  const handleCancelDeleteBudget = useCallback(() => {
+    setShowDeleteBudgetConfirmModal(false);
+    setBudgetToDeleteName('');
+  }, []);
 
   return {
     createNewBudget,
     handleBudgetChange,
     handleAddBudgetClick,
-    handleDeleteBudget
+    handleDeleteBudget,
+    showPromptModal,
+    setShowPromptModal,
+    handlePromptConfirm,
+    showAlertModal,
+    setShowAlertModal,
+    alertMessage,
+    alertType,
+    showDeleteBudgetConfirmModal,
+    setShowDeleteBudgetConfirmModal,
+    handleConfirmDeleteBudget,
+    handleCancelDeleteBudget,
+    budgetToDeleteName
   };
 }
 

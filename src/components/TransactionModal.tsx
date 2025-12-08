@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { AVAILABLE_CURRENCIES, getCurrencyName } from '../utils/currencies';
 import { Transaction } from '../types';
 import CurrencyFlag from './CurrencyFlag';
+import AlertModal from './AlertModal';
 
 interface TransactionModalProps {
   isOpen: boolean;
@@ -28,6 +29,8 @@ const TransactionModal: React.FC<TransactionModalProps> = ({
   const [amount, setAmount] = useState('');
   const [currency, setCurrency] = useState(selectedCurrencies[0] || 'UAH');
   const [description, setDescription] = useState('');
+  const [showAlertModal, setShowAlertModal] = useState(false);
+  const [alertMessage, setAlertMessage] = useState('');
 
   useEffect(() => {
     if (transaction) {
@@ -58,12 +61,14 @@ const TransactionModal: React.FC<TransactionModalProps> = ({
     
     const numAmount = parseFloat(amount);
     if (isNaN(numAmount) || numAmount <= 0) {
-      alert(t('transaction.amountError'));
+      setAlertMessage(t('transaction.amountError'));
+      setShowAlertModal(true);
       return;
     }
 
     if (!description.trim()) {
-      alert(t('transaction.descriptionError'));
+      setAlertMessage(t('transaction.descriptionError'));
+      setShowAlertModal(true);
       return;
     }
 
@@ -216,6 +221,14 @@ const TransactionModal: React.FC<TransactionModalProps> = ({
           </div>
         </form>
       </div>
+      
+      <AlertModal
+        isOpen={showAlertModal}
+        onClose={() => setShowAlertModal(false)}
+        message={alertMessage}
+        type="error"
+        buttonText={isUk ? 'OK' : 'OK'}
+      />
     </div>
   );
 };

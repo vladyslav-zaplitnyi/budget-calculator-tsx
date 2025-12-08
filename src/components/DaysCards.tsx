@@ -8,6 +8,7 @@ import {
 } from '../utils/calculations';
 import { getCurrencyInfo, getCurrencySymbol, getCurrencyName } from '../utils/currencies';
 import TransactionModal from './TransactionModal';
+import AlertModal from './AlertModal';
 import { generateTransactionId } from '../utils/dayHelpers';
 import { Day, ExchangeRates, Transaction } from '../types';
 import CurrencyFlag from './CurrencyFlag';
@@ -41,6 +42,8 @@ const DaysCards: React.FC<DaysCardsProps> = ({
     dayIndex: null,
     transaction: null
   });
+  const [showAlertModal, setShowAlertModal] = useState(false);
+  const [alertMessage, setAlertMessage] = useState('');
 
   const MAX_TRANSACTIONS = 5;
 
@@ -50,7 +53,8 @@ const DaysCards: React.FC<DaysCardsProps> = ({
     const transactionCount = Array.isArray(day.transactions) ? day.transactions.length : 0;
     
     if (transactionCount >= MAX_TRANSACTIONS) {
-      alert(t('transaction.maxTransactions'));
+      setAlertMessage(t('transaction.maxTransactions'));
+      setShowAlertModal(true);
       return;
     }
 
@@ -323,6 +327,14 @@ const DaysCards: React.FC<DaysCardsProps> = ({
         isUk={isUk}
         maxTransactions={MAX_TRANSACTIONS}
         selectedCurrencies={selectedCurrencies}
+      />
+      
+      <AlertModal
+        isOpen={showAlertModal}
+        onClose={() => setShowAlertModal(false)}
+        message={alertMessage}
+        type="warning"
+        buttonText={isUk ? 'OK' : 'OK'}
       />
     </div>
   );
