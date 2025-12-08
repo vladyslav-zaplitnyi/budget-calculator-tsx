@@ -35,11 +35,11 @@ export function useBudgetImportExport() {
     isUk
   } = context;
 
-  const handleExportToJsonFile = useCallback(() => {
+  const handleExportToJsonFile = useCallback(async () => {
     try {
       const activeBudget = budgets && budgets[activeBudgetId || 'default'];
       const budgetStartBalances = activeBudget?.startBalances || {};
-      
+
       // Формуємо мапу startBalances з усіх вибраних валют
       const exportStartBalances: Record<string, number | null> = {};
       selectedCurrencies.forEach(code => {
@@ -72,28 +72,97 @@ export function useBudgetImportExport() {
       const minutes = String(now.getMinutes()).padStart(2, '0');
       const filename = `budget_${year}-${month}-${day}_${hours}-${minutes}.json`;
 
-      const blob = new Blob([JSON.stringify(dataToSave, null, 2)], {
+      const jsonString = JSON.stringify(dataToSave, null, 2);
+
+      // Детекція браузера для кращого UX
+      const isFirefox = typeof navigator !== 'undefined' && 
+        (navigator.userAgent.includes('Firefox') || navigator.userAgent.includes('Gecko'));
+      
+      // Якщо браузер підтримує File System Access API – даємо користувачу вибрати місце збереження
+      // Перевіряємо наявність API більш надійним способом
+      const supportsFileSystemAccess = 
+        typeof window !== 'undefined' &&
+        'showSaveFilePicker' in window &&
+        typeof (window as any).showSaveFilePicker === 'function';
+
+      if (supportsFileSystemAccess) {
+        try {
+          const fileHandle = await (window as any).showSaveFilePicker({
+            suggestedName: filename,
+            types: [
+              {
+                description: 'JSON файли',
+                accept: {
+                  'application/json': ['.json']
+                }
+              }
+            ],
+            excludeAcceptAllOption: false
+          });
+
+          const writable = await fileHandle.createWritable();
+          await writable.write(jsonString);
+          await writable.close();
+
+          setSaveMessage(`${translate('errors.fileSaved')}: ${filename}`);
+          setTimeout(() => setSaveMessage(''), 3000);
+          return;
+        } catch (error: unknown) {
+          // Якщо користувач просто закрив діалог – не вважаємо це помилкою
+          if (error instanceof DOMException && error.name === 'AbortError') {
+            setSaveMessage(isUk ? '❌ Збереження скасовано' : '❌ Save cancelled');
+            setTimeout(() => setSaveMessage(''), 3000);
+            return;
+          }
+          // Якщо помилка безпеки або інша – використовуємо fallback
+          console.warn('File System Access API помилка, fallback до стандартного завантаження:', error);
+          // Продовжуємо до fallback
+        }
+      }
+
+      // Fallback для браузерів без File System Access API (Firefox, Safari тощо)
+      // Використовуємо стандартний спосіб завантаження
+      const blob = new Blob([jsonString], {
         type: 'application/json'
       });
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
       link.download = filename;
+      // Додаємо атрибут для кращої сумісності
+      link.setAttribute('download', filename);
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
       URL.revokeObjectURL(url);
 
-      setSaveMessage(
-        `${translate('errors.fileSaved')}: ${filename}`
-      );
-      setTimeout(() => setSaveMessage(''), 3000);
+      // Для Firefox показуємо додаткову інформацію
+      if (isFirefox) {
+        setSaveMessage(
+          isUk 
+            ? `✅ Файл збережено: ${filename}. 💡 Для вибору папки: Налаштування → Загальні → Завантаження → "Завжди питати, куди зберігати файли"`
+            : `✅ File saved: ${filename}. 💡 To choose folder: Settings → General → Downloads → "Always ask you where to save files"`
+        );
+      } else {
+        setSaveMessage(`${translate('errors.fileSaved')}: ${filename}`);
+      }
+      setTimeout(() => setSaveMessage(''), 5000);
     } catch (error) {
       console.error('Помилка при експорті JSON:', error);
       setSaveMessage(translate('errors.exportError'));
       setTimeout(() => setSaveMessage(''), 3000);
     }
-  }, [budgets, activeBudgetId, selectedCurrencies, exchangeRates, days, displayCurrency, displayCurrencyIndex, setSaveMessage]);
+  }, [
+    budgets,
+    activeBudgetId,
+    selectedCurrencies,
+    exchangeRates,
+    days,
+    displayCurrency,
+    displayCurrencyIndex,
+    setSaveMessage,
+    isUk
+  ]);
 
   const handleImportFromJsonFile = useCallback(() => {
     if (fileInputRef.current) {

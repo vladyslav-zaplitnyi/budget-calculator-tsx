@@ -515,7 +515,7 @@ const SettingsCard: React.FC<SettingsCardProps> = ({
               />
               {saveMessage && (
                 <span
-                  className={`block text-xs sm:text-sm font-semibold px-3 py-2 rounded-lg ${
+                  className={`block text-xs sm:text-sm font-semibold px-3 py-2 rounded-lg whitespace-pre-line ${
                     saveMessage.includes('✅') ? 'text-green-700 bg-green-100' : 'text-red-700 bg-red-100'
                   }`}
                 >
