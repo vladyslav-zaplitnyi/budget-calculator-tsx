@@ -125,9 +125,9 @@ const DaysCards: React.FC<DaysCardsProps> = ({
             {/* Day Header */}
             <div className="flex items-center justify-between mb-3 pb-3 border-b-2 border-gray-200">
               <div className="flex items-center gap-2">
-                <div className="bg-gradient-to-br from-indigo-500 to-blue-600 text-white font-bold text-base sm:text-lg rounded-lg px-3 py-1.5 font-display shadow-md">
+                <span className="inline-block bg-indigo-600 text-white font-bold text-base sm:text-lg rounded-lg px-3 py-1.5 font-display select-none" style={{ border: '3px solid #4f46e5', boxShadow: '0 2px 4px rgba(79, 70, 229, 0.3)' }}>
                   {t('days.dayNumber')} {day.day}
-                </div>
+                </span>
               </div>
               <div className="text-xs font-semibold text-gray-500 font-display">
                 {t('days.cumulative')}

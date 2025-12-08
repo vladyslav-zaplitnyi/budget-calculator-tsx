@@ -100,27 +100,27 @@ const Header: React.FC<HeaderProps> = ({
   return (
     <div className="bg-gradient-to-r from-indigo-600 via-blue-600 to-indigo-700 rounded-2xl shadow-2xl p-4 sm:p-6 md:p-8 mb-4 sm:mb-6 text-white">
       {/* Десктоп / планшет: заголовок зліва, панель дій справа */}
-      <div className="hidden md:flex items-center justify-between gap-6 mb-3">
+      <div className="hidden md:flex flex-col lg:flex-row items-center justify-between gap-4 lg:gap-6 mb-3">
         {/* Брендинг + заголовок */}
-        <div className="flex flex-col gap-1">
-          <span className="inline-flex items-center text-[11px] uppercase tracking-[0.18em] text-indigo-100/90">
+        <div className="flex flex-col gap-1 w-full lg:w-auto text-center lg:text-left">
+          <span className="inline-flex items-center justify-center lg:justify-start text-[11px] uppercase tracking-[0.18em] text-indigo-100/90">
             <span className="mr-1">💰</span>
             {t('header.subtitle')}
           </span>
-          <h1 className="text-3xl lg:text-4xl font-extrabold leading-tight text-white">
+          <h1 className="text-2xl lg:text-3xl xl:text-4xl font-extrabold leading-tight text-white">
             {t('header.title')}
           </h1>
-          <p className="text-left text-indigo-100 text-sm sm:text-base mt-1">
+          <p className="text-center lg:text-left text-indigo-100 text-sm sm:text-base mt-1">
             {t('header.description')}
           </p>
         </div>
 
         {/* Контейнер: статус, авторизація, мова */}
-        <div className="flex items-center justify-end flex-1">
-          <div className="inline-flex items-center gap-3 bg-white/10 backdrop-blur-xl rounded-full px-3 sm:px-4 py-1.5 shadow-lg border border-white/20">
+        <div className="flex items-center justify-center lg:justify-end w-full lg:w-auto lg:flex-1">
+          <div className="inline-flex flex-wrap items-center justify-center gap-2 lg:gap-3 bg-white/10 backdrop-blur-xl rounded-full px-3 sm:px-4 py-2 shadow-lg border border-white/20">
             {/* Статус синхронізації */}
             <div
-              className="flex items-center gap-1 text-[11px] sm:text-xs font-semibold bg-black/20 px-2 py-1 rounded-full"
+              className="flex items-center gap-1 text-[11px] sm:text-xs font-semibold bg-black/20 px-2 py-1 rounded-full whitespace-nowrap"
               title={getSyncStatusTitle(syncStatus)}
             >
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-300 animate-pulse" />
@@ -128,7 +128,7 @@ const Header: React.FC<HeaderProps> = ({
             </div>
 
             {/* Тонка роздільна лінія */}
-            <span className="hidden sm:block h-6 w-px bg-white/25" />
+            <span className="hidden xl:block h-6 w-px bg-white/25" />
 
             {/* Авторизація */}
             {authLoading ? (
@@ -184,11 +184,11 @@ const Header: React.FC<HeaderProps> = ({
             )}
 
             {/* Тонка роздільна лінія */}
-            <span className="hidden sm:block h-6 w-px bg-white/25" />
+            <span className="hidden xl:block h-6 w-px bg-white/25" />
 
             {/* Перемикач мови */}
-            <div className="flex items-center gap-2">
-              <span className="hidden lg:inline text-[11px] font-medium text-blue-100/90">
+            <div className="flex items-center gap-2 whitespace-nowrap">
+              <span className="hidden xl:inline text-[11px] font-medium text-blue-100/90">
                 {t('header.language')}
               </span>
               <div className="inline-flex items-center bg-slate-900/40 rounded-full p-0.5 shadow-inner border border-white/10">
@@ -198,7 +198,7 @@ const Header: React.FC<HeaderProps> = ({
                     i18n.changeLanguage('uk');
                     setLanguage('uk');
                   }}
-                  className={`px-2.5 py-1 rounded-full text-[11px] font-semibold flex items-center gap-1 ${
+                  className={`px-2.5 py-1 rounded-full text-[11px] font-semibold flex items-center gap-1 whitespace-nowrap ${
                     i18n.language === 'uk'
                       ? 'bg-white text-slate-900 shadow-sm'
                       : 'text-blue-100 hover:bg-white/10'
@@ -213,7 +213,7 @@ const Header: React.FC<HeaderProps> = ({
                     i18n.changeLanguage('en');
                     setLanguage('en');
                   }}
-                  className={`px-2.5 py-1 rounded-full text-[11px] font-semibold flex items-center gap-1 ${
+                  className={`px-2.5 py-1 rounded-full text-[11px] font-semibold flex items-center gap-1 whitespace-nowrap ${
                     i18n.language === 'en'
                       ? 'bg-white text-slate-900 shadow-sm'
                       : 'text-blue-100 hover:bg-white/10'
@@ -286,7 +286,7 @@ const Header: React.FC<HeaderProps> = ({
                       : 'text-blue-100 hover:bg-white/10'
                   }`}
                 >
-                  <CurrencyFlag currencyCode="en" size={14} />
+                  <CurrencyFlag currencyCode="USD" size={14} />
                   <span>Eng</span>
                 </button>
               </div>

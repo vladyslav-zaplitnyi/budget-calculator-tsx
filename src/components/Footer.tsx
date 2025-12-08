@@ -15,26 +15,38 @@ const Footer: React.FC<FooterProps> = ({ language = 'uk' }) => {
   const { t } = useTranslation();
   
   return (
-    <footer className="mt-6 bg-white/70 backdrop-blur border-t border-slate-200">
-      <div className="max-w-7xl mx-auto px-4 py-3 flex flex-col sm:flex-row items-center justify-center gap-3 text-xs sm:text-sm text-slate-600">
-        <span>{t('footer.copyright')}</span>
-        <a
-          href="https://send.monobank.ua/jar/3iKJRe8Mcm"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-semibold text-white bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 transition-all shadow-md hover:shadow-lg transform hover:scale-105"
-        >
-          {t('footer.cookie')}
-        </a>
-        <a
-          href="https://www.linkedin.com/in/vlad-zaplitnyi-39b3022b2/"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="text-slate-600 hover:text-indigo-600 transition-colors"
-          aria-label="LinkedIn"
-        >
-          <LinkedInIcon />
-        </a>
+    <footer className="mt-6 bg-gradient-to-r from-white/80 via-indigo-50/70 to-white/80 backdrop-blur-sm border-t border-indigo-200/50 shadow-sm">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-5">
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-3 sm:gap-4">
+          {/* Copyright */}
+          <div className="text-xs sm:text-sm text-slate-600 text-center sm:text-left order-2 sm:order-1">
+            <span className="font-medium">{t('footer.copyright')}</span>
+          </div>
+          
+          {/* Actions */}
+          <div className="flex items-center gap-3 sm:gap-4 order-1 sm:order-2">
+            <a
+              href="https://send.monobank.ua/jar/3iKJRe8Mcm"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 px-4 sm:px-5 py-2 sm:py-2.5 rounded-full font-semibold text-sm text-white bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 hover:from-indigo-700 hover:via-purple-700 hover:to-pink-700 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105 active:scale-95"
+            >
+              <span className="text-base sm:text-lg">☕</span>
+              <span className="hidden sm:inline">{t('footer.cookie')}</span>
+              <span className="sm:hidden">{t('footer.cookie')}</span>
+            </a>
+            <a
+              href="https://www.linkedin.com/in/vlad-zaplitnyi-39b3022b2/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center justify-center w-10 h-10 rounded-full bg-white text-slate-700 hover:text-white hover:bg-[#0077B5] transition-all duration-300 shadow-md hover:shadow-lg transform hover:scale-110 active:scale-95"
+              aria-label="LinkedIn"
+              title="LinkedIn Profile"
+            >
+              <LinkedInIcon />
+            </a>
+          </div>
+        </div>
       </div>
     </footer>
   );

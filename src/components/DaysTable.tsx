@@ -215,10 +215,10 @@ const DaysTable: React.FC<DaysTableProps> = ({
 
               return (
                 <tr key={day.day} className="hover:bg-blue-50 transition-colors border-b border-gray-100">
-                  <td className="px-3 py-3 font-bold text-gray-900 font-display text-sm whitespace-nowrap">
-                    <div className="flex items-center justify-center bg-gradient-to-br from-indigo-100 to-blue-100 rounded-lg py-1 px-2">
+                  <td className="px-3 py-3 font-bold text-gray-900 font-display text-sm whitespace-nowrap text-center">
+                    <span className="inline-block py-1 px-2.5 rounded-lg bg-indigo-600 text-white select-none" style={{ border: '2px solid #4f46e5', boxShadow: '0 1px 3px rgba(79, 70, 229, 0.3)' }}>
                       {day.day}
-                    </div>
+                    </span>
                   </td>
                   <td className="px-3 py-3 min-w-[200px] max-w-[300px]">
                     <div className="space-y-2">
