@@ -40,7 +40,7 @@ const Statistics: React.FC<StatisticsProps> = ({
   
   return (
     <div className="bg-white/90 backdrop-blur rounded-2xl shadow-xl p-4 sm:p-6 border border-gray-100">
-      <h2 className="text-lg sm:text-xl font-bold text-gray-800 mb-4 flex items-center">
+      <h2 className="text-lg sm:text-xl font-bold text-gray-800 mb-4 flex items-center font-display">
         <span className="mr-2">📈</span>{' '}
         {t('statistics.title')}
       </h2>
@@ -62,29 +62,29 @@ const Statistics: React.FC<StatisticsProps> = ({
               {/* Income */}
               <div className="bg-gradient-to-br from-emerald-50 to-green-100/70 p-3 sm:p-4 rounded-xl border-l-4 border-emerald-500 shadow-md hover:shadow-lg transition-all">
                 <div className="flex items-center justify-between mb-1">
-                  <p className="text-[10px] sm:text-xs font-semibold text-gray-600">
+                  <p className="text-[10px] sm:text-xs font-semibold text-gray-600 font-sans">
                     {t('statistics.income')}
                   </p>
                   <CurrencyFlag currencyCode={currencyCode} size={14} />
                 </div>
-                <p className="text-base sm:text-xl font-bold text-emerald-600">
+                <p className="text-base sm:text-xl font-bold text-emerald-600 font-sans">
                   {symbol}{totalIncome.toFixed(2)}
                 </p>
-                <p className="text-[10px] text-gray-500">{currencyCode}</p>
+                <p className="text-[10px] text-gray-500 font-sans">{currencyCode}</p>
               </div>
 
               {/* Expenses */}
               <div className="bg-gradient-to-br from-rose-50 to-red-100/70 p-3 sm:p-4 rounded-xl border-l-4 border-rose-500 shadow-md hover:shadow-lg transition-all">
                 <div className="flex items-center justify-between mb-1">
-                  <p className="text-[10px] sm:text-xs font-semibold text-gray-600">
+                  <p className="text-[10px] sm:text-xs font-semibold text-gray-600 font-sans">
                     {t('statistics.expenses')}
                   </p>
                   <CurrencyFlag currencyCode={currencyCode} size={14} />
                 </div>
-                <p className="text-base sm:text-xl font-bold text-rose-600">
+                <p className="text-base sm:text-xl font-bold text-rose-600 font-sans">
                   {symbol}{totalExpense.toFixed(2)}
                 </p>
-                <p className="text-[10px] text-gray-500">{currencyCode}</p>
+                <p className="text-[10px] text-gray-500 font-sans">{currencyCode}</p>
               </div>
             </React.Fragment>
           );
@@ -107,16 +107,16 @@ const Statistics: React.FC<StatisticsProps> = ({
           return (
             <div key={currencyCode} className="bg-gradient-to-br from-indigo-50 to-violet-100/70 p-4 rounded-xl border-2 border-indigo-200 shadow-lg hover:shadow-xl transition-all">
               <div className="flex items-center justify-between mb-2">
-                <p className="text-xs sm:text-sm font-semibold text-gray-700">
+                <p className="text-xs sm:text-sm font-semibold text-gray-700 font-sans">
                   {t('statistics.difference')} {currencyCode} <CurrencyFlag currencyCode={currencyCode} size={14} className="ml-1" />
                 </p>
               </div>
-              <p className={`text-xl sm:text-2xl font-bold ${
+              <p className={`text-xl sm:text-2xl font-bold font-sans ${
                 difference >= 0 ? 'text-emerald-600' : 'text-rose-600'
               }`}>
                 {symbol}{difference.toFixed(2)}
               </p>
-              <p className="text-xs text-gray-500 mt-1">
+              <p className="text-xs text-gray-500 mt-1 font-sans">
                 {t('statistics.incomeMinusExpenses')}
               </p>
             </div>
@@ -128,16 +128,16 @@ const Statistics: React.FC<StatisticsProps> = ({
       <div className="grid grid-cols-1 gap-3 sm:gap-4">
         <div className="bg-gradient-to-br from-indigo-50 to-violet-100/70 p-4 rounded-xl border-2 border-indigo-300 shadow-lg hover:shadow-xl transition-all">
           <div className="flex items-center justify-between mb-2">
-            <p className="text-xs sm:text-sm font-semibold text-gray-700">
+            <p className="text-xs sm:text-sm font-semibold text-gray-700 font-sans">
               {t('statistics.totalDifference')} {displayCurrency} <CurrencyFlag currencyCode={displayCurrency} size={14} className="ml-1" />
             </p>
           </div>
-          <p className={`text-xl sm:text-2xl font-bold ${
+          <p className={`text-xl sm:text-2xl font-bold font-sans ${
             (totalIncomeConverted - totalExpenseConverted) >= 0 ? 'text-emerald-600' : 'text-rose-600'
           }`}>
             {displaySymbol}{(totalIncomeConverted - totalExpenseConverted).toFixed(2)}
           </p>
-          <p className="text-xs text-gray-500 mt-1">
+          <p className="text-xs text-gray-500 mt-1 font-sans">
             {t('statistics.incomeMinusExpensesConverted')}
           </p>
         </div>
