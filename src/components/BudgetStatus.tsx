@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { getCurrencyInfo, getCurrencySymbol, getCurrencyEmoji, AVAILABLE_CURRENCIES, getCurrencyName } from '../utils/currencies';
+import { getCurrencyInfo, getCurrencySymbol, AVAILABLE_CURRENCIES, getCurrencyName } from '../utils/currencies';
 import { convertCurrency } from '../utils/calculations';
 import { ExchangeRates } from '../types';
 import CurrencyFlag from './CurrencyFlag';

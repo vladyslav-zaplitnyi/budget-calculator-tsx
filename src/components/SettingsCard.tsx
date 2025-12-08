@@ -260,7 +260,6 @@ const SettingsCard: React.FC<SettingsCardProps> = ({
                   className="w-full px-3 py-2 sm:py-2.5 text-sm sm:text-base border-2 border-indigo-200 rounded-lg focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 bg-white"
                 >
                   {availableCurrencies.map(code => {
-                    const curr = AVAILABLE_CURRENCIES[code];
                     const isSelected = displayCurrencies.includes(code) && code !== currencyCode;
                     return (
                       <option 
@@ -336,7 +335,6 @@ const SettingsCard: React.FC<SettingsCardProps> = ({
           {selectedCurrencies.map((currencyCode, index) => {
             if (currencyCode === baseCurrency) return null; // Не показуємо курс базової валюти до самої себе
             
-            const currency = AVAILABLE_CURRENCIES[currencyCode];
             const pairKey = `${baseCurrency}_${currencyCode}`;
             const reversePairKey = `${currencyCode}_${baseCurrency}`;
             
