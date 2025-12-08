@@ -3,24 +3,58 @@
 @tailwind utilities;
 
 @layer base {
+  /* Підтримка iPhone notch та інших safe areas */
+  :root {
+    --sat: env(safe-area-inset-top);
+    --sar: env(safe-area-inset-right);
+    --sab: env(safe-area-inset-bottom);
+    --sal: env(safe-area-inset-left);
+  }
+
+  /* Кращі шрифти з покращеним рендерингом для всіх браузерів */
   body {
-    font-family: 'Manrope', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+    font-feature-settings: "kern" 1, "liga" 1, "calt" 1;
+    -webkit-text-size-adjust: 100%;
+    -ms-text-size-adjust: 100%;
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
   }
   
   h1, h2, h3, h4, h5, h6 {
-    font-family: 'Space Grotesk', 'Manrope', system-ui, sans-serif;
+    font-family: 'Plus Jakarta Sans', 'Space Grotesk', 'Inter', system-ui, sans-serif;
     font-weight: 600;
+    letter-spacing: -0.02em;
+  }
+  
+  /* Покращена підтримка чисел */
+  .tabular-nums {
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: "tnum" 1;
   }
 }
 
-/* Smooth scrolling */
+/* Smooth scrolling - кросбраузерна підтримка */
 html {
   scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch; /* iOS smooth scrolling */
 }
 
-/* Custom scrollbar for webkit browsers */
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+}
+
+/* Custom scrollbar - покращена підтримка для всіх браузерів */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #6366f1 #f1f5f9;
+}
+
 ::-webkit-scrollbar {
   width: 10px;
   height: 10px;
@@ -34,10 +68,15 @@ html {
 ::-webkit-scrollbar-thumb {
   background: linear-gradient(135deg, #6366f1, #8b5cf6);
   border-radius: 10px;
+  border: 2px solid #f1f5f9;
 }
 
 ::-webkit-scrollbar-thumb:hover {
   background: linear-gradient(135deg, #4f46e5, #7c3aed);
+}
+
+::-webkit-scrollbar-corner {
+  background: #f1f5f9;
 }
 
 /* Remove number input arrows */
@@ -51,15 +90,40 @@ input[type="number"] {
   -moz-appearance: textfield;
 }
 
-/* Smooth transitions for all interactive elements */
+/* Smooth transitions - кросбраузерна підтримка */
 button,
 input,
-select {
+select,
+a {
+  -webkit-transition: all 0.2s ease-in-out;
+  -moz-transition: all 0.2s ease-in-out;
+  -ms-transition: all 0.2s ease-in-out;
+  -o-transition: all 0.2s ease-in-out;
   transition: all 0.2s ease-in-out;
 }
 
-/* Focus visible styles for accessibility */
+/* Focus visible styles - покращена доступність */
 *:focus-visible {
+  outline: 2px solid #6366f1;
+  outline-offset: 2px;
+  -webkit-box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1);
+  -moz-box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1);
+  box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1);
+}
+
+/* Видалення outline в Safari/iOS при фокусі */
+button:focus,
+input:focus,
+select:focus,
+textarea:focus {
+  outline: none;
+}
+
+/* Але додаємо його назад для доступності */
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
   outline: 2px solid #6366f1;
   outline-offset: 2px;
 }
@@ -102,12 +166,61 @@ textarea::-webkit-resizer {
   border-color: transparent #6366f1 #6366f1 transparent;
 }
 
-/* Sticky table header fix for cross-browser compatibility */
+/* Sticky table header - покращена кросбраузерна підтримка */
 .sticky-table-header {
-  position: -webkit-sticky; /* Safari */
+  position: -webkit-sticky; /* Safari 6.1+ */
   position: sticky;
   top: 0;
   z-index: 20;
+  background: linear-gradient(to right, #4f46e5, #2563eb, #7c3aed);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+/* Забезпечення коректного відображення таблиці */
+table {
+  border-collapse: separate;
+  border-spacing: 0;
+  width: 100%;
+  min-width: 100%;
+}
+
+/* Кросбраузерна підтримка для overflow */
+.table-container {
+  overflow-x: auto;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  position: relative;
+  max-width: 100%;
+}
+
+/* Фіксовані колонки (День, Опис) */
+.table-fixed-col {
+  position: -webkit-sticky;
+  position: sticky;
+  left: 0;
+  z-index: 10;
+  background: white;
+}
+
+.table-fixed-col-2 {
+  position: -webkit-sticky;
+  position: sticky;
+  left: 80px;
+  z-index: 10;
+  background: white;
+}
+
+/* Shadow для фіксованих колонок */
+.table-fixed-col::after,
+.table-fixed-col-2::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 30px;
+  background: linear-gradient(to right, rgba(0, 0, 0, 0.05), transparent);
+  pointer-events: none;
 }
 
 /* Emoji flag support for cross-browser compatibility */
@@ -177,4 +290,158 @@ button .currency-flag svg {
 th,
 td {
   font-family: "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji", "Android Emoji", "EmojiSymbols", "EmojiOne Mozilla", "Twemoji Mozilla", "Segoe UI", system-ui, sans-serif;
+}
+
+/* Покращена адаптивність для різних екранів */
+@media (max-width: 768px) {
+  body {
+    font-size: 14px;
+  }
+}
+
+@media (max-width: 480px) {
+  body {
+    font-size: 13px;
+  }
+}
+
+/* Кросбраузерна підтримка flexbox */
+.flex {
+  display: -webkit-box;
+  display: -ms-flexbox;
+  display: flex;
+}
+
+/* Кросбраузерна підтримка grid */
+.grid {
+  display: -ms-grid;
+  display: grid;
+}
+
+/* Покращення для touch-пристроїв */
+@media (hover: none) and (pointer: coarse) {
+  button,
+  a,
+  [role="button"] {
+    min-height: 44px;
+    min-width: 44px;
+  }
+}
+
+/* Підтримка dark mode (на майбутнє) */
+@media (prefers-color-scheme: dark) {
+  /* Залишаємо світлу тему, але підготовка до dark mode */
+}
+
+/* Покращення для печаті */
+@media print {
+  .no-print {
+    display: none !important;
+  }
+  
+  body {
+    background: white;
+    color: black;
+  }
+  
+  table {
+    page-break-inside: avoid;
+  }
+}
+
+/* Анімації - кросбраузерна підтримка */
+@-webkit-keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@-moz-keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* Підтримка старих браузерів для border-radius */
+.rounded-xl {
+  -webkit-border-radius: 0.75rem;
+  -moz-border-radius: 0.75rem;
+  border-radius: 0.75rem;
+}
+
+/* Підтримка старих браузерів для box-shadow */
+.shadow-xl {
+  -webkit-box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  -moz-box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+}
+
+/* Покращення для дуже малих екранів */
+@media (max-width: 360px) {
+  html {
+    font-size: 14px;
+  }
+  
+  .text-xs { font-size: 0.65rem; }
+  .text-sm { font-size: 0.75rem; }
+  .text-base { font-size: 0.875rem; }
+}
+
+/* Покращення для великих екранів */
+@media (min-width: 1920px) {
+  .container {
+    max-width: 1600px;
+    margin: 0 auto;
+  }
+}
+
+/* Фіксація для iOS Safari bottom bar */
+@supports (padding: max(0px)) {
+  body {
+    padding-bottom: max(env(safe-area-inset-bottom), 0px);
+  }
+}
+
+/* Покращена підтримка для landscape на мобільних */
+@media (max-height: 500px) and (orientation: landscape) {
+  .lg\:max-h-\[85vh\] {
+    max-height: 70vh;
+  }
+}
+
+/* Запобігання прозорості при tap на iOS */
+* {
+  -webkit-tap-highlight-color: rgba(99, 102, 241, 0.1);
+}
+
+/* Покращення для RTL мов (майбутнє) */
+[dir="rtl"] .mr-1 { margin-right: 0; margin-left: 0.25rem; }
+[dir="rtl"] .ml-1 { margin-left: 0; margin-right: 0.25rem; }
+
+/* Забезпечення доступності для зменшення анімацій */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  ::before,
+  ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Покращення для користувачів з високим контрастом */
+@media (prefers-contrast: high) {
+  .border {
+    border-width: 2px;
+  }
+  
+  button,
+  a {
+    outline: 2px solid currentColor;
+    outline-offset: 2px;
+  }
 }

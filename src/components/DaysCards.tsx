@@ -121,15 +121,15 @@ const DaysCards: React.FC<DaysCardsProps> = ({
         const canAddMore = transactionCount < MAX_TRANSACTIONS;
 
         return (
-          <div key={day.day} className="bg-white rounded-xl shadow-lg p-4 border-2 border-gray-200 hover:border-blue-400 transition-all">
+          <div key={day.day} className="bg-white rounded-xl shadow-lg p-4 border-2 border-gray-200 hover:border-blue-400 transition-all hover:shadow-xl">
             {/* Day Header */}
             <div className="flex items-center justify-between mb-3 pb-3 border-b-2 border-gray-200">
               <div className="flex items-center gap-2">
-                <div className="bg-gradient-to-br from-indigo-500 to-blue-600 text-white font-bold text-lg rounded-lg px-3 py-1">
+                <div className="bg-gradient-to-br from-indigo-500 to-blue-600 text-white font-bold text-base sm:text-lg rounded-lg px-3 py-1.5 font-display shadow-md">
                   {t('days.dayNumber')} {day.day}
                 </div>
               </div>
-              <div className="text-xs font-semibold text-gray-500">
+              <div className="text-xs font-semibold text-gray-500 font-display">
                 {t('days.cumulative')}
               </div>
             </div>
@@ -141,26 +141,28 @@ const DaysCards: React.FC<DaysCardsProps> = ({
                   {transactions.map((t) => (
                     <div
                       key={t.id}
-                      className="flex items-center justify-between p-2 bg-gray-50 rounded-lg"
+                      className="flex items-center justify-between p-2.5 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors border border-gray-200"
                     >
-                      <div className="flex-1">
-                        <span className={`text-sm font-semibold ${
+                      <div className="flex-1 min-w-0">
+                        <span className={`text-sm font-semibold font-display tabular-nums ${
                           t.type === 'income' ? 'text-emerald-600' : 'text-rose-600'
                         }`}>
                           {t.type === 'income' ? '✅' : '❌'} {t.amount} {t.currency}
                         </span>
-                        <p className="text-xs text-gray-600 truncate">{t.description}</p>
+                        <p className="text-xs text-gray-600 truncate mt-0.5">{t.description}</p>
                       </div>
-                      <div className="flex gap-1">
+                      <div className="flex gap-1.5 ml-2 flex-shrink-0">
                         <button
                           onClick={() => handleEditTransaction(index, t)}
-                          className="text-blue-600 hover:text-blue-800 text-sm"
+                          className="text-blue-600 hover:text-blue-800 text-base transition-transform hover:scale-110"
+                          aria-label="Edit transaction"
                         >
                           ✏️
                         </button>
                         <button
                           onClick={() => handleDeleteTransaction(index, t.id)}
-                          className="text-red-600 hover:text-red-800 text-sm"
+                          className="text-red-600 hover:text-red-800 text-base transition-transform hover:scale-110"
+                          aria-label="Delete transaction"
                         >
                           🗑️
                         </button>
@@ -173,12 +175,12 @@ const DaysCards: React.FC<DaysCardsProps> = ({
               {canAddMore ? (
                 <button
                   onClick={() => handleAddTransaction(index)}
-                  className="w-full px-3 py-2 text-sm bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors font-semibold"
+                  className="w-full px-3 py-2.5 text-sm bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-all font-semibold font-display shadow-md hover:shadow-lg hover:scale-[1.02]"
                 >
-                  {t('days.addTransaction')}
+                  ➕ {t('days.addTransaction')}
                 </button>
               ) : (
-                <div className="w-full px-3 py-2 text-sm bg-gray-200 text-gray-600 rounded-lg text-center">
+                <div className="w-full px-3 py-2 text-sm bg-gray-200 text-gray-600 rounded-lg text-center font-medium">
                   {t('transaction.maxTransactions')}
                 </div>
               )}
@@ -206,41 +208,42 @@ const DaysCards: React.FC<DaysCardsProps> = ({
               const symbol = getCurrencySymbol(currencyCode);
               
               return (
-                <div key={currencyCode} className={`bg-gradient-to-br ${colorClass} p-3 rounded-lg mb-2 border ${currencyIdx === selectedCurrencies.length - 1 ? '' : 'mb-2'}`}>
+                <div key={currencyCode} className={`bg-gradient-to-br ${colorClass} p-3 rounded-lg mb-2 border shadow-sm`}>
                   <div className="flex items-center justify-between mb-2">
-                    <h4 className="text-xs font-bold text-gray-700">
-                      <CurrencyFlag currencyCode={currencyCode} size={16} className="mr-1" /> {getCurrencyName(currencyCode, i18nInstance.language === 'uk' ? 'uk' : 'en')} ({currencyCode})
+                    <h4 className="text-xs font-bold text-gray-700 font-display flex items-center gap-1.5">
+                      <CurrencyFlag currencyCode={currencyCode} size={18} />
+                      <span className="hidden xs:inline">{getCurrencyName(currencyCode, i18nInstance.language === 'uk' ? 'uk' : 'en')}</span>
+                      <span>({currencyCode})</span>
                     </h4>
-                    <div className="text-xs font-semibold text-gray-600">
-                      {t('days.cumulativeLabel')}
-                      <span className={cumulative >= (parseFloat(String(startBalance)) || 0) ? 'text-emerald-600' : 'text-rose-600'}>
+                    <div className="text-xs font-semibold text-gray-600 tabular-nums">
+                      Σ: <span className={`font-bold ${cumulative >= (parseFloat(String(startBalance)) || 0) ? 'text-emerald-600' : 'text-rose-600'}`}>
                         {symbol}{cumulative.toFixed(2)}
                       </span>
                     </div>
                   </div>
                   <div className="grid grid-cols-2 gap-2">
                     <div>
-                      <label className="text-xs text-gray-600 block mb-1">
+                      <label className="text-xs text-gray-600 block mb-1 font-medium">
                         ✅ {t('days.income')}
                       </label>
-                      <div className="w-full px-2 py-2 text-sm text-right bg-emerald-50 border-2 border-emerald-200 rounded-lg font-semibold text-emerald-700">
+                      <div className="w-full px-2 py-2 text-sm text-right bg-emerald-50 border-2 border-emerald-200 rounded-lg font-semibold text-emerald-700 tabular-nums shadow-sm">
                         {income > 0 ? income.toFixed(2) : '0.00'}
                       </div>
                     </div>
                     <div>
-                      <label className="text-xs text-gray-600 block mb-1">
+                      <label className="text-xs text-gray-600 block mb-1 font-medium">
                         ❌ {t('days.expenses')}
                       </label>
-                      <div className="w-full px-2 py-2 text-sm text-right bg-rose-50 border-2 border-rose-200 rounded-lg font-semibold text-rose-700">
+                      <div className="w-full px-2 py-2 text-sm text-right bg-rose-50 border-2 border-rose-200 rounded-lg font-semibold text-rose-700 tabular-nums shadow-sm">
                         {expense > 0 ? expense.toFixed(2) : '0.00'}
                       </div>
                     </div>
                   </div>
-                  <div className="mt-2 text-center">
-                    <span className="text-xs text-gray-600">
+                  <div className="mt-2 text-center p-2 bg-white/50 rounded-lg">
+                    <span className="text-xs text-gray-600 font-medium block mb-0.5">
                       {t('days.dayBalance')}
                     </span>
-                    <span className={`text-sm font-bold ${dayBalance > 0 ? 'text-emerald-600' : dayBalance < 0 ? 'text-rose-600' : 'text-gray-600'}`}>
+                    <span className={`text-base font-bold tabular-nums ${dayBalance > 0 ? 'text-emerald-600' : dayBalance < 0 ? 'text-rose-600' : 'text-gray-600'}`}>
                       {symbol}{dayBalance.toFixed(2)}
                     </span>
                   </div>
@@ -275,41 +278,42 @@ const DaysCards: React.FC<DaysCardsProps> = ({
               });
               
               return (
-                <div className="bg-gradient-to-br from-indigo-50 to-violet-100/70 p-3 rounded-lg border-2 border-indigo-300">
+                <div className="bg-gradient-to-br from-indigo-50 to-violet-100/70 p-3 rounded-lg border-2 border-indigo-300 shadow-sm">
                   <div className="flex items-center justify-between mb-2">
-                    <h4 className="text-xs font-bold text-gray-700">
-                      <CurrencyFlag currencyCode={displayCurrency} size={16} className="mr-1" /> {displayCurrency} {t('days.converted')}
+                    <h4 className="text-xs font-bold text-gray-700 font-display flex items-center gap-1.5">
+                      <CurrencyFlag currencyCode={displayCurrency} size={18} />
+                      <span>{displayCurrency}</span>
+                      <span className="hidden xs:inline text-[10px] font-normal">{t('days.converted')}</span>
                     </h4>
-                    <div className="text-xs font-semibold text-gray-600">
-                      {t('days.cumulativeLabel')}
-                      <span className={convertedCumulative >= 0 ? 'text-emerald-600' : 'text-rose-600'}>
+                    <div className="text-xs font-semibold text-gray-600 tabular-nums">
+                      Σ: <span className={`font-bold ${convertedCumulative >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
                         {displaySymbol}{convertedCumulative.toFixed(2)}
                       </span>
                     </div>
                   </div>
                   <div className="grid grid-cols-2 gap-2">
                     <div>
-                      <label className="text-xs text-gray-600 block mb-1">
+                      <label className="text-xs text-gray-600 block mb-1 font-medium">
                         ✅ {t('days.income')}
                       </label>
-                      <div className="w-full px-2 py-2 text-sm text-right bg-emerald-50 border-2 border-emerald-200 rounded-lg font-semibold text-emerald-700">
+                      <div className="w-full px-2 py-2 text-sm text-right bg-emerald-50 border-2 border-emerald-200 rounded-lg font-semibold text-emerald-700 tabular-nums shadow-sm">
                         {convertedIncome > 0 ? convertedIncome.toFixed(2) : '0.00'}
                       </div>
                     </div>
                     <div>
-                      <label className="text-xs text-gray-600 block mb-1">
+                      <label className="text-xs text-gray-600 block mb-1 font-medium">
                         ❌ {t('days.expenses')}
                       </label>
-                      <div className="w-full px-2 py-2 text-sm text-right bg-rose-50 border-2 border-rose-200 rounded-lg font-semibold text-rose-700">
+                      <div className="w-full px-2 py-2 text-sm text-right bg-rose-50 border-2 border-rose-200 rounded-lg font-semibold text-rose-700 tabular-nums shadow-sm">
                         {convertedExpense > 0 ? convertedExpense.toFixed(2) : '0.00'}
                       </div>
                     </div>
                   </div>
-                  <div className="mt-2 text-center">
-                    <span className="text-xs text-gray-600">
+                  <div className="mt-2 text-center p-2 bg-white/50 rounded-lg">
+                    <span className="text-xs text-gray-600 font-medium block mb-0.5">
                       {t('days.dayBalance')}
                     </span>
-                    <span className={`text-sm font-bold ${convertedDayBalance > 0 ? 'text-emerald-600' : convertedDayBalance < 0 ? 'text-rose-600' : 'text-gray-600'}`}>
+                    <span className={`text-base font-bold tabular-nums ${convertedDayBalance > 0 ? 'text-emerald-600' : convertedDayBalance < 0 ? 'text-rose-600' : 'text-gray-600'}`}>
                       {displaySymbol}{convertedDayBalance.toFixed(2)}
                     </span>
                   </div>

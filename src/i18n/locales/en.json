@@ -3,6 +3,7 @@
     "subtitle": "Financial budget tracker",
     "title": "Budget Tracker",
     "description": "31 days • 3 currencies",
+    "pageTitle": "Budget Tracker | 3 currencies",
     "loading": "Loading...",
     "signedIn": "Signed in with Google",
     "logout": "Logout",

@@ -47,5 +47,21 @@ export const translate = (key: string, options?: Record<string, any>): string =>
   return (i18n as any).t(key, options);
 };
 
+// Функція для оновлення title сторінки
+const updatePageTitle = () => {
+  const title = translate('header.pageTitle');
+  if (title && title !== 'header.pageTitle') {
+    document.title = title;
+  }
+};
+
+// Оновлюємо title при ініціалізації
+updatePageTitle();
+
+// Оновлюємо title при зміні мови
+i18n.on('languageChanged', () => {
+  updatePageTitle();
+});
+
 export default i18n;
 

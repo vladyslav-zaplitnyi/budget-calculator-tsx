@@ -134,57 +134,73 @@ const DaysTable: React.FC<DaysTableProps> = ({
 
   return (
     <div className="hidden md:block bg-white rounded-2xl shadow-xl overflow-hidden mb-4 sm:mb-6">
-      <div className="overflow-x-auto lg:max-h-[85vh] lg:overflow-y-auto">
-        <table className="w-full text-sm">
+      <div className="table-container overflow-x-auto lg:max-h-[85vh] lg:overflow-y-auto">
+        <table className="w-full text-sm tabular-nums">
           <thead className="bg-gradient-to-r from-indigo-600 via-blue-600 to-violet-600 text-white sticky-table-header">
             <tr>
-              <th className="px-3 py-3 text-left font-semibold" rowSpan={2}>
+              <th className="px-3 py-3 text-left font-semibold font-display text-xs sm:text-sm" rowSpan={2}>
                 {translate('days.day')}
               </th>
-              <th className="px-3 py-3 text-left font-semibold" rowSpan={2}>
+              <th className="px-3 py-3 text-left font-semibold font-display text-xs sm:text-sm" rowSpan={2}>
                 {translate('days.description')}
               </th>
               {selectedCurrencies.map((currencyCode) => {
                 const currency = getCurrencyInfo(currencyCode);
                 if (!currency) return null;
                 return (
-                  <th key={currencyCode} className="px-3 py-3 text-center font-semibold border-l border-indigo-400" colSpan={4}>
-                    <CurrencyFlag currencyCode={currencyCode} size={18} className="mr-1" /> {getCurrencyName(currencyCode, i18nInstance.language === 'uk' ? 'uk' : 'en')} ({currencyCode})
+                  <th key={currencyCode} className="px-3 py-3 text-center font-semibold font-display text-xs sm:text-sm border-l border-indigo-400" colSpan={4}>
+                    <div className="flex items-center justify-center gap-1.5">
+                      <CurrencyFlag currencyCode={currencyCode} size={18} className="inline-block" />
+                      <span className="hidden lg:inline">{getCurrencyName(currencyCode, i18nInstance.language === 'uk' ? 'uk' : 'en')}</span>
+                      <span>({currencyCode})</span>
+                    </div>
                   </th>
                 );
               })}
-              <th className="px-3 py-3 text-center font-semibold border-l border-indigo-400 bg-indigo-100 text-black" colSpan={4}>
-                <CurrencyFlag currencyCode={displayCurrency} size={18} className="mr-1" /> {displayCurrency} {translate('days.converted')}
+              <th className="px-3 py-3 text-center font-semibold font-display text-xs sm:text-sm border-l border-indigo-400 bg-indigo-100 text-black" colSpan={4}>
+                <div className="flex items-center justify-center gap-1.5">
+                  <CurrencyFlag currencyCode={displayCurrency} size={18} className="inline-block" />
+                  <span>{displayCurrency}</span>
+                  <span className="hidden lg:inline">{translate('days.converted')}</span>
+                </div>
               </th>
             </tr>
             <tr>
               {selectedCurrencies.map((currencyCode, idx) => (
                 <React.Fragment key={currencyCode}>
-                  <th className={`px-2 py-2 text-right text-xs ${idx === 0 ? 'border-l border-indigo-400' : 'border-l border-indigo-400'}`}>
-                    {translate('days.income')}
+                  <th className={`px-2 py-2 text-right text-[10px] sm:text-xs font-medium ${idx === 0 ? 'border-l border-indigo-400' : 'border-l border-indigo-400'}`}>
+                    <span className="hidden sm:inline">{translate('days.income')}</span>
+                    <span className="sm:hidden">✅</span>
                   </th>
-                  <th className="px-2 py-2 text-right text-xs">
-                    {translate('days.expenses')}
+                  <th className="px-2 py-2 text-right text-[10px] sm:text-xs font-medium">
+                    <span className="hidden sm:inline">{translate('days.expenses')}</span>
+                    <span className="sm:hidden">❌</span>
                   </th>
-                  <th className="px-2 py-2 text-right text-xs">
-                    {translate('days.balance')}
+                  <th className="px-2 py-2 text-right text-[10px] sm:text-xs font-medium">
+                    <span className="hidden lg:inline">{translate('days.balance')}</span>
+                    <span className="lg:hidden">Δ</span>
                   </th>
-                  <th className="px-2 py-2 text-right text-xs">
-                    {translate('days.cumulativeShort')}
+                  <th className="px-2 py-2 text-right text-[10px] sm:text-xs font-medium">
+                    <span className="hidden lg:inline">{translate('days.cumulativeShort')}</span>
+                    <span className="lg:hidden">Σ</span>
                   </th>
                 </React.Fragment>
               ))}
-              <th className="px-2 py-2 text-right text-xs border-l border-indigo-400 bg-indigo-50 text-black">
-                {translate('days.income')}
+              <th className="px-2 py-2 text-right text-[10px] sm:text-xs font-medium border-l border-indigo-400 bg-indigo-50 text-black">
+                <span className="hidden sm:inline">{translate('days.income')}</span>
+                <span className="sm:hidden">✅</span>
               </th>
-              <th className="px-2 py-2 text-right text-xs bg-indigo-50 text-black">
-                {translate('days.expenses')}
+              <th className="px-2 py-2 text-right text-[10px] sm:text-xs font-medium bg-indigo-50 text-black">
+                <span className="hidden sm:inline">{translate('days.expenses')}</span>
+                <span className="sm:hidden">❌</span>
               </th>
-              <th className="px-2 py-2 text-right text-xs bg-indigo-50 text-black">
-                {translate('days.balance')}
+              <th className="px-2 py-2 text-right text-[10px] sm:text-xs font-medium bg-indigo-50 text-black">
+                <span className="hidden lg:inline">{translate('days.balance')}</span>
+                <span className="lg:hidden">Δ</span>
               </th>
-              <th className="px-2 py-2 text-right text-xs bg-indigo-50 text-black">
-                {translate('days.cumulativeShort')}
+              <th className="px-2 py-2 text-right text-[10px] sm:text-xs font-medium bg-indigo-50 text-black">
+                <span className="hidden lg:inline">{translate('days.cumulativeShort')}</span>
+                <span className="lg:hidden">Σ</span>
               </th>
             </tr>
           </thead>
@@ -198,11 +214,13 @@ const DaysTable: React.FC<DaysTableProps> = ({
               const canAddMore = transactionCount < MAX_TRANSACTIONS;
 
               return (
-                <tr key={day.day} className="hover:bg-blue-50 transition-colors">
-                  <td className="px-3 py-2 font-bold text-gray-900">
-                    {day.day}
+                <tr key={day.day} className="hover:bg-blue-50 transition-colors border-b border-gray-100">
+                  <td className="px-3 py-3 font-bold text-gray-900 font-display text-sm whitespace-nowrap">
+                    <div className="flex items-center justify-center bg-gradient-to-br from-indigo-100 to-blue-100 rounded-lg py-1 px-2">
+                      {day.day}
+                    </div>
                   </td>
-                  <td className="px-3 py-2 min-w-[200px]">
+                  <td className="px-3 py-3 min-w-[200px] max-w-[300px]">
                     <div className="space-y-2">
                       {/* Чіпси з транзакціями */}
                       <div className="flex flex-wrap gap-1">
@@ -277,19 +295,19 @@ const DaysTable: React.FC<DaysTableProps> = ({
                     
                     return (
                       <React.Fragment key={currencyCode}>
-                        <td className={`px-2 py-2 text-right text-xs ${currencyIdx === 0 ? 'border-l border-gray-200' : 'border-l border-gray-200'}`}>
+                        <td className={`px-2 py-3 text-right text-xs tabular-nums ${currencyIdx === 0 ? 'border-l-2 border-gray-200' : 'border-l border-gray-100'} ${income > 0 ? 'text-emerald-600 font-medium' : 'text-gray-400'}`}>
                           {income > 0 ? income.toFixed(2) : '-'}
                         </td>
-                        <td className="px-2 py-2 text-right text-xs">
+                        <td className={`px-2 py-3 text-right text-xs tabular-nums ${expense > 0 ? 'text-rose-600 font-medium' : 'text-gray-400'}`}>
                           {expense > 0 ? expense.toFixed(2) : '-'}
                         </td>
-                        <td className={`px-2 py-2 text-right font-semibold ${
-                          dayBalance > 0 ? 'text-emerald-600' : dayBalance < 0 ? 'text-rose-600' : 'text-gray-600'
+                        <td className={`px-2 py-3 text-right text-xs font-semibold tabular-nums ${
+                          dayBalance > 0 ? 'text-emerald-600 bg-emerald-50/50' : dayBalance < 0 ? 'text-rose-600 bg-rose-50/50' : 'text-gray-600'
                         }`}>
                           {dayBalance.toFixed(2)}
                         </td>
-                        <td className={`px-2 py-2 text-right font-bold ${
-                          cumulative >= (parseFloat(String(startBalance)) || 0) ? 'text-emerald-600' : 'text-rose-600'
+                        <td className={`px-2 py-3 text-right text-xs font-bold tabular-nums ${
+                          cumulative >= (parseFloat(String(startBalance)) || 0) ? 'text-emerald-700 bg-emerald-50' : 'text-rose-700 bg-rose-50'
                         }`}>
                           {cumulative.toFixed(2)}
                         </td>
@@ -323,16 +341,20 @@ const DaysTable: React.FC<DaysTableProps> = ({
                     
                     return (
                       <>
-                        <td className="px-2 py-2 border-l border-gray-200 text-right text-xs bg-indigo-50 text-black">
+                        <td className={`px-2 py-3 border-l-2 border-indigo-200 text-right text-xs tabular-nums bg-indigo-50/80 ${convertedIncome > 0 ? 'text-emerald-700 font-medium' : 'text-gray-400'}`}>
                           {convertedIncome > 0 ? convertedIncome.toFixed(2) : '-'}
                         </td>
-                        <td className="px-2 py-2 text-right text-xs bg-indigo-50 text-black">
+                        <td className={`px-2 py-3 text-right text-xs tabular-nums bg-indigo-50/80 ${convertedExpense > 0 ? 'text-rose-700 font-medium' : 'text-gray-400'}`}>
                           {convertedExpense > 0 ? convertedExpense.toFixed(2) : '-'}
                         </td>
-                        <td className={`px-2 py-2 text-right font-semibold bg-indigo-50 text-black`}>
+                        <td className={`px-2 py-3 text-right text-xs font-semibold tabular-nums bg-indigo-100/60 ${
+                          convertedDayBalance > 0 ? 'text-emerald-700' : convertedDayBalance < 0 ? 'text-rose-700' : 'text-gray-700'
+                        }`}>
                           {displaySymbol}{convertedDayBalance.toFixed(2)}
                         </td>
-                        <td className={`px-2 py-2 text-right font-bold bg-indigo-50 text-black`}>
+                        <td className={`px-2 py-3 text-right text-xs font-bold tabular-nums bg-indigo-100 ${
+                          convertedCumulative >= 0 ? 'text-emerald-800' : 'text-rose-800'
+                        }`}>
                           {displaySymbol}{convertedCumulative.toFixed(2)}
                         </td>
                       </>
