@@ -3,6 +3,7 @@ import { useNbuRates } from './useNbuRates';
 import { BudgetStateWithSync } from '../contexts/BudgetContext';
 import { ExchangeRates } from '../types';
 import { handleError } from '../utils/errorHandler';
+import { translate } from '../i18n/config';
 
 export function useCurrencyRates(budgetState: BudgetStateWithSync) {
   const { fetchRatesForCurrencies } = useNbuRates();
@@ -10,7 +11,6 @@ export function useCurrencyRates(budgetState: BudgetStateWithSync) {
     selectedCurrencies,
     setExchangeRates,
     baseCurrency,
-    isUk,
     setRateUpdateMessage,
     setIsUpdatingRates
   } = budgetState;
@@ -24,11 +24,7 @@ export function useCurrencyRates(budgetState: BudgetStateWithSync) {
       const currenciesToFetch = selectedCurrencies.filter(code => code !== baseCurrency);
       
       if (currenciesToFetch.length === 0) {
-        setRateUpdateMessage(
-          isUk 
-            ? 'ℹ️ Немає валют для оновлення (обрана тільки базова валюта)'
-            : 'ℹ️ No currencies to update (only base currency selected)'
-        );
+        setRateUpdateMessage(translate('rates.noCurrenciesToUpdate'));
         setTimeout(() => setRateUpdateMessage(''), 5000);
         setIsUpdatingRates(false);
         return;
@@ -69,11 +65,7 @@ export function useCurrencyRates(budgetState: BudgetStateWithSync) {
         })
         .join(', ');
       
-      setRateUpdateMessage(
-        isUk 
-          ? `✅ Курси оновлено: ${ratesList}`
-          : `✅ Rates updated: ${ratesList}`
-      );
+      setRateUpdateMessage(translate('rates.updated', { rates: ratesList }));
       
       setTimeout(() => setRateUpdateMessage(''), 5000);
     } catch (error) {
@@ -82,17 +74,13 @@ export function useCurrencyRates(budgetState: BudgetStateWithSync) {
         { context: 'useCurrencyRates', action: 'handleUpdateNbuRates' }
       );
       
-      setRateUpdateMessage(
-        isUk
-          ? '❌ Помилка завантаження курсів НБУ. Перевірте інтернет-з\'єднання або введіть курси вручну.'
-          : '❌ Error loading NBU rates. Check your internet connection or enter rates manually.'
-      );
+      setRateUpdateMessage(translate('rates.errorLoading'));
       
       setTimeout(() => setRateUpdateMessage(''), 5000);
     } finally {
       setIsUpdatingRates(false);
     }
-  }, [selectedCurrencies, baseCurrency, isUk, fetchRatesForCurrencies, setExchangeRates, setRateUpdateMessage, setIsUpdatingRates]);
+  }, [selectedCurrencies, baseCurrency, fetchRatesForCurrencies, setExchangeRates, setRateUpdateMessage, setIsUpdatingRates]);
 
   return {
     handleUpdateNbuRates

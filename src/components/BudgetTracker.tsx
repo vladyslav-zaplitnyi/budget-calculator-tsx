@@ -19,7 +19,6 @@ export default function BudgetTracker() {
   const handlers = useBudgetHandlers();
 
   const {
-    isUk,
     language,
     setLanguage,
     syncStatus,
@@ -90,15 +89,12 @@ export default function BudgetTracker() {
     settingsAlertMessage,
     settingsAlertType,
     showClearAllConfirmModal,
-    setShowClearAllConfirmModal,
     handleConfirmClearAll,
     handleCancelClearAll,
     showClearAllDaysConfirmModal,
-    setShowClearAllDaysConfirmModal,
     handleConfirmClearAllDays,
     handleCancelClearAllDays,
     showDeleteBudgetConfirmModal,
-    setShowDeleteBudgetConfirmModal,
     handleConfirmDeleteBudget,
     handleCancelDeleteBudget,
     budgetToDeleteName
@@ -179,7 +175,7 @@ export default function BudgetTracker() {
       <div className="flex-1">
         <div className="max-w-7xl mx-auto">
           <Header
-            isUk={isUk}
+            isUk={language === 'uk'}
             syncStatus={syncStatus}
             authLoading={authLoading}
             user={user}
@@ -208,7 +204,7 @@ export default function BudgetTracker() {
           {!(showPasswordModal && user) && (
             <>
               <SettingsCard
-                isUk={isUk}
+                isUk={language === 'uk'}
                 user={user}
                 budgets={budgets}
                 activeBudgetId={activeBudgetId}
@@ -264,7 +260,7 @@ export default function BudgetTracker() {
               />
 
               <DaysTable
-                isUk={isUk}
+                isUk={language === 'uk'}
                 days={days}
                 updateDay={updateDay}
                 startBalances={startBalances}
@@ -274,7 +270,7 @@ export default function BudgetTracker() {
               />
 
               <DaysCards
-                isUk={isUk}
+                isUk={language === 'uk'}
                 days={days}
                 updateDay={updateDay}
                 startBalances={startBalances}
@@ -284,7 +280,7 @@ export default function BudgetTracker() {
               />
 
               <Statistics
-                isUk={isUk}
+                isUk={language === 'uk'}
                 totals={totals}
                 selectedCurrencies={selectedCurrencies}
                 displayCurrency={displayCurrency}
@@ -302,8 +298,8 @@ export default function BudgetTracker() {
         onClose={() => setShowPromptModal(false)}
         onConfirm={handlePromptConfirm}
         title={translate('settings.budget.namePrompt')}
-        confirmButtonText={isUk ? 'Створити' : 'Create'}
-        cancelButtonText={isUk ? 'Скасувати' : 'Cancel'}
+        confirmButtonText={translate('common.create')}
+        cancelButtonText={translate('common.cancel')}
       />
       
       <AlertModal
@@ -311,7 +307,7 @@ export default function BudgetTracker() {
         onClose={() => setShowAlertModal(false)}
         message={alertMessage}
         type={alertType}
-        buttonText={isUk ? 'OK' : 'OK'}
+        buttonText={translate('common.ok')}
       />
       
       <AlertModal
@@ -319,7 +315,7 @@ export default function BudgetTracker() {
         onClose={() => setShowSettingsAlertModal(false)}
         message={settingsAlertMessage}
         type={settingsAlertType}
-        buttonText={isUk ? 'OK' : 'OK'}
+        buttonText={translate('common.ok')}
       />
       
       {/* ConfirmModal для очищення всіх полів */}

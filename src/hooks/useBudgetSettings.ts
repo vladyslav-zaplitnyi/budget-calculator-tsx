@@ -6,6 +6,7 @@ import { Budgets, ExchangeRates } from '../types';
 import { isExchangeRatePair } from '../utils/typeGuards';
 import { saveToFirestore, saveToLocalStorage } from '../utils/storageHelpers';
 import { calculateFinalBalances, calculateTotals } from '../utils/calculations';
+import { translate } from '../i18n/config';
 
 /**
  * Hook для управління налаштуваннями бюджету (валюти, курси, баланси)
@@ -13,7 +14,6 @@ import { calculateFinalBalances, calculateTotals } from '../utils/calculations';
 export function useBudgetSettings() {
   const context = useBudgetContext();
   const {
-    isUk,
     // Поточні значення стану
     selectedCurrencies,
     exchangeRates,
@@ -369,21 +369,21 @@ export function useBudgetSettings() {
 
   const handleEnableEncryption = useCallback(async (password: string, confirmPassword: string) => {
     if (password !== confirmPassword) {
-      setAlertMessage(isUk ? 'Паролі не співпадають!' : 'Passwords do not match!');
+      setAlertMessage(translate('encryption.passwordsDoNotMatch') + '!');
       setAlertType('error');
       setShowAlertModal(true);
       return;
     }
 
     if (!password.trim()) {
-      setAlertMessage(isUk ? 'Пароль не може бути порожнім!' : 'Password cannot be empty!');
+      setAlertMessage(translate('encryption.passwordCannotBeEmpty'));
       setAlertType('error');
       setShowAlertModal(true);
       return;
     }
 
     if (!user) {
-      setAlertMessage(isUk ? 'Потрібна авторизація для шифрування!' : 'Authentication required for encryption!');
+      setAlertMessage(translate('encryption.authenticationRequired'));
       setAlertType('warning');
       setShowAlertModal(true);
       return;
@@ -396,7 +396,7 @@ export function useBudgetSettings() {
       // Зберігаємо дані з шифруванням
       const budgetsToSave = budgets && Object.keys(budgets).length > 0 ? budgets : {
         [activeBudgetId || 'default']: {
-          name: isUk ? 'Основний' : 'Main',
+          name: translate('budget.main'),
           startBalances: {},
           selectedCurrencies: selectedCurrencies || DEFAULT_CURRENCIES,
           exchangeRates: exchangeRates || {},
@@ -416,27 +416,27 @@ export function useBudgetSettings() {
       );
       
       setShowEnableEncryptionModal(false);
-      setAlertMessage(isUk ? 'Шифрування увімкнено!' : 'Encryption enabled!');
+      setAlertMessage(translate('encryption.enabled'));
       setAlertType('success');
       setShowAlertModal(true);
     } catch (error) {
       console.error('Помилка при увімкненні шифрування:', error);
-      setAlertMessage(isUk ? 'Помилка при увімкненні шифрування!' : 'Error enabling encryption!');
+      setAlertMessage(translate('encryption.enableError'));
       setAlertType('error');
       setShowAlertModal(true);
     }
-  }, [isUk, user, budgets, activeBudgetId, selectedCurrencies, exchangeRates, setEncryptionPassword, setIsEncrypted, setSyncStatus, getSyncStatusText]);
+  }, [user, budgets, activeBudgetId, selectedCurrencies, exchangeRates, setEncryptionPassword, setIsEncrypted, setSyncStatus, getSyncStatusText]);
 
   const handleDisableEncryption = useCallback(async (password: string) => {
     if (!password.trim()) {
-      setAlertMessage(isUk ? 'Введіть пароль!' : 'Enter password!');
+      setAlertMessage(translate('encryption.enterPassword'));
       setAlertType('error');
       setShowAlertModal(true);
       return;
     }
 
     if (!user) {
-      setAlertMessage(isUk ? 'Потрібна авторизація!' : 'Authentication required!');
+      setAlertMessage(translate('encryption.authenticationRequired'));
       setAlertType('warning');
       setShowAlertModal(true);
       return;
@@ -444,7 +444,7 @@ export function useBudgetSettings() {
 
     // Перевіряємо пароль, спробувавши розшифрувати дані
     if (encryptionPassword !== password) {
-      setAlertMessage(isUk ? 'Неправильний пароль' : 'Wrong password!');
+      setAlertMessage(translate('encryption.wrongPassword'));
       setAlertType('error');
       setShowAlertModal(true);
       return;
@@ -457,7 +457,7 @@ export function useBudgetSettings() {
       // Зберігаємо дані без шифрування
       const budgetsToSave = budgets && Object.keys(budgets).length > 0 ? budgets : {
         [activeBudgetId || 'default']: {
-          name: isUk ? 'Основний' : 'Main',
+          name: translate('budget.main'),
           startBalances: {},
           selectedCurrencies: selectedCurrencies || DEFAULT_CURRENCIES,
           exchangeRates: exchangeRates || {},
@@ -477,16 +477,16 @@ export function useBudgetSettings() {
       );
       
       setShowDisableEncryptionModal(false);
-      setAlertMessage(isUk ? 'Шифрування вимкнено!' : 'Encryption disabled!');
+      setAlertMessage(translate('encryption.disabled'));
       setAlertType('success');
       setShowAlertModal(true);
     } catch (error) {
       console.error('Помилка при вимкненні шифрування:', error);
-      setAlertMessage(isUk ? 'Помилка при вимкненні шифрування!' : 'Error disabling encryption!');
+      setAlertMessage(translate('encryption.disableError'));
       setAlertType('error');
       setShowAlertModal(true);
     }
-  }, [isUk, user, budgets, activeBudgetId, selectedCurrencies, exchangeRates, encryptionPassword, setEncryptionPassword, setIsEncrypted, setSyncStatus, getSyncStatusText]);
+  }, [user, budgets, activeBudgetId, selectedCurrencies, exchangeRates, encryptionPassword, setEncryptionPassword, setIsEncrypted, setSyncStatus, getSyncStatusText]);
 
   return {
     handleClearAll,

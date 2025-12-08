@@ -56,19 +56,18 @@ const GoogleIcon = () => (
 );
 
 const getSyncStatusTitle = (syncStatus: string) => {
-  if (syncStatus.includes('💾') || syncStatus.includes('Local') || syncStatus.includes('Локально')) {
-    return translate('header.syncStatus.local');
-  }
-  if (syncStatus.includes('☁️') || syncStatus.includes('Saved') || syncStatus.includes('Збережено')) {
+  // Використовуємо емодзі для визначення типу статусу (не залежить від мови)
+  if (syncStatus.includes('☁️')) {
     return translate('header.syncStatus.saved');
   }
-  if (syncStatus.includes('⏳') || syncStatus.includes('Syncing') || syncStatus.includes('Синхронізація')) {
-    return translate('header.syncStatus.syncing');
-  }
-  if (syncStatus.includes('❌') || syncStatus.includes('Error') || syncStatus.includes('Помилка')) {
+  if (syncStatus.includes('❌')) {
     return translate('header.syncStatus.error');
   }
-  return '';
+  if (syncStatus.includes('⏳')) {
+    return translate('header.syncStatus.syncing');
+  }
+  // За замовчуванням - локальний статус
+  return translate('header.syncStatus.local');
 };
 
 const Header: React.FC<HeaderProps> = ({

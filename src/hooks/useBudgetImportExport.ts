@@ -31,8 +31,7 @@ export function useBudgetImportExport() {
     displayCurrency,
     displayCurrencyIndex,
     setDisplayCurrency,
-    setDisplayCurrencyIndex,
-    isUk
+    setDisplayCurrencyIndex
   } = context;
 
   const handleExportToJsonFile = useCallback(async () => {
@@ -56,7 +55,7 @@ export function useBudgetImportExport() {
         savedAt: new Date().toISOString(),
         displayCurrency: displayCurrency,
         displayCurrencyIndex: displayCurrencyIndex,
-        budgetName: activeBudget?.name || 'Основний',
+        budgetName: activeBudget?.name || translate('budget.main'),
         settings: settingsToSave,
         days: days.map((day, index) => ({
           day: day.day || (index + 1),
@@ -110,7 +109,7 @@ export function useBudgetImportExport() {
         } catch (error: unknown) {
           // Якщо користувач просто закрив діалог – не вважаємо це помилкою
           if (error instanceof DOMException && error.name === 'AbortError') {
-            setSaveMessage(isUk ? '❌ Збереження скасовано' : '❌ Save cancelled');
+            setSaveMessage(translate('importExport.saveCancelled'));
             setTimeout(() => setSaveMessage(''), 3000);
             return;
           }
@@ -138,11 +137,7 @@ export function useBudgetImportExport() {
 
       // Для Firefox показуємо додаткову інформацію
       if (isFirefox) {
-        setSaveMessage(
-          isUk 
-            ? `✅ Файл збережено: ${filename}. 💡 Для вибору папки: Налаштування → Загальні → Завантаження → "Завжди питати, куди зберігати файли"`
-            : `✅ File saved: ${filename}. 💡 To choose folder: Settings → General → Downloads → "Always ask you where to save files"`
-        );
+        setSaveMessage(translate('importExport.fileSavedInfo', { filename }));
       } else {
         setSaveMessage(`${translate('errors.fileSaved')}: ${filename}`);
       }
@@ -160,8 +155,7 @@ export function useBudgetImportExport() {
     days,
     displayCurrency,
     displayCurrencyIndex,
-    setSaveMessage,
-    isUk
+    setSaveMessage
   ]);
 
   const handleImportFromJsonFile = useCallback(() => {
@@ -244,7 +238,7 @@ export function useBudgetImportExport() {
           setBudgets((prevBudgets: Budgets) => {
             const safePrev = prevBudgets || {};
             const existingBudget = safePrev[currentId] || {
-              name: 'Основний',
+              name: translate('budget.main'),
               startBalances: {},
               selectedCurrencies: DEFAULT_CURRENCIES,
               exchangeRates: {},
@@ -316,9 +310,10 @@ export function useBudgetImportExport() {
 
               // Валідація: максимум 5 транзакцій на день
               if (validatedTransactions.length > 5) {
-                const warningMessage = isUk
-                  ? `⚠️ У день ${i} знайдено ${validatedTransactions.length} транзакцій. Максимум 5 транзакцій на день. Залишено перші 5 транзакцій.`
-                  : `⚠️ Day ${i} has ${validatedTransactions.length} transactions. Maximum 5 transactions per day. Keeping first 5 transactions.`;
+                const warningMessage = translate('transaction.maxTransactions', { 
+                  day: i, 
+                  count: validatedTransactions.length 
+                });
                 console.warn(warningMessage);
                 setLoadMessage(warningMessage);
                 // Обрізаємо до 5 транзакцій
@@ -379,7 +374,7 @@ export function useBudgetImportExport() {
           setBudgets((prevBudgets: Budgets) => {
             const safePrev = prevBudgets || {};
             const updatedBudget = safePrev[currentId] || {
-              name: 'Основний',
+              name: translate('budget.main'),
               startBalances: {},
               selectedCurrencies: DEFAULT_CURRENCIES,
               exchangeRates: {},
@@ -429,7 +424,7 @@ export function useBudgetImportExport() {
     };
 
     reader.readAsText(file, 'utf-8');
-  }, [activeBudgetId, days, setSelectedCurrencies, setExchangeRates, setBudgets, setDays, setIsLoading, setLoadMessage, setDisplayCurrency, setDisplayCurrencyIndex, isUk]);
+  }, [activeBudgetId, days, setSelectedCurrencies, setExchangeRates, setBudgets, setDays, setIsLoading, setLoadMessage, setDisplayCurrency, setDisplayCurrencyIndex]);
 
   return {
     handleExportToJsonFile,

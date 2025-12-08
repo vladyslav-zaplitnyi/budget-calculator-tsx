@@ -57,7 +57,6 @@ export function useFirestoreSync(
     encryptionPassword,
     setEncryptionPassword,
     setIsEncrypted,
-    isUk,
     setDisplayCurrency,
     setDisplayCurrencyIndex
   } = budgetState;
@@ -317,7 +316,7 @@ export function useFirestoreSync(
               
               if (currentBudget) {
                 // Оновлюємо назву бюджету залежно від мови та використовуємо id 'default'
-                const budgetName = isUk ? 'Основний' : 'Main';
+                const budgetName = translate('budget.main');
                 const budgetsToSave: Budgets = {
                   'default': {
                     ...currentBudget,
@@ -576,7 +575,6 @@ export function useFirestoreSync(
     passwordError,
     handlePasswordSubmit,
     handlePasswordCancel,
-    isUk,
     isRemoteDataEncrypted
   };
 }

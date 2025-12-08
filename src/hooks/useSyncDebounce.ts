@@ -18,7 +18,6 @@ interface UseSyncDebounceParams {
   getSyncStatusText: (key: string) => string;
   encryptionPassword?: string | null;
   setIsEncrypted?: (encrypted: boolean) => void;
-  isUk?: boolean;
   // 🔒 ЗАПОБІЖНИК: Прапорець, чи є зашифровані дані в Firestore
   isRemoteDataEncrypted?: boolean;
 }
@@ -52,7 +51,6 @@ export function useSyncDebounce({
   getSyncStatusText,
   encryptionPassword,
   setIsEncrypted,
-  isUk = true,
   isRemoteDataEncrypted = false
 }: UseSyncDebounceParams) {
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -102,7 +100,7 @@ export function useSyncDebounce({
         clearTimeout(saveTimeoutRef.current);
       }
     };
-  }, [budgets, activeBudgetId, user, isInitialLoad, authLoading, setSyncStatus, getSyncStatusText, encryptionPassword, setIsEncrypted, isUk, isRemoteDataEncrypted]);
+  }, [budgets, activeBudgetId, user, isInitialLoad, authLoading, setSyncStatus, getSyncStatusText, encryptionPassword, setIsEncrypted, isRemoteDataEncrypted]);
 
   return saveTimeoutRef;
 }

@@ -97,7 +97,9 @@
       "button": "🗑️ Delete account permanently",
       "title": "Are you sure?",
       "warning": "This action is irreversible. All your budgets and settings will be deleted from Google servers. If you don't have a local copy (JSON), it will be impossible to recover the data.",
-      "confirmLabel": "Type '{text}' to confirm:",
+      "irreversible": "This action is irreversible. All your data will be permanently deleted.",
+      "confirmLabel": "Type \"{{text}}\" to confirm:",
+      "confirmText": "DELETE",
       "confirmButton": "Delete permanently",
       "deleting": "Deleting...",
       "success": "✅ Account successfully deleted",
@@ -168,7 +170,26 @@
     "confirmPassword": "Confirm Password",
     "confirmPasswordPlaceholder": "Enter password again",
     "passwordsDoNotMatch": "Passwords do not match",
-    "wrongPassword": "Wrong password. Please try again.",
+    "passwordCannotBeEmpty": "Password cannot be empty!",
+    "authenticationRequired": "Authentication required for encryption!",
+    "enterPassword": "Enter password!",
+    "wrongPassword": "Wrong password",
+    "enabled": "Encryption enabled!",
+    "enableError": "Error enabling encryption!",
+    "disabled": "Encryption disabled!",
+    "disableError": "Error disabling encryption!",
+    "enable": {
+      "title": "Enable Encryption",
+      "message": "Set a password to encrypt your data. If you forget this password, data cannot be recovered!",
+      "confirm": "Enable",
+      "cancel": "Cancel"
+    },
+    "disable": {
+      "title": "Disable Encryption",
+      "message": "Enter your current password to disable encryption. After this, data will be stored in plain text.",
+      "confirm": "Disable",
+      "cancel": "Cancel"
+    },
     "unlock": {
       "title": "Enter password to unlock",
       "message": "Your data is encrypted. Enter your password to access it.",
@@ -176,6 +197,32 @@
       "cancelButton": "Cancel",
       "deleteAccountLink": "🗑️ Delete account"
     }
+  },
+  "budget": {
+    "main": "Main",
+    "maxLimitReached": "Free version limit reached (max. 3 budgets).",
+    "cannotDeleteLast": "Cannot delete the last budget. At least one budget must remain.",
+    "cannotDeleteMain": "Cannot delete the main budget (Main/Основний)."
+  },
+  "syncStatus": {
+    "saved": "☁️ Saved",
+    "error": "❌ Error",
+    "syncing": "⏳ Syncing...",
+    "local": "💾 Local"
+  },
+  "rates": {
+    "noCurrenciesToUpdate": "ℹ️ No currencies to update (only base currency selected)",
+    "updated": "✅ Rates updated: {{rates}}",
+    "errorLoading": "❌ Error loading NBU rates. Check your internet connection or enter rates manually."
+  },
+  "importExport": {
+    "saveCancelled": "❌ Save cancelled",
+    "fileSavedInfo": "✅ File saved: {{filename}}. 💡 To choose folder: Settings → General → Downloads → \"Always ask you where to save files\""
+  },
+  "common": {
+    "ok": "OK",
+    "create": "Create",
+    "cancel": "Cancel"
   }
 }
 

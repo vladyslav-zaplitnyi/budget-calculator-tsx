@@ -6,14 +6,12 @@ interface DeleteAccountModalProps {
   isOpen: boolean;
   onClose: () => void;
   onConfirm: () => Promise<void>;
-  isUk: boolean;
 }
 
 const DeleteAccountModal: React.FC<DeleteAccountModalProps> = ({
   isOpen,
   onClose,
-  onConfirm,
-  isUk
+  onConfirm
 }) => {
   const { t } = useTranslation();
   const [confirmationText, setConfirmationText] = useState('');
@@ -21,7 +19,7 @@ const DeleteAccountModal: React.FC<DeleteAccountModalProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
 
-  const requiredText = isUk ? 'ВИДАЛИТИ' : 'DELETE';
+  const requiredText = t('settings.deleteAccount.confirmText');
   const isConfirmEnabled = confirmationText === requiredText && !isDeleting;
 
   const handleConfirm = async () => {
@@ -85,10 +83,7 @@ const DeleteAccountModal: React.FC<DeleteAccountModalProps> = ({
         {/* Input для підтвердження */}
         <div className="mb-6">
           <label className="block text-base sm:text-lg font-semibold text-gray-700 mb-3 text-center">
-            {isUk 
-              ? `Введіть "ВИДАЛИТИ" для підтвердження:`
-              : `Type "DELETE" to confirm:`
-            }
+            {t('settings.deleteAccount.confirmLabel', { text: requiredText })}
           </label>
           <input
             type="text"
@@ -151,7 +146,7 @@ const DeleteAccountModal: React.FC<DeleteAccountModalProps> = ({
         onClose={() => {}}
         message={t('settings.deleteAccount.success')}
         type="success"
-        buttonText={isUk ? 'OK' : 'OK'}
+        buttonText={t('common.ok')}
       />
     </div>
   );

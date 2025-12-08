@@ -41,32 +41,18 @@ export function BudgetProvider({ children }: BudgetProviderProps) {
   
   // Функція для отримання тексту статусу синхронізації
   const getSyncStatusText = useCallback((statusType: string) => {
-    if (budgetState.isUk) {
-      switch (statusType) {
-        case 'saved':
-          return '☁️ Збережено';
-        case 'error':
-          return '❌ Помилка';
-        case 'syncing':
-          return '⏳ Синхронізація...';
-        case 'local':
-        default:
-          return '💾 Локально';
-      }
-    } else {
-      switch (statusType) {
-        case 'saved':
-          return '☁️ Saved';
-        case 'error':
-          return '❌ Error';
-        case 'syncing':
-          return '⏳ Syncing...';
-        case 'local':
-        default:
-          return '💾 Local';
-      }
+    switch (statusType) {
+      case 'saved':
+        return translate('syncStatus.saved');
+      case 'error':
+        return translate('syncStatus.error');
+      case 'syncing':
+        return translate('syncStatus.syncing');
+      case 'local':
+      default:
+        return translate('syncStatus.local');
     }
-  }, [budgetState.isUk]);
+  }, []);
 
   // Ініціалізуємо статус синхронізації
   const [syncStatus, setSyncStatus] = useState(() => getSyncStatusText('local'));
@@ -116,13 +102,14 @@ export function BudgetProvider({ children }: BudgetProviderProps) {
   const currencyRates = useCurrencyRates(budgetStateWithSync);
 
   // Оновлюємо текст статусу синхронізації при зміні мови
+  // Використовуємо емодзі для визначення типу статусу (не залежить від мови)
   useEffect(() => {
     let statusType = 'local';
-    if (syncStatus.includes('Збережено') || syncStatus.includes('Saved')) {
+    if (syncStatus.includes('☁️')) {
       statusType = 'saved';
-    } else if (syncStatus.includes('Помилка') || syncStatus.includes('Error')) {
+    } else if (syncStatus.includes('❌')) {
       statusType = 'error';
-    } else if (syncStatus.includes('Синхронізація') || syncStatus.includes('Syncing')) {
+    } else if (syncStatus.includes('⏳')) {
       statusType = 'syncing';
     } else {
       statusType = 'local';
@@ -163,14 +150,13 @@ export function BudgetProvider({ children }: BudgetProviderProps) {
         isOpen={isDeleteAccountModalOpen}
         onClose={handleDeleteAccountModalClose}
         onConfirm={deleteUserAccount}
-        isUk={budgetState.isUk}
       />
       <AlertModal
         isOpen={showAlertModal}
         onClose={() => setShowAlertModal(false)}
         message={alertMessage}
         type="error"
-        buttonText={budgetState.isUk ? 'OK' : 'OK'}
+        buttonText={translate('common.ok')}
       />
     </BudgetContext.Provider>
   );

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { translate } from '../i18n/config';
 import {
   calculateDayBalance,
   calculateCumulativeBalance,
@@ -334,7 +335,7 @@ const DaysCards: React.FC<DaysCardsProps> = ({
         onClose={() => setShowAlertModal(false)}
         message={alertMessage}
         type="warning"
-        buttonText={isUk ? 'OK' : 'OK'}
+        buttonText={translate('common.ok')}
       />
     </div>
   );

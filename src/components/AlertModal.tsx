@@ -1,5 +1,6 @@
 import React from 'react';
 import { createPortal } from 'react-dom';
+import { translate } from '../i18n/config';
 
 interface AlertModalProps {
   isOpen: boolean;
@@ -78,7 +79,7 @@ const AlertModal: React.FC<AlertModalProps> = ({
             onClick={onClose}
             className={`px-6 py-3 rounded-lg font-semibold text-white transition-all ${getButtonColor()}`}
           >
-            {buttonText || 'OK'}
+            {buttonText || translate('common.ok')}
           </button>
         </div>
       </div>

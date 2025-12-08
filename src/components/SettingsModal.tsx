@@ -119,10 +119,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                   {t('settings.deleteAccount.dangerZone')}
                 </h3>
                 <p className="text-sm text-red-600 mb-4">
-                  {isUk 
-                    ? 'Ця дія незворотна. Всі ваші дані будуть видалені назавжди.'
-                    : 'This action is irreversible. All your data will be permanently deleted.'
-                  }
+                  {t('settings.deleteAccount.irreversible')}
                 </p>
                 <button
                   onClick={handleDeleteClick}
@@ -151,7 +148,6 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
         isOpen={isDeleteModalOpen}
         onClose={handleDeleteModalClose}
         onConfirm={deleteUserAccount}
-        isUk={isUk}
       />
 
       {/* Модальні вікна для шифрування - рендеряться незалежно від isOpen */}
@@ -160,12 +156,10 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
         onClose={() => setShowEnableEncryptionModal?.(false)}
         onConfirm={() => {}}
         onConfirmPassword={handleEnableEncryption}
-        title={isUk ? 'Увімкнути шифрування' : 'Enable Encryption'}
-        message={isUk 
-          ? 'Встановіть пароль для шифрування ваших даних. Якщо ви забудете цей пароль, дані відновити неможливо!'
-          : 'Set a password to encrypt your data. If you forget this password, data cannot be recovered!'}
-        confirmButtonText={isUk ? 'Увімкнути' : 'Enable'}
-        cancelButtonText={isUk ? 'Скасувати' : 'Cancel'}
+        title={t('encryption.enable.title')}
+        message={t('encryption.enable.message')}
+        confirmButtonText={t('encryption.enable.confirm')}
+        cancelButtonText={t('encryption.enable.cancel')}
         isConfirmPassword={true}
       />
       
@@ -173,12 +167,10 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
         isOpen={showDisableEncryptionModal}
         onClose={() => setShowDisableEncryptionModal?.(false)}
         onConfirm={handleDisableEncryption || (() => {})}
-        title={isUk ? 'Вимкнути шифрування' : 'Disable Encryption'}
-        message={isUk 
-          ? 'Введіть поточний пароль для вимкнення шифрування. Після цього дані будуть зберігатися у відкритому вигляді.'
-          : 'Enter your current password to disable encryption. After this, data will be stored in plain text.'}
-        confirmButtonText={isUk ? 'Вимкнути' : 'Disable'}
-        cancelButtonText={isUk ? 'Скасувати' : 'Cancel'}
+        title={t('encryption.disable.title')}
+        message={t('encryption.disable.message')}
+        confirmButtonText={t('encryption.disable.confirm')}
+        cancelButtonText={t('encryption.disable.cancel')}
       />
     </>
   );

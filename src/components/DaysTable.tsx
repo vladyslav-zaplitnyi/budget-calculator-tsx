@@ -360,7 +360,7 @@ const DaysTable: React.FC<DaysTableProps> = ({
         onClose={() => setShowAlertModal(false)}
         message={alertMessage}
         type="warning"
-        buttonText={isUk ? 'OK' : 'OK'}
+        buttonText={translate('common.ok')}
       />
     </div>
   );

@@ -1,5 +1,6 @@
 import React, { useState, useEffect, FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
+import { translate } from '../i18n/config';
 import { AVAILABLE_CURRENCIES, getCurrencyName } from '../utils/currencies';
 import { Transaction } from '../types';
 import CurrencyFlag from './CurrencyFlag';
@@ -227,7 +228,7 @@ const TransactionModal: React.FC<TransactionModalProps> = ({
         onClose={() => setShowAlertModal(false)}
         message={alertMessage}
         type="error"
-        buttonText={isUk ? 'OK' : 'OK'}
+        buttonText={translate('common.ok')}
       />
     </div>
   );

@@ -14,7 +14,6 @@ import { translate } from '../i18n/config';
 export function useBudgetManagement() {
   const context = useBudgetContext();
   const {
-    isUk,
     selectedCurrencies,
     exchangeRates,
     activeBudgetId,
@@ -50,11 +49,7 @@ export function useBudgetManagement() {
     const currentBudgets = budgets || {};
     const count = Object.keys(currentBudgets).length;
     if (count >= 3) {
-      setAlertMessage(
-        isUk
-          ? 'Досягнуто ліміт безкоштовної версії (макс. 3 бюджети).'
-          : 'Free version limit reached (max. 3 budgets).'
-      );
+      setAlertMessage(translate('budget.maxLimitReached'));
       setAlertType('warning');
       setShowAlertModal(true);
       return;
@@ -112,7 +107,7 @@ export function useBudgetManagement() {
     }
 
     setDays(newDays);
-  }, [isUk, budgets, activeBudgetId, selectedCurrencies, exchangeRates, setBudgets, setActiveBudgetId, setDays]);
+  }, [budgets, activeBudgetId, selectedCurrencies, exchangeRates, setBudgets, setActiveBudgetId, setDays]);
 
   const handleBudgetChange = useCallback((event: ChangeEvent<HTMLSelectElement>) => {
     const newId = event.target.value;
@@ -269,22 +264,14 @@ export function useBudgetManagement() {
     const budgetCount = Object.keys(currentBudgets).length;
 
     if (budgetCount <= 1) {
-      setAlertMessage(
-        isUk
-          ? 'Не можна видалити останній бюджет. Має залишитися хоча б один бюджет.'
-          : 'Cannot delete the last budget. At least one budget must remain.'
-      );
+      setAlertMessage(translate('budget.cannotDeleteLast'));
       setAlertType('warning');
       setShowAlertModal(true);
       return;
     }
 
     if (activeBudgetId === 'default') {
-      setAlertMessage(
-        isUk
-          ? 'Не можна видалити основний бюджет (Main/Основний).'
-          : 'Cannot delete the main budget (Main/Основний).'
-      );
+      setAlertMessage(translate('budget.cannotDeleteMain'));
       setAlertType('warning');
       setShowAlertModal(true);
       return;
@@ -295,13 +282,12 @@ export function useBudgetManagement() {
     
     setBudgetToDeleteName(budgetName);
     setShowDeleteBudgetConfirmModal(true);
-  }, [isUk, user, budgets, activeBudgetId]);
+  }, [user, budgets, activeBudgetId]);
 
   const handleConfirmDeleteBudget = useCallback(() => {
     setShowDeleteBudgetConfirmModal(false);
     
     const currentBudgets = budgets || {};
-    const currentActiveBudgetId = activeBudgetId;
 
     const updatedBudgets = { ...currentBudgets };
     delete updatedBudgets[activeBudgetId];
