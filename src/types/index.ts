@@ -56,8 +56,11 @@ export interface UserData {
 // Розширена версія UserData для внутрішнього використання (computed values з активного бюджету)
 export interface LoadedUserData extends UserData {
   // Computed fields з активного бюджету (для зручності в хуках)
+  /** @deprecated Використовуйте budgets[activeBudgetId].startBalances.UAH замість цього */
   startBalanceUAH?: number | null;
+  /** @deprecated Використовуйте budgets[activeBudgetId].startBalances.USD замість цього */
   startBalanceUSD?: number | null;
+  /** @deprecated Використовуйте budgets[activeBudgetId].startBalances.EUR замість цього */
   startBalanceEUR?: number | null;
   days?: Day[];
   selectedCurrencies?: string[];

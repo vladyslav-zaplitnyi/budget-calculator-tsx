@@ -1,7 +1,7 @@
 import { useReducer, useEffect, useCallback, useMemo, useRef, useState } from 'react';
 import { loadFromLocalStorage, saveToLocalStorage, createEmptyDefaultBudget } from '../utils/storageHelpers';
 import { normalizeDaysArray } from '../utils/dayHelpers';
-import { DEFAULT_CURRENCIES, validateSelectedCurrencies } from '../utils/currencies';
+import { DEFAULT_CURRENCIES, validateSelectedCurrencies, BASE_CURRENCY } from '../utils/currencies';
 import { LANGUAGE_STORAGE_KEY, LANGUAGE_COOKIE_KEY } from '../utils/constants';
 import { setCookie } from '../utils/cookieHelpers';
 import { currencyReducer, createCurrencyInitialState, currencyActions } from '../reducers/currencyReducer';
@@ -11,8 +11,6 @@ import { messageReducer, createMessageInitialState, messageActions } from '../re
 import { Day, ExchangeRates, Budgets } from '../types';
 import { hasPairStructure, getBuyRate } from '../utils/typeGuards';
 import i18n from '../i18n/config';
-
-const BASE_CURRENCY = 'UAH';
 
 export interface BudgetStateInterface {
   language: string;

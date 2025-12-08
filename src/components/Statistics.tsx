@@ -1,13 +1,13 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { convertCurrency, formatNumber } from '../utils/calculations';
+import { convertCurrency, formatNumber, Totals } from '../utils/calculations';
 import { getCurrencyInfo, getCurrencySymbol } from '../utils/currencies';
 import { ExchangeRates } from '../types';
 import CurrencyFlag from './CurrencyFlag';
 
 interface StatisticsProps {
   isUk: boolean;
-  totals: Record<string, number>;
+  totals: Totals;
   selectedCurrencies: string[];
   displayCurrency: string;
   exchangeRates: ExchangeRates;

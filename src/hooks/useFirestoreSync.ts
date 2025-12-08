@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { loadFromFirestore, loadFromLocalStorage, saveToFirestore, createEmptyDefaultBudget, saveToLocalStorage } from '../utils/storageHelpers';
 import { normalizeDaysArray, createEmptyMonthDays } from '../utils/dayHelpers';
-import { validateSelectedCurrencies, DEFAULT_CURRENCIES } from '../utils/currencies';
+import { validateSelectedCurrencies, DEFAULT_CURRENCIES, BASE_CURRENCY } from '../utils/currencies';
 import { ACTIVE_BUDGET_COOKIE_KEY } from '../utils/constants';
 import { getCookie } from '../utils/cookieHelpers';
 import { BudgetStateWithSync } from '../contexts/BudgetContext';
@@ -10,8 +10,6 @@ import { Budgets, ExchangeRates } from '../types';
 import { getBuyRate, hasPairStructure } from '../utils/typeGuards';
 import { WrongPasswordError } from '../utils/encryption';
 import { translate } from '../i18n/config';
-
-const BASE_CURRENCY = 'UAH';
 
 /**
  * Hook для завантаження та синхронізації даних з Firestore

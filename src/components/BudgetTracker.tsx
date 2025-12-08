@@ -119,7 +119,7 @@ export default function BudgetTracker() {
   );
 
   const finalBalances = useMemo(
-    () => calculateFinalBalances(days, null, null, null, selectedCurrencies, startBalances, totals),
+    () => calculateFinalBalances(days, selectedCurrencies, startBalances, totals),
     [days, selectedCurrencies, startBalances, totals]
   );
   

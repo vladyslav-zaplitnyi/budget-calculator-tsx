@@ -44,6 +44,10 @@ export const AVAILABLE_CURRENCIES: Record<string, CurrencyInfo> = {
 // Дефолтні валюти (для нових бюджетів)
 export const DEFAULT_CURRENCIES: string[] = ['UAH', 'USD', 'EUR'];
 
+// Базова валюта для конвертації (за замовчуванням перша валюта з DEFAULT_CURRENCIES)
+// Всі інші валюти конвертуються через базову валюту
+export const BASE_CURRENCY: string = DEFAULT_CURRENCIES[0] || 'UAH';
+
 // Отримати інформацію про валюту
 export const getCurrencyInfo = (code: string): CurrencyInfo | null => {
   return AVAILABLE_CURRENCIES[code] || null;

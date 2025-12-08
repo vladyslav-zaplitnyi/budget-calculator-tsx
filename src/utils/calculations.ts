@@ -1,5 +1,6 @@
 import { Day, ExchangeRates, Transaction } from '../types';
 import { isExchangeRatePair, isExchangeRateNumber } from './typeGuards';
+import { BASE_CURRENCY } from './currencies';
 
 // Calculation functions for budget tracker
 
@@ -75,8 +76,8 @@ export const convertCurrency = (amount: number, fromCurrency: string, toCurrency
     return rateUAHToTo ? amountInUAH / rateUAHToTo : safeAmount;
   }
 
-  // НОВА ЛОГІКА: працюємо з парною структурою курсів (UAH_USD, USD_UAH тощо)
-  const BASE = 'UAH';
+  // НОВА ЛОГІКА: працюємо з парною структурою курсів (BASE_CURRENCY_CUR, CUR_BASE_CURRENCY тощо)
+  const BASE = BASE_CURRENCY;
 
   // Допоміжна: конвертувати будь-яку валюту в базову (UAH)
   const toBase = (value: number, currency: string): number => {
@@ -160,6 +161,7 @@ export const calculateDayAmountsFromTransactions = (day: Day | null | undefined,
       amounts[`income${code}`] = 0;
       amounts[`expense${code}`] = 0;
     });
+    // Для зворотної сумісності залишаємо старі поля
     amounts.incomeUAH = 0;
     amounts.expenseUAH = 0;
     amounts.incomeUSD = 0;
@@ -192,12 +194,14 @@ export const calculateDayAmountsFromTransactions = (day: Day | null | undefined,
     const type = String(transaction.type || 'expense').toLowerCase();
 
     if (type === 'income') {
-      if (amounts[`income${currency}`] !== undefined) {
-        amounts[`income${currency}`] += amount;
+      const incomeKey = `income${currency}`;
+      if (amounts[incomeKey] !== undefined) {
+        amounts[incomeKey] += amount;
       }
     } else if (type === 'expense') {
-      if (amounts[`expense${currency}`] !== undefined) {
-        amounts[`expense${currency}`] += amount;
+      const expenseKey = `expense${currency}`;
+      if (amounts[expenseKey] !== undefined) {
+        amounts[expenseKey] += amount;
       }
     }
   });
@@ -205,63 +209,47 @@ export const calculateDayAmountsFromTransactions = (day: Day | null | undefined,
   return amounts;
 };
 
-// Обчислює баланс дня з транзакцій
+// Застарілі функції для зворотної сумісності (deprecated)
+// Використовуйте calculateDayBalance(day, currencyCode) замість них
+/** @deprecated Використовуйте calculateDayBalance(day, 'UAH') замість цього */
 export const calculateDayBalanceUAH = (day: Day | null | undefined): number => {
-  if (!day) return 0;
-  const amounts = calculateDayAmountsFromTransactions(day);
-  return amounts.incomeUAH - amounts.expenseUAH;
+  return calculateDayBalance(day, 'UAH');
 };
 
+/** @deprecated Використовуйте calculateDayBalance(day, 'USD') замість цього */
 export const calculateDayBalanceUSD = (day: Day | null | undefined): number => {
-  if (!day) return 0;
-  const amounts = calculateDayAmountsFromTransactions(day);
-  return amounts.incomeUSD - amounts.expenseUSD;
+  return calculateDayBalance(day, 'USD');
 };
 
+/** @deprecated Використовуйте calculateDayBalance(day, 'EUR') замість цього */
 export const calculateDayBalanceEUR = (day: Day | null | undefined): number => {
-  if (!day) return 0;
-  const amounts = calculateDayAmountsFromTransactions(day);
-  return amounts.incomeEUR - amounts.expenseEUR;
+  return calculateDayBalance(day, 'EUR');
 };
 
+/** @deprecated Використовуйте calculateCumulativeBalance(dayIndex, days, startBalance, 'UAH') замість цього */
 export const calculateCumulativeBalanceUAH = (dayIndex: number, days: Day[], startBalanceUAH: number | null): number => {
-  let cumulative = parseFloat(String(startBalanceUAH)) || 0;
-  for (let i = 0; i <= dayIndex; i++) {
-    if (days[i]) {
-      cumulative += calculateDayBalanceUAH(days[i]);
-    }
-  }
-  return cumulative;
+  return calculateCumulativeBalance(dayIndex, days, startBalanceUAH, 'UAH');
 };
 
+/** @deprecated Використовуйте calculateCumulativeBalance(dayIndex, days, startBalance, 'USD') замість цього */
 export const calculateCumulativeBalanceUSD = (dayIndex: number, days: Day[], startBalanceUSD: number | null): number => {
-  let cumulative = parseFloat(String(startBalanceUSD)) || 0;
-  for (let i = 0; i <= dayIndex; i++) {
-    if (days[i]) {
-      cumulative += calculateDayBalanceUSD(days[i]);
-    }
-  }
-  return cumulative;
+  return calculateCumulativeBalance(dayIndex, days, startBalanceUSD, 'USD');
 };
 
+/** @deprecated Використовуйте calculateCumulativeBalance(dayIndex, days, startBalance, 'EUR') замість цього */
 export const calculateCumulativeBalanceEUR = (dayIndex: number, days: Day[], startBalanceEUR: number | null): number => {
-  let cumulative = parseFloat(String(startBalanceEUR)) || 0;
-  for (let i = 0; i <= dayIndex; i++) {
-    if (days[i]) {
-      cumulative += calculateDayBalanceEUR(days[i]);
-    }
-  }
-  return cumulative;
+  return calculateCumulativeBalance(dayIndex, days, startBalanceEUR, 'EUR');
 };
 
 export interface Totals {
-  [key: string]: number;
-  totalIncomeUAH: number;
-  totalExpenseUAH: number;
-  totalIncomeUSD: number;
-  totalExpenseUSD: number;
-  totalIncomeEUR: number;
-  totalExpenseEUR: number;
+  [key: string]: number | undefined;
+  // Застарілі поля для зворотної сумісності (опціональні)
+  totalIncomeUAH?: number;
+  totalExpenseUAH?: number;
+  totalIncomeUSD?: number;
+  totalExpenseUSD?: number;
+  totalIncomeEUR?: number;
+  totalExpenseEUR?: number;
 }
 
 export const calculateTotals = (days: Day[], selectedCurrencies: string[] = ['UAH', 'USD', 'EUR']): Totals => {
@@ -330,47 +318,26 @@ export const calculateCumulativeBalance = (dayIndex: number, days: Day[], startB
 
 export const calculateFinalBalances = (
   days: Day[], 
-  startBalanceUAH: number | null, 
-  startBalanceUSD: number | null, 
-  startBalanceEUR: number | null, 
   selectedCurrencies: string[] = ['UAH', 'USD', 'EUR'], 
   startBalances: Record<string, number | null> = {},
-  totals?: Totals
+  totals?: Totals,
+  // Застарілі параметри для зворотної сумісності (deprecated)
+  startBalanceUAH?: number | null, 
+  startBalanceUSD?: number | null, 
+  startBalanceEUR?: number | null
 ): Record<string, number> => {
   // Обчислюємо totals, якщо не передано
   const calculatedTotals = totals || calculateTotals(days, selectedCurrencies);
 
-  // Для зворотної сумісності - обчислюємо через totals (різниця з Детальної статистики)
-  const totalIncomeUAH = calculatedTotals.totalIncomeUAH || 0;
-  const totalExpenseUAH = calculatedTotals.totalExpenseUAH || 0;
-  const differenceUAH = totalIncomeUAH - totalExpenseUAH;
-  const startBalanceUAHValue = parseFloat(String(startBalanceUAH)) || 0;
-  const finalBalanceUAH = startBalanceUAHValue + differenceUAH;
-
-  const totalIncomeUSD = calculatedTotals.totalIncomeUSD || 0;
-  const totalExpenseUSD = calculatedTotals.totalExpenseUSD || 0;
-  const differenceUSD = totalIncomeUSD - totalExpenseUSD;
-  const startBalanceUSDValue = parseFloat(String(startBalanceUSD)) || 0;
-  const finalBalanceUSD = startBalanceUSDValue + differenceUSD;
-
-  const totalIncomeEUR = calculatedTotals.totalIncomeEUR || 0;
-  const totalExpenseEUR = calculatedTotals.totalExpenseEUR || 0;
-  const differenceEUR = totalIncomeEUR - totalExpenseEUR;
-  const startBalanceEURValue = parseFloat(String(startBalanceEUR)) || 0;
-  const finalBalanceEUR = startBalanceEURValue + differenceEUR;
-
   // Динамічні баланси для вибраних валют - використовуємо різницю з Детальної статистики
-  const finalBalances: Record<string, number> = {
-    finalBalanceUAH,
-    finalBalanceUSD,
-    finalBalanceEUR
-  };
+  const finalBalances: Record<string, number> = {};
 
   selectedCurrencies.forEach(currencyCode => {
+    // Спочатку перевіряємо startBalances, потім застарілі параметри для зворотної сумісності
     const startBalance = startBalances[currencyCode] ?? 
-      (currencyCode === 'UAH' ? startBalanceUAH : 
-       currencyCode === 'USD' ? startBalanceUSD : 
-       currencyCode === 'EUR' ? startBalanceEUR : null);
+      (currencyCode === 'UAH' ? (startBalanceUAH ?? null) : 
+       currencyCode === 'USD' ? (startBalanceUSD ?? null) : 
+       currencyCode === 'EUR' ? (startBalanceEUR ?? null) : null);
     
     const startBalanceValue = parseFloat(String(startBalance)) || 0;
     const incomeKey = `totalIncome${currencyCode}`;
@@ -382,6 +349,17 @@ export const calculateFinalBalances = (
     // Поточний стан бюджету = початковий баланс + різниця у валюті з Детальної статистики
     finalBalances[`finalBalance${currencyCode}`] = startBalanceValue + difference;
   });
+
+  // Для зворотної сумісності додаємо застарілі поля
+  if (selectedCurrencies.includes('UAH')) {
+    finalBalances.finalBalanceUAH = finalBalances.finalBalanceUAH ?? 0;
+  }
+  if (selectedCurrencies.includes('USD')) {
+    finalBalances.finalBalanceUSD = finalBalances.finalBalanceUSD ?? 0;
+  }
+  if (selectedCurrencies.includes('EUR')) {
+    finalBalances.finalBalanceEUR = finalBalances.finalBalanceEUR ?? 0;
+  }
 
   return finalBalances;
 };

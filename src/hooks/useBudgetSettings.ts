@@ -173,9 +173,6 @@ export function useBudgetSettings() {
     const totals = calculateTotals(days || [], selectedCurrencies);
     const finalBalances = calculateFinalBalances(
       days || [],
-      currentStartBalances['UAH'] ?? null,
-      currentStartBalances['USD'] ?? null,
-      currentStartBalances['EUR'] ?? null,
       selectedCurrencies,
       currentStartBalances,
       totals
