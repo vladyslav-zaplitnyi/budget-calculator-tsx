@@ -149,7 +149,7 @@ const DaysTable: React.FC<DaysTableProps> = ({
                   </th>
                 );
               })}
-              <th className="px-3 py-3 text-center font-semibold border-l border-indigo-400 bg-indigo-100" colSpan={4}>
+              <th className="px-3 py-3 text-center font-semibold border-l border-indigo-400 bg-indigo-100 text-black" colSpan={4}>
                 <CurrencyFlag currencyCode={displayCurrency} size={18} className="mr-1" /> {displayCurrency} {translate('days.converted')}
               </th>
             </tr>
@@ -170,16 +170,16 @@ const DaysTable: React.FC<DaysTableProps> = ({
                   </th>
                 </React.Fragment>
               ))}
-              <th className="px-2 py-2 text-right text-xs border-l border-indigo-400 bg-indigo-50">
+              <th className="px-2 py-2 text-right text-xs border-l border-indigo-400 bg-indigo-50 text-black">
                 {translate('days.income')}
               </th>
-              <th className="px-2 py-2 text-right text-xs bg-indigo-50">
+              <th className="px-2 py-2 text-right text-xs bg-indigo-50 text-black">
                 {translate('days.expenses')}
               </th>
-              <th className="px-2 py-2 text-right text-xs bg-indigo-50">
+              <th className="px-2 py-2 text-right text-xs bg-indigo-50 text-black">
                 {translate('days.balance')}
               </th>
-              <th className="px-2 py-2 text-right text-xs bg-indigo-50">
+              <th className="px-2 py-2 text-right text-xs bg-indigo-50 text-black">
                 {translate('days.cumulativeShort')}
               </th>
             </tr>
@@ -319,20 +319,16 @@ const DaysTable: React.FC<DaysTableProps> = ({
                     
                     return (
                       <>
-                        <td className="px-2 py-2 border-l border-gray-200 text-right text-xs bg-indigo-50">
+                        <td className="px-2 py-2 border-l border-gray-200 text-right text-xs bg-indigo-50 text-black">
                           {convertedIncome > 0 ? convertedIncome.toFixed(2) : '-'}
                         </td>
-                        <td className="px-2 py-2 text-right text-xs bg-indigo-50">
+                        <td className="px-2 py-2 text-right text-xs bg-indigo-50 text-black">
                           {convertedExpense > 0 ? convertedExpense.toFixed(2) : '-'}
                         </td>
-                        <td className={`px-2 py-2 text-right font-semibold bg-indigo-50 ${
-                          convertedDayBalance > 0 ? 'text-emerald-600' : convertedDayBalance < 0 ? 'text-rose-600' : 'text-gray-600'
-                        }`}>
+                        <td className={`px-2 py-2 text-right font-semibold bg-indigo-50 text-black`}>
                           {displaySymbol}{convertedDayBalance.toFixed(2)}
                         </td>
-                        <td className={`px-2 py-2 text-right font-bold bg-indigo-50 ${
-                          convertedCumulative >= 0 ? 'text-emerald-600' : 'text-rose-600'
-                        }`}>
+                        <td className={`px-2 py-2 text-right font-bold bg-indigo-50 text-black`}>
                           {displaySymbol}{convertedCumulative.toFixed(2)}
                         </td>
                       </>
