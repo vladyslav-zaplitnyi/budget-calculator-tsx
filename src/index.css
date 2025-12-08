@@ -88,3 +88,80 @@ textarea::-webkit-resizer {
   border-style: solid;
   border-color: transparent #6366f1 #6366f1 transparent;
 }
+
+/* Sticky table header fix for cross-browser compatibility */
+.sticky-table-header {
+  position: -webkit-sticky; /* Safari */
+  position: sticky;
+  top: 0;
+  z-index: 20;
+}
+
+/* Emoji flag support for cross-browser compatibility */
+* {
+  font-variant-emoji: emoji;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Ensure emoji flags are displayed correctly */
+.currency-emoji {
+  font-family: "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji", "Android Emoji", "EmojiSymbols", "EmojiOne Mozilla", "Twemoji Mozilla", "Segoe UI", system-ui, sans-serif;
+  font-feature-settings: "liga", "kern";
+  text-rendering: optimizeLegibility;
+  -webkit-font-feature-settings: "liga", "kern";
+  -moz-font-feature-settings: "liga", "kern";
+  display: inline-block;
+  line-height: 1;
+  vertical-align: middle;
+}
+
+/* Currency flag SVG styling */
+.currency-flag {
+  flex-shrink: 0;
+  border-radius: 2px;
+  overflow: hidden;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+  opacity: 1 !important;
+  filter: none !important;
+  isolation: isolate;
+}
+
+.currency-flag svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+  filter: none !important;
+  opacity: 1 !important;
+  color: unset !important;
+  fill: unset !important;
+  isolation: isolate;
+}
+
+/* Ensure flags are not affected by parent text colors */
+.bg-indigo-100 .currency-flag,
+.text-indigo-700 .currency-flag,
+[class*="bg-indigo"] .currency-flag,
+button .currency-flag {
+  opacity: 1 !important;
+  filter: none !important;
+  isolation: isolate;
+}
+
+.bg-indigo-100 .currency-flag svg,
+.text-indigo-700 .currency-flag svg,
+[class*="bg-indigo"] .currency-flag svg,
+button .currency-flag svg {
+  opacity: 1 !important;
+  filter: none !important;
+  color: unset !important;
+  fill: unset !important;
+  isolation: isolate;
+}
+
+/* Specific fix for flag emojis in table headers and cells */
+th,
+td {
+  font-family: "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji", "Android Emoji", "EmojiSymbols", "EmojiOne Mozilla", "Twemoji Mozilla", "Segoe UI", system-ui, sans-serif;
+}

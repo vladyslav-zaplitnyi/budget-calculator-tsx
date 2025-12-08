@@ -10,6 +10,7 @@ import { getCurrencyInfo, getCurrencySymbol, getCurrencyName } from '../utils/cu
 import TransactionModal from './TransactionModal';
 import { generateTransactionId } from '../utils/dayHelpers';
 import { Day, ExchangeRates, Transaction } from '../types';
+import CurrencyFlag from './CurrencyFlag';
 
 interface DaysCardsProps {
   isUk: boolean;
@@ -203,7 +204,7 @@ const DaysCards: React.FC<DaysCardsProps> = ({
                 <div key={currencyCode} className={`bg-gradient-to-br ${colorClass} p-3 rounded-lg mb-2 border ${currencyIdx === selectedCurrencies.length - 1 ? '' : 'mb-2'}`}>
                   <div className="flex items-center justify-between mb-2">
                     <h4 className="text-xs font-bold text-gray-700">
-                      {currency.emoji} {getCurrencyName(currencyCode, i18nInstance.language === 'uk' ? 'uk' : 'en')} ({currencyCode})
+                      <CurrencyFlag currencyCode={currencyCode} size={16} className="mr-1" /> {getCurrencyName(currencyCode, i18nInstance.language === 'uk' ? 'uk' : 'en')} ({currencyCode})
                     </h4>
                     <div className="text-xs font-semibold text-gray-600">
                       {t('days.cumulativeLabel')}
@@ -246,7 +247,6 @@ const DaysCards: React.FC<DaysCardsProps> = ({
             {(() => {
               const displayInfo = getCurrencyInfo(displayCurrency);
               const displaySymbol = displayInfo ? displayInfo.symbol : displayCurrency;
-              const displayEmoji = displayInfo ? displayInfo.emoji : '';
               
               // Конвертуємо надбавки, витрати та баланси з усіх обраних валют
               let convertedIncome = 0;
@@ -273,7 +273,7 @@ const DaysCards: React.FC<DaysCardsProps> = ({
                 <div className="bg-gradient-to-br from-indigo-50 to-violet-100/70 p-3 rounded-lg border-2 border-indigo-300">
                   <div className="flex items-center justify-between mb-2">
                     <h4 className="text-xs font-bold text-gray-700">
-                      {displayEmoji} {displayCurrency} {t('days.converted')}
+                      <CurrencyFlag currencyCode={displayCurrency} size={16} className="mr-1" /> {displayCurrency} {t('days.converted')}
                     </h4>
                     <div className="text-xs font-semibold text-gray-600">
                       {t('days.cumulativeLabel')}

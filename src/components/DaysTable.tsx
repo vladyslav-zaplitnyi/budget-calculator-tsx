@@ -10,6 +10,7 @@ import { getCurrencyInfo, getCurrencySymbol, getCurrencyName } from '../utils/cu
 import TransactionModal from './TransactionModal';
 import { generateTransactionId } from '../utils/dayHelpers';
 import { Day, ExchangeRates, Transaction } from '../types';
+import CurrencyFlag from './CurrencyFlag';
 
 interface DaysTableProps {
   isUk: boolean;
@@ -131,7 +132,7 @@ const DaysTable: React.FC<DaysTableProps> = ({
     <div className="hidden md:block bg-white rounded-2xl shadow-xl overflow-hidden mb-4 sm:mb-6">
       <div className="overflow-x-auto lg:max-h-[85vh] lg:overflow-y-auto">
         <table className="w-full text-sm">
-          <thead className="bg-gradient-to-r from-indigo-600 via-blue-600 to-violet-600 text-white lg:sticky lg:top-0 z-20">
+          <thead className="bg-gradient-to-r from-indigo-600 via-blue-600 to-violet-600 text-white sticky-table-header">
             <tr>
               <th className="px-3 py-3 text-left font-semibold" rowSpan={2}>
                 {translate('days.day')}
@@ -144,16 +145,12 @@ const DaysTable: React.FC<DaysTableProps> = ({
                 if (!currency) return null;
                 return (
                   <th key={currencyCode} className="px-3 py-3 text-center font-semibold border-l border-indigo-400" colSpan={4}>
-                    {currency.emoji} {getCurrencyName(currencyCode, i18nInstance.language === 'uk' ? 'uk' : 'en')} ({currencyCode})
+                    <CurrencyFlag currencyCode={currencyCode} size={18} className="mr-1" /> {getCurrencyName(currencyCode, i18nInstance.language === 'uk' ? 'uk' : 'en')} ({currencyCode})
                   </th>
                 );
               })}
               <th className="px-3 py-3 text-center font-semibold border-l border-indigo-400 bg-indigo-100" colSpan={4}>
-                {(() => {
-                  const displayInfo = getCurrencyInfo(displayCurrency);
-                  const displayEmoji = displayInfo ? displayInfo.emoji : '';
-                  return `${displayEmoji} ${displayCurrency} ${translate('days.converted')}`;
-                })()}
+                <CurrencyFlag currencyCode={displayCurrency} size={18} className="mr-1" /> {displayCurrency} {translate('days.converted')}
               </th>
             </tr>
             <tr>

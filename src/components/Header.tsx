@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { translate } from '../i18n/config';
 import i18n from '../i18n/config';
 import SettingsModal from './SettingsModal';
+import CurrencyFlag from './CurrencyFlag';
 
 interface HeaderProps {
   isUk: boolean;
@@ -204,7 +205,7 @@ const Header: React.FC<HeaderProps> = ({
                       : 'text-blue-100 hover:bg-white/10'
                   }`}
                 >
-                  <span>🇺🇦</span>
+                  <CurrencyFlag currencyCode="uk" size={14} />
                   <span className="hidden sm:inline">Укр</span>
                 </button>
                 <button
@@ -219,7 +220,7 @@ const Header: React.FC<HeaderProps> = ({
                       : 'text-blue-100 hover:bg-white/10'
                   }`}
                 >
-                  <span>🇬🇧</span>
+                  <CurrencyFlag currencyCode="USD" size={14} />
                   <span className="hidden sm:inline">Eng</span>
                 </button>
               </div>
@@ -271,7 +272,7 @@ const Header: React.FC<HeaderProps> = ({
                       : 'text-blue-100 hover:bg-white/10'
                   }`}
                 >
-                  <span>🇺🇦</span>
+                  <CurrencyFlag currencyCode="uk" size={14} />
                   <span>Укр</span>
                 </button>
                 <button
@@ -286,7 +287,7 @@ const Header: React.FC<HeaderProps> = ({
                       : 'text-blue-100 hover:bg-white/10'
                   }`}
                 >
-                  <span>🇬🇧</span>
+                  <CurrencyFlag currencyCode="en" size={14} />
                   <span>Eng</span>
                 </button>
               </div>

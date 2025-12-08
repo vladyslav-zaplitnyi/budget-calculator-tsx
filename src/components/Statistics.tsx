@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { convertCurrency } from '../utils/calculations';
 import { getCurrencyInfo, getCurrencySymbol } from '../utils/currencies';
 import { ExchangeRates } from '../types';
+import CurrencyFlag from './CurrencyFlag';
 
 interface StatisticsProps {
   isUk: boolean;
@@ -22,7 +23,6 @@ const Statistics: React.FC<StatisticsProps> = ({
   const { t } = useTranslation();
   const displayInfo = getCurrencyInfo(displayCurrency);
   const displaySymbol = displayInfo ? displayInfo.symbol : displayCurrency;
-  const displayEmoji = displayInfo ? displayInfo.emoji : '';
 
   // Конвертуємо всі суми в обраній валюті відображення
   let totalIncomeConverted = 0;
@@ -65,7 +65,7 @@ const Statistics: React.FC<StatisticsProps> = ({
                   <p className="text-[10px] sm:text-xs font-semibold text-gray-600">
                     {t('statistics.income')}
                   </p>
-                  <span className="text-xs">{currency.emoji}</span>
+                  <CurrencyFlag currencyCode={currencyCode} size={14} />
                 </div>
                 <p className="text-base sm:text-xl font-bold text-emerald-600">
                   {symbol}{totalIncome.toFixed(2)}
@@ -79,7 +79,7 @@ const Statistics: React.FC<StatisticsProps> = ({
                   <p className="text-[10px] sm:text-xs font-semibold text-gray-600">
                     {t('statistics.expenses')}
                   </p>
-                  <span className="text-xs">{currency.emoji}</span>
+                  <CurrencyFlag currencyCode={currencyCode} size={14} />
                 </div>
                 <p className="text-base sm:text-xl font-bold text-rose-600">
                   {symbol}{totalExpense.toFixed(2)}
@@ -108,7 +108,7 @@ const Statistics: React.FC<StatisticsProps> = ({
             <div key={currencyCode} className="bg-gradient-to-br from-indigo-50 to-violet-100/70 p-4 rounded-xl border-2 border-indigo-200 shadow-lg hover:shadow-xl transition-all">
               <div className="flex items-center justify-between mb-2">
                 <p className="text-xs sm:text-sm font-semibold text-gray-700">
-                  {t('statistics.difference')} {currencyCode} {currency.emoji}
+                  {t('statistics.difference')} {currencyCode} <CurrencyFlag currencyCode={currencyCode} size={14} className="ml-1" />
                 </p>
               </div>
               <p className={`text-xl sm:text-2xl font-bold ${
@@ -129,7 +129,7 @@ const Statistics: React.FC<StatisticsProps> = ({
         <div className="bg-gradient-to-br from-indigo-50 to-violet-100/70 p-4 rounded-xl border-2 border-indigo-300 shadow-lg hover:shadow-xl transition-all">
           <div className="flex items-center justify-between mb-2">
             <p className="text-xs sm:text-sm font-semibold text-gray-700">
-              {t('statistics.totalDifference')} {displayCurrency} {displayEmoji}
+              {t('statistics.totalDifference')} {displayCurrency} <CurrencyFlag currencyCode={displayCurrency} size={14} className="ml-1" />
             </p>
           </div>
           <p className={`text-xl sm:text-2xl font-bold ${

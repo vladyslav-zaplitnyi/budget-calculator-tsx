@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { getCurrencyInfo, getCurrencySymbol, getCurrencyEmoji, AVAILABLE_CURRENCIES, getCurrencyName } from '../utils/currencies';
 import { convertCurrency } from '../utils/calculations';
 import { ExchangeRates } from '../types';
+import CurrencyFlag from './CurrencyFlag';
 
 interface BudgetStatusProps {
   isUk: boolean;
@@ -80,7 +81,7 @@ const BudgetStatus: React.FC<BudgetStatusProps> = ({
                 <p className="text-xs sm:text-sm font-semibold text-gray-600">
                   {t('budgetStatus.balance')} {currencyCode}
                 </p>
-                <span className="text-lg">{currency.emoji}</span>
+                <CurrencyFlag currencyCode={currencyCode} size={16} />
               </div>
               <p className={`text-2xl sm:text-3xl font-bold mb-1 ${isPositive ? 'text-emerald-600' : 'text-rose-600'}`}>
                 {currency.symbol}{finalBalance.toFixed(2)}
@@ -113,7 +114,7 @@ const BudgetStatus: React.FC<BudgetStatusProps> = ({
                 className="flex items-center space-x-1 bg-white/20 hover:bg-white/30 rounded-lg px-2 py-1 transition-all"
                 title={t('budgetStatus.selectDisplayCurrency')}
               >
-                <span className="text-lg">{getCurrencyEmoji(displayCurrency)}</span>
+                <CurrencyFlag currencyCode={displayCurrency} size={14} />
                 <span className="text-xs font-semibold">{displayCurrency}</span>
                 <span className="text-xs">▼</span>
               </button>
@@ -149,13 +150,13 @@ const BudgetStatus: React.FC<BudgetStatusProps> = ({
                               }
                               setIsDropdownOpen(false);
                             }}
-                            className={`w-full flex items-center space-x-3 px-3 py-2 rounded-lg transition-all text-left ${
-                              isSelected
-                                ? 'bg-indigo-100 text-indigo-700 font-semibold'
-                                : 'hover:bg-gray-100 text-gray-700'
+                            className={`w-full flex items-center space-x-3 px-3 py-2 rounded-lg transition-all text-left hover:bg-gray-100 text-gray-700 ${
+                              isSelected ? 'font-semibold' : ''
                             }`}
                           >
-                            <span className="text-xl">{currency.emoji}</span>
+                            <div className="flex-shrink-0">
+                              <CurrencyFlag currencyCode={currencyCode} size={14} />
+                            </div>
                             <div className="flex-1">
                               <div className="text-sm font-semibold">{currencyCode}</div>
                               <div className="text-xs text-gray-500">

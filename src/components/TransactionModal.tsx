@@ -2,6 +2,7 @@ import React, { useState, useEffect, FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { AVAILABLE_CURRENCIES, getCurrencyName } from '../utils/currencies';
 import { Transaction } from '../types';
+import CurrencyFlag from './CurrencyFlag';
 
 interface TransactionModalProps {
   isOpen: boolean;
@@ -170,7 +171,7 @@ const TransactionModal: React.FC<TransactionModalProps> = ({
                 if (!curr) return null;
                 return (
                   <option key={code} value={code}>
-                    {curr.emoji} {code} ({getCurrencyName(code, i18nInstance.language === 'uk' ? 'uk' : 'en')})
+                    <CurrencyFlag currencyCode={code} size={16} className="mr-1" /> {code} ({getCurrencyName(code, i18nInstance.language === 'uk' ? 'uk' : 'en')})
                   </option>
                 );
               })}

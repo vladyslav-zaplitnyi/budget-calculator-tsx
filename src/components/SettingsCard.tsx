@@ -5,6 +5,7 @@ import { User } from 'firebase/auth';
 import { Budgets, ExchangeRates, Day } from '../types';
 import { isExchangeRatePair, getBuyRate } from '../utils/typeGuards';
 import ConfirmModal from './ConfirmModal';
+import CurrencyFlag from './CurrencyFlag';
 
 interface SettingsCardProps {
   isUk: boolean;
@@ -267,7 +268,7 @@ const SettingsCard: React.FC<SettingsCardProps> = ({
                         value={code} 
                         disabled={isSelected}
                       >
-                        {curr.emoji} {code} - {getCurrencyName(code, i18nInstance.language === 'uk' ? 'uk' : 'en')}
+                        <CurrencyFlag currencyCode={code} size={16} className="mr-1" /> {code} - {getCurrencyName(code, i18nInstance.language === 'uk' ? 'uk' : 'en')}
                       </option>
                     );
                   })}
@@ -305,7 +306,7 @@ const SettingsCard: React.FC<SettingsCardProps> = ({
             return (
               <div key={currencyCode} className={`bg-gradient-to-br ${colorClass} p-3 sm:p-4 rounded-xl border-2 transition-all`}>
                 <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-2">
-                  {currency.emoji} {t('settings.balances.startingBudget')} ({currencyCode})
+                  <CurrencyFlag currencyCode={currencyCode} size={16} className="mr-1" /> {t('settings.balances.startingBudget')} ({currencyCode})
                 </label>
                 <input
                   type="number"
@@ -383,7 +384,7 @@ const SettingsCard: React.FC<SettingsCardProps> = ({
             return (
               <div key={currencyCode} className={`bg-gradient-to-br ${colorClass} p-3 sm:p-4 rounded-xl border-2 hover:border-opacity-70 transition-all`}>
                 <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-3">
-                  {currency.emoji} {baseCurrency} ↔ {currencyCode}
+                  <CurrencyFlag currencyCode={baseCurrency} size={16} className="mr-1" /> {baseCurrency} ↔ <CurrencyFlag currencyCode={currencyCode} size={16} className="ml-1" /> {currencyCode}
                 </label>
                 <div className="grid grid-cols-2 gap-3">
                   {/* Купівля */}
