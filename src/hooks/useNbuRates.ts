@@ -86,7 +86,7 @@ export function useNbuRates() {
   /**
    * Завантажує актуальні курси для вказаних валют з API НБУ
    * Використовує кешування: якщо курси вже завантажені сьогодні, повертає з кешу
-   * @param {string[]} currencyCodes - Масив кодів валют (наприклад, ['USD', 'EUR', 'PLN', 'RON'])
+   * @param {string[]} currencyCodes - Масив кодів валют (наприклад, ['USD', 'EUR', 'PLN', 'RON', 'CZK'])
    * @returns {Promise<Object>} Об'єкт з курсами валют { USD: 41.5, EUR: 45.0, ... }
    * @throws {Error} Помилка при завантаженні або обробці даних
    */

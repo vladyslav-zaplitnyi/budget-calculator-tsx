@@ -150,7 +150,7 @@ export const saveToFirestore = async (
     if (activeBudget) {
       try {
         const savedDisplayCurrency = localStorage.getItem('displayCurrency');
-        if (savedDisplayCurrency && ['UAH', 'USD', 'EUR', 'PLN', 'RON'].includes(savedDisplayCurrency)) {
+        if (savedDisplayCurrency && ['UAH', 'USD', 'EUR', 'PLN', 'RON', 'CZK'].includes(savedDisplayCurrency)) {
           activeBudget.displayCurrency = savedDisplayCurrency;
         } else if (!activeBudget.displayCurrency) {
           // Якщо в бюджеті немає значення, встановлюємо дефолт

@@ -14,6 +14,7 @@ const flagSVGs: Record<string, string> = {
   EUR: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 30 20" width="100%" height="100%" preserveAspectRatio="none"><rect width="30" height="20" fill="#003399"/><g transform="translate(15,10)"><circle cx="0" cy="-4.2" r="1.1" fill="#FFCC00"/><circle cx="3.64" cy="-2.1" r="1.1" fill="#FFCC00"/><circle cx="3.64" cy="2.1" r="1.1" fill="#FFCC00"/><circle cx="0" cy="4.2" r="1.1" fill="#FFCC00"/><circle cx="-3.64" cy="2.1" r="1.1" fill="#FFCC00"/><circle cx="-3.64" cy="-2.1" r="1.1" fill="#FFCC00"/><circle cx="2.1" cy="-3.64" r="1.1" fill="#FFCC00"/><circle cx="2.1" cy="3.64" r="1.1" fill="#FFCC00"/><circle cx="-2.1" cy="3.64" r="1.1" fill="#FFCC00"/><circle cx="-2.1" cy="-3.64" r="1.1" fill="#FFCC00"/><circle cx="1.05" cy="-3.64" r="1.1" fill="#FFCC00"/><circle cx="1.05" cy="3.64" r="1.1" fill="#FFCC00"/></g></svg>`,
   PLN: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 3 2" width="100%" height="100%" preserveAspectRatio="none"><rect width="3" height="1" fill="#fff"/><rect width="3" height="1" y="1" fill="#DC143C"/></svg>`,
   RON: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 3 2" width="100%" height="100%" preserveAspectRatio="none"><rect width="1" height="2" fill="#002B7F"/><rect width="1" height="2" x="1" fill="#FCD116"/><rect width="1" height="2" x="2" fill="#CE1126"/></svg>`,
+  CZK: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 3 2" width="100%" height="100%" preserveAspectRatio="none"><rect width="3" height="1" fill="#fff"/><rect width="3" height="1" y="1" fill="#D7141A"/><polygon points="0,0 1,0 0,2" fill="#11457E"/></svg>`,
   // Мови
   'uk': `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 3 2" width="100%" height="100%" preserveAspectRatio="none"><rect width="3" height="1" fill="#005BBB"/><rect width="3" height="1" y="1" fill="#FFD500"/></svg>`,
   'en': `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 60 30" width="100%" height="100%" preserveAspectRatio="none"><rect width="60" height="30" fill="#012169"/><path d="M0,0L30,15M60,0L30,15M0,30L30,15M60,30L30,15" stroke="#fff" stroke-width="2.5" fill="none"/><path d="M0,15L60,15M30,0L30,30" stroke="#fff" stroke-width="5" fill="none"/><path d="M0,0L60,30M60,0L0,30" stroke="#C8102E" stroke-width="3" fill="none"/><path d="M0,0L60,30M60,0L0,30" stroke="#fff" stroke-width="2" fill="none"/></svg>`
@@ -30,6 +31,7 @@ const CurrencyFlag: React.FC<CurrencyFlagProps> = ({ currencyCode, className = '
       EUR: '🇪🇺',
       PLN: '🇵🇱',
       RON: '🇷🇴',
+      CZK: '🇨🇿',
       'uk': '🇺🇦',
       'en': '🇬🇧'
     };

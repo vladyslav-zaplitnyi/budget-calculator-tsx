@@ -55,7 +55,7 @@ export function createDisplayInitialState(loadedData: unknown): DisplayState {
   
   try {
     const savedDisplayCurrency = localStorage.getItem('displayCurrency');
-    if (savedDisplayCurrency && ['UAH', 'USD', 'EUR', 'PLN', 'RON'].includes(savedDisplayCurrency)) {
+    if (savedDisplayCurrency && ['UAH', 'USD', 'EUR', 'PLN', 'RON', 'CZK'].includes(savedDisplayCurrency)) {
       displayCurrency = savedDisplayCurrency;
     }
     

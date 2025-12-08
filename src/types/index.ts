@@ -28,7 +28,7 @@ export interface ExchangeRates {
 
 export interface Budget {
   name: string;
-  /** Початкові баланси для всіх валют. Ключ - код валюти (UAH, USD, EUR, PLN, RON, тощо) */
+  /** Початкові баланси для всіх валют. Ключ - код валюти (UAH, USD, EUR, PLN, RON, CZK, тощо) */
   startBalances: Record<string, number | null>;
   days: Day[];
   selectedCurrencies: string[];

@@ -1,7 +1,7 @@
 import { CurrencyInfo } from '../types';
 
 // Конфігурація доступних валют
-// Обмежено до: UAH, USD, EUR, PLN, RON
+// Обмежено до: UAH, USD, EUR, PLN, RON, CZK
 export const AVAILABLE_CURRENCIES: Record<string, CurrencyInfo> = {
   UAH: {
     code: 'UAH',
@@ -32,6 +32,12 @@ export const AVAILABLE_CURRENCIES: Record<string, CurrencyInfo> = {
     name: { uk: 'Румунський лей', en: 'Romanian Leu' },
     symbol: 'lei',
     emoji: '🇷🇴'
+  },
+  CZK: {
+    code: 'CZK',
+    name: { uk: 'Чеська крона', en: 'Czech Koruna' },
+    symbol: 'Kč',
+    emoji: '🇨🇿'
   }
 };
 
