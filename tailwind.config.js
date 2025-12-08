@@ -6,8 +6,11 @@ module.exports = {
   theme: {
     extend: {
       fontFamily: {
-        sans: ['Inter', 'system-ui', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', 'sans-serif'],
-        display: ['Plus Jakarta Sans', 'Space Grotesk', 'Inter', 'system-ui', 'sans-serif'],
+        // ===== НАЛАШТУВАННЯ ШРИФТІВ - ЗМІНЮЙ ТУТ! =====
+        // Щоб змінити шрифт у всьому проекті, просто заміни 'Orbitron' на інший
+        sans: ['Orbitron', 'system-ui', '-apple-system', 'sans-serif'],
+        display: ['Orbitron', 'system-ui', 'sans-serif'],
+        // ==============================================
         mono: ['SF Mono', 'Monaco', 'Inconsolata', 'Fira Code', 'Fira Mono', 'Roboto Mono', 'monospace'],
       },
       fontSize: {

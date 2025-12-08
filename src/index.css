@@ -9,11 +9,18 @@
     --sar: env(safe-area-inset-right);
     --sab: env(safe-area-inset-bottom);
     --sal: env(safe-area-inset-left);
+    
+    /* ===== НАЛАШТУВАННЯ ШРИФТІВ - ЗМІНЮЙ ТУТ! ===== */
+    /* Щоб змінити шрифт у всьому проекті, просто заміни 'Orbitron' на інший */
+    --font-primary: 'Orbitron', system-ui, -apple-system, sans-serif;
+    --font-headings: 'Orbitron', system-ui, sans-serif;
+    /* ============================================== */
   }
 
   /* Кращі шрифти з покращеним рендерингом для всіх браузерів */
   body {
-    font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', sans-serif;
+    font-family: var(--font-primary);
+    font-optical-sizing: auto;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     text-rendering: optimizeLegibility;
@@ -25,7 +32,7 @@
   }
   
   h1, h2, h3, h4, h5, h6 {
-    font-family: 'Plus Jakarta Sans', 'Space Grotesk', 'Inter', system-ui, sans-serif;
+    font-family: var(--font-headings);
     font-weight: 600;
     letter-spacing: -0.02em;
   }
@@ -156,7 +163,7 @@ textarea:focus-visible {
 /* Textarea resize styles */
 textarea {
   resize: vertical;
-  font-family: inherit;
+  font-family: var(--font-primary);
   line-height: 1.5;
 }
 
@@ -233,7 +240,7 @@ table {
 
 /* Ensure emoji flags are displayed correctly */
 .currency-emoji {
-  font-family: "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji", "Android Emoji", "EmojiSymbols", "EmojiOne Mozilla", "Twemoji Mozilla", "Segoe UI", system-ui, sans-serif;
+  font-family: var(--font-primary), "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji", "Android Emoji", "EmojiSymbols", "EmojiOne Mozilla", "Twemoji Mozilla", "Segoe UI", system-ui, sans-serif;
   font-feature-settings: "liga", "kern";
   text-rendering: optimizeLegibility;
   -webkit-font-feature-settings: "liga", "kern";
@@ -289,7 +296,7 @@ button .currency-flag svg {
 /* Specific fix for flag emojis in table headers and cells */
 th,
 td {
-  font-family: "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji", "Android Emoji", "EmojiSymbols", "EmojiOne Mozilla", "Twemoji Mozilla", "Segoe UI", system-ui, sans-serif;
+  font-family: var(--font-primary), "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji", "Android Emoji", "EmojiSymbols", "EmojiOne Mozilla", "Twemoji Mozilla", "Segoe UI", system-ui, sans-serif;
 }
 
 /* Покращена адаптивність для різних екранів */
