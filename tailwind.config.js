@@ -7,9 +7,9 @@ module.exports = {
     extend: {
       fontFamily: {
         // ===== НАЛАШТУВАННЯ ШРИФТІВ - ЗМІНЮЙ ТУТ! =====
-        // Щоб змінити шрифт у всьому проекті, просто заміни 'Orbitron' на інший
-        sans: ['Orbitron', 'system-ui', '-apple-system', 'sans-serif'],
-        display: ['Orbitron', 'system-ui', 'sans-serif'],
+        // Щоб змінити шрифт у всьому проекті, просто заміни 'Noto Sans' на інший
+        sans: ['Noto Sans', 'system-ui', '-apple-system', 'sans-serif'],
+        display: ['Noto Sans', 'system-ui', 'sans-serif'],
         // ==============================================
         mono: ['SF Mono', 'Monaco', 'Inconsolata', 'Fira Code', 'Fira Mono', 'Roboto Mono', 'monospace'],
       },

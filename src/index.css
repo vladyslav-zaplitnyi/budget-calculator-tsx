@@ -11,9 +11,9 @@
     --sal: env(safe-area-inset-left);
     
     /* ===== НАЛАШТУВАННЯ ШРИФТІВ - ЗМІНЮЙ ТУТ! ===== */
-    /* Щоб змінити шрифт у всьому проекті, просто заміни 'Orbitron' на інший */
-    --font-primary: 'Orbitron', system-ui, -apple-system, sans-serif;
-    --font-headings: 'Orbitron', system-ui, sans-serif;
+    /* Щоб змінити шрифт у всьому проекті, просто заміни 'Noto Sans' на інший */
+    --font-primary: 'Noto Sans', system-ui, -apple-system, sans-serif;
+    --font-headings: 'Noto Sans', system-ui, sans-serif;
     /* ============================================== */
   }
 
