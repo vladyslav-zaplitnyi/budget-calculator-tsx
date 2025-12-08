@@ -61,6 +61,13 @@
     },
     "clearAll": "🗑️ Clear all fields",
     "clearAllDays": "🗑️ Clear all days",
+    "startNewMonth": {
+      "button": "📅 Start new month",
+      "title": "Start new month",
+      "message": "All data for days will be deleted, and the current budget will become the starting balance for the new month. Continue?",
+      "confirm": "Yes, start new month",
+      "cancel": "Cancel"
+    },
     "security": {
       "title": "Security",
       "description": "Protect your data with End-to-End encryption. Password is stored only in memory and never sent to the server.",

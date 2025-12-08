@@ -20,6 +20,10 @@ export function useBudgetHandlers() {
     // Settings
     handleClearAll: budgetSettings.handleClearAll,
     handleClearAllDays: budgetSettings.handleClearAllDays,
+    handleStartNewMonth: budgetSettings.handleStartNewMonth,
+    handleConfirmStartNewMonth: budgetSettings.handleConfirmStartNewMonth,
+    handleCancelStartNewMonth: budgetSettings.handleCancelStartNewMonth,
+    showStartNewMonthModal: budgetSettings.showStartNewMonthModal,
     handleCurrencyChange: budgetSettings.handleCurrencyChange,
     handleExchangeRateChange: budgetSettings.handleExchangeRateChange,
     handleStartBalanceChange: budgetSettings.handleStartBalanceChange,

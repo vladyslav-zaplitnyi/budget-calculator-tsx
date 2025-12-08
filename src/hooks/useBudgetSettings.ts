@@ -5,6 +5,7 @@ import { validateSelectedCurrencies, DEFAULT_CURRENCIES } from '../utils/currenc
 import { Budgets, ExchangeRates } from '../types';
 import { isExchangeRatePair } from '../utils/typeGuards';
 import { saveToFirestore, saveToLocalStorage } from '../utils/storageHelpers';
+import { calculateFinalBalances, calculateTotals } from '../utils/calculations';
 
 /**
  * Hook для управління налаштуваннями бюджету (валюти, курси, баланси)
@@ -18,6 +19,7 @@ export function useBudgetSettings() {
     exchangeRates,
     activeBudgetId,
     budgets,
+    days,
     // Сетери стану
     setSelectedCurrencies,
     setExchangeRates,
@@ -37,6 +39,8 @@ export function useBudgetSettings() {
   // Стан для модальних вікон шифрування
   const [showEnableEncryptionModal, setShowEnableEncryptionModal] = useState(false);
   const [showDisableEncryptionModal, setShowDisableEncryptionModal] = useState(false);
+  // Стан для модального вікна "Почати новий місяць"
+  const [showStartNewMonthModal, setShowStartNewMonthModal] = useState(false);
 
   const handleClearAll = useCallback(() => {
     const confirmed = window.confirm(
@@ -135,6 +139,91 @@ export function useBudgetSettings() {
       console.log('✅ Всі дні очищено');
     }
   }, [isUk, activeBudgetId, budgets, setBudgets, setDays]);
+
+  const handleStartNewMonth = useCallback(() => {
+    setShowStartNewMonthModal(true);
+  }, []);
+
+  const handleConfirmStartNewMonth = useCallback(() => {
+    const currentId = activeBudgetId || 'default';
+    const safePrev = budgets || {};
+    const existingBudget = safePrev[currentId] || {
+      name: 'Основний',
+      startBalances: {},
+      selectedCurrencies: DEFAULT_CURRENCIES,
+      exchangeRates: {},
+      days: [],
+      displayCurrency: 'RON',
+      displayCurrencyIndex: 0
+    };
+
+    // Отримуємо поточні початкові баланси
+    const currentStartBalances = existingBudget.startBalances || {};
+
+    // Обчислюємо поточні фінальні баланси
+    const totals = calculateTotals(days || [], selectedCurrencies);
+    const finalBalances = calculateFinalBalances(
+      days || [],
+      currentStartBalances['UAH'] ?? null,
+      currentStartBalances['USD'] ?? null,
+      currentStartBalances['EUR'] ?? null,
+      selectedCurrencies,
+      currentStartBalances,
+      totals
+    );
+
+    // Створюємо нові початкові баланси з поточних фінальних балансів
+    const newStartBalances: Record<string, number | null> = {};
+    selectedCurrencies.forEach(currencyCode => {
+      const finalBalanceKey = `finalBalance${currencyCode}`;
+      const finalBalance = finalBalances[finalBalanceKey] || 0;
+      newStartBalances[currencyCode] = finalBalance;
+    });
+
+    // Створюємо порожні дні
+    const emptyDays = createEmptyMonthDays();
+
+    // Оновлюємо бюджет: стираємо дні та встановлюємо нові початкові баланси
+    const updatedBudget = {
+      ...existingBudget,
+      startBalances: newStartBalances,
+      days: emptyDays
+    };
+
+    const updatedBudgets: Budgets = {
+      ...safePrev,
+      [currentId]: updatedBudget
+    };
+
+    setBudgets(updatedBudgets);
+    setDays(emptyDays);
+
+    // Оновлюємо localStorage
+    saveToLocalStorage(updatedBudgets, currentId);
+
+    // Якщо користувач авторизований, зберігаємо в Firestore
+    if (user) {
+      saveToFirestore(
+        user,
+        updatedBudgets,
+        currentId,
+        false,
+        setSyncStatus,
+        getSyncStatusText,
+        encryptionPassword || undefined,
+        setIsEncrypted
+      ).catch((error) => {
+        console.error('Помилка при збереженні в Firestore:', error);
+      });
+    }
+
+    setShowStartNewMonthModal(false);
+    console.log('✅ Новий місяць розпочато');
+  }, [activeBudgetId, budgets, days, selectedCurrencies, setBudgets, setDays, user, encryptionPassword, setSyncStatus, getSyncStatusText, setIsEncrypted]);
+
+  const handleCancelStartNewMonth = useCallback(() => {
+    setShowStartNewMonthModal(false);
+  }, []);
 
   const handleCurrencyChange = useCallback((newCurrencies: string[]) => {
     const validated = validateSelectedCurrencies(newCurrencies);
@@ -373,6 +462,10 @@ export function useBudgetSettings() {
   return {
     handleClearAll,
     handleClearAllDays,
+    handleStartNewMonth,
+    handleConfirmStartNewMonth,
+    handleCancelStartNewMonth,
+    showStartNewMonthModal,
     handleCurrencyChange,
     handleExchangeRateChange,
     handleStartBalanceChange,

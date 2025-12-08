@@ -28,6 +28,10 @@ interface SettingsCardProps {
   loadMessage: string;
   handleClearAll: () => void;
   handleClearAllDays: () => void;
+  handleStartNewMonth: () => void;
+  handleConfirmStartNewMonth: () => void;
+  handleCancelStartNewMonth: () => void;
+  showStartNewMonthModal: boolean;
   baseCurrency: string;
   handleUpdateNbuRates: () => Promise<void>;
   isUpdatingRates: boolean;
@@ -67,6 +71,10 @@ const SettingsCard: React.FC<SettingsCardProps> = ({
   loadMessage,
   handleClearAll,
   handleClearAllDays,
+  handleStartNewMonth,
+  handleConfirmStartNewMonth,
+  handleCancelStartNewMonth,
+  showStartNewMonthModal,
   baseCurrency = 'UAH',
   handleUpdateNbuRates,
   isUpdatingRates,
@@ -528,18 +536,26 @@ const SettingsCard: React.FC<SettingsCardProps> = ({
         </div>
 
         {/* Очищення даних */}
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-4">
+        <div className="space-y-2 sm:space-y-4">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-4">
+            <button
+              onClick={handleClearAllDays}
+              className="w-full px-4 sm:px-6 py-3 rounded-xl font-bold transition-all text-sm sm:text-base bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white shadow-lg hover:shadow-xl active:scale-95"
+            >
+              {t('settings.clearAllDays')}
+            </button>
+            <button
+              onClick={handleClearAll}
+              className="w-full px-4 sm:px-6 py-3 rounded-xl font-bold transition-all text-sm sm:text-base bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white shadow-lg hover:shadow-xl active:scale-95"
+            >
+              {t('settings.clearAll')}
+            </button>
+          </div>
           <button
-            onClick={handleClearAllDays}
-            className="w-full px-4 sm:px-6 py-3 rounded-xl font-bold transition-all text-sm sm:text-base bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white shadow-lg hover:shadow-xl active:scale-95"
+            onClick={handleStartNewMonth}
+            className="w-full px-4 sm:px-6 py-3 rounded-xl font-bold transition-all text-sm sm:text-base bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white shadow-lg hover:shadow-xl active:scale-95"
           >
-            {t('settings.clearAllDays')}
-          </button>
-          <button
-            onClick={handleClearAll}
-            className="w-full px-4 sm:px-6 py-3 rounded-xl font-bold transition-all text-sm sm:text-base bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white shadow-lg hover:shadow-xl active:scale-95"
-          >
-            {t('settings.clearAll')}
+            {t('settings.startNewMonth.button')}
           </button>
         </div>
       </div>
@@ -553,6 +569,17 @@ const SettingsCard: React.FC<SettingsCardProps> = ({
         message={t('settings.currency.changeConfirm.message')}
         confirmButtonText={t('settings.currency.changeConfirm.confirm')}
         cancelButtonText={t('settings.currency.changeConfirm.cancel')}
+      />
+
+      {/* Модальне вікно підтвердження "Почати новий місяць" */}
+      <ConfirmModal
+        isOpen={showStartNewMonthModal}
+        onClose={handleCancelStartNewMonth}
+        onConfirm={handleConfirmStartNewMonth}
+        title={t('settings.startNewMonth.title')}
+        message={t('settings.startNewMonth.message')}
+        confirmButtonText={t('settings.startNewMonth.confirm')}
+        cancelButtonText={t('settings.startNewMonth.cancel')}
       />
     </div>
   );

@@ -52,6 +52,10 @@ export default function BudgetTracker() {
   const {
     handleClearAll,
     handleClearAllDays,
+    handleStartNewMonth,
+    handleConfirmStartNewMonth,
+    handleCancelStartNewMonth,
+    showStartNewMonthModal,
     handleBudgetChange,
     handleAddBudgetClick,
     handleDeleteBudget,
@@ -197,6 +201,10 @@ export default function BudgetTracker() {
                 loadMessage={loadMessage}
                 handleClearAll={handleClearAll}
                 handleClearAllDays={handleClearAllDays}
+                handleStartNewMonth={handleStartNewMonth}
+                handleConfirmStartNewMonth={handleConfirmStartNewMonth}
+                handleCancelStartNewMonth={handleCancelStartNewMonth}
+                showStartNewMonthModal={showStartNewMonthModal}
                 baseCurrency={baseCurrency}
                 handleUpdateNbuRates={handleUpdateNbuRates}
                 isUpdatingRates={isUpdatingRates}
