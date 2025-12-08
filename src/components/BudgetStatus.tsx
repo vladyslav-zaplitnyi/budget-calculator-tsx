@@ -6,7 +6,6 @@ import { ExchangeRates } from '../types';
 import CurrencyFlag from './CurrencyFlag';
 
 interface BudgetStatusProps {
-  isUk: boolean;
   finalBalances: Record<string, number>;
   startBalances: Record<string, number | null>;
   selectedCurrencies: string[];
@@ -21,7 +20,6 @@ interface BudgetStatusProps {
 }
 
 const BudgetStatus: React.FC<BudgetStatusProps> = ({
-  isUk,
   finalBalances = {},
   startBalances = {},
   selectedCurrencies = ['UAH', 'USD', 'EUR'],
@@ -87,7 +85,7 @@ const BudgetStatus: React.FC<BudgetStatusProps> = ({
                 {currency.symbol}{formatNumber(finalBalance, 2)}
               </p>
               <p className="text-xs text-gray-500 font-sans">
-                {getConvertedValue(currencyCode, finalBalance) || (currencyCode === displayCurrency ? displayCurrency : '')}
+                {getConvertedValue(currencyCode, finalBalance) || ''}
               </p>
             </div>
           );
@@ -104,7 +102,15 @@ const BudgetStatus: React.FC<BudgetStatusProps> = ({
           <div className="flex items-center justify-between mb-1">
             <p className="text-2xl sm:text-3xl font-bold font-sans break-words overflow-hidden">
               {getCurrencySymbol(displayCurrency)}
-              {totalInDisplayCurrency !== undefined ? formatNumber(totalInDisplayCurrency, 2) : (totalInBaseCurrency !== undefined ? formatNumber(totalInBaseCurrency, 2) : formatNumber(totalInUAH, 2))}
+              {(() => {
+                if (totalInDisplayCurrency !== undefined) {
+                  return formatNumber(totalInDisplayCurrency, 2);
+                }
+                if (totalInBaseCurrency !== undefined) {
+                  return formatNumber(totalInBaseCurrency, 2);
+                }
+                return formatNumber(totalInUAH, 2);
+              })()}
             </p>
             {/* Випадаюче меню з прапорами */}
             <div className="relative">

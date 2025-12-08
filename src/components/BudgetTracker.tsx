@@ -222,7 +222,6 @@ export default function BudgetTracker() {
               />
 
               <BudgetStatus
-                isUk={isUk}
                 finalBalances={finalBalances}
                 startBalances={startBalances}
                 selectedCurrencies={selectedCurrencies}
