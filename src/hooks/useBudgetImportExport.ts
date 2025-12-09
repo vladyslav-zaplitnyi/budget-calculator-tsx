@@ -2,7 +2,7 @@ import { useRef, useCallback, ChangeEvent, useState } from 'react';
 import { useBudgetContext } from '../contexts/BudgetContext';
 import { normalizeDaysArray } from '../utils/dayHelpers';
 import { saveToLocalStorage } from '../utils/storageHelpers';
-import { validateSelectedCurrencies, DEFAULT_CURRENCIES } from '../utils/currencies';
+import { validateSelectedCurrencies } from '../utils/currencies';
 import { Budgets, Day, Transaction, Budget } from '../types';
 import { validateDay, validateTransaction } from '../schemas/budgetSchema';
 import { handleError } from '../utils/errorHandler';
