@@ -92,7 +92,7 @@ const BudgetStatus: React.FC<BudgetStatusProps> = ({
         })}
 
         {/* Total in Display Currency */}
-        <div className="bg-gradient-to-br from-indigo-500 to-violet-600 p-4 rounded-xl shadow-lg border-2 border-indigo-300 hover:border-indigo-400 hover:shadow-2xl transition-all text-white relative hover:scale-105">
+        <div className="bg-gradient-to-br from-indigo-500 to-violet-600 p-4 rounded-xl shadow-lg border-2 border-indigo-300 hover:border-indigo-400 hover:shadow-2xl transition-all text-white relative">
           <div className="flex items-center justify-between mb-2">
             <p className="text-xs sm:text-sm font-semibold font-display tracking-tight">
               {t('budgetStatus.totalValue')}
