@@ -10,7 +10,17 @@ interface CurrencyFlagProps {
 const flagSVGs: Record<string, string> = {
   // Валюти
   UAH: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 3 2" width="100%" height="100%" preserveAspectRatio="none"><rect width="3" height="1" fill="#005BBB"/><rect width="3" height="1" y="1" fill="#FFD500"/></svg>`,
-  USD: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 38 20" width="100%" height="100%" preserveAspectRatio="none"><rect width="38" height="20" fill="#B22234"/><path d="M0,1.54h38M0,3.08h38M0,4.62h38M0,6.16h38M0,7.7h38M0,9.24h38M0,10.78h38M0,12.32h38M0,13.86h38M0,15.4h38" stroke="#fff" stroke-width="1.54" fill="none"/><rect width="15.2" height="10.77" fill="#3C3B6E"/><g transform="translate(7.6,5.385)"><circle cx="0" cy="0" r="1.1" fill="#fff" opacity="1"/><circle cx="0" cy="-2" r="0.5" fill="#fff"/><circle cx="1" cy="-1.65" r="0.5" fill="#fff"/><circle cx="1.65" cy="-0.6" r="0.5" fill="#fff"/><circle cx="1.65" cy="0.6" r="0.5" fill="#fff"/><circle cx="1" cy="1.65" r="0.5" fill="#fff"/><circle cx="0" cy="2" r="0.5" fill="#fff"/><circle cx="-1" cy="1.65" r="0.5" fill="#fff"/><circle cx="-1.65" cy="0.6" r="0.5" fill="#fff"/><circle cx="-1.65" cy="-0.6" r="0.5" fill="#fff"/><circle cx="-1" cy="-1.65" r="0.5" fill="#fff"/><circle cx="0.45" cy="-0.95" r="0.5" fill="#fff"/><circle cx="1.25" cy="0" r="0.5" fill="#fff"/><circle cx="0.45" cy="0.95" r="0.5" fill="#fff"/><circle cx="-0.45" cy="0.95" r="0.5" fill="#fff"/><circle cx="-1.25" cy="0" r="0.5" fill="#fff"/><circle cx="-0.45" cy="-0.95" r="0.5" fill="#fff"/></g></svg>`,
+  USD: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 19 10">
+    <rect width="19" height="10" fill="#b22234"/>
+    <g fill="#fff">
+      <rect y="1" width="19" height="1"/>
+      <rect y="3" width="19" height="1"/>
+      <rect y="5" width="19" height="1"/>
+      <rect y="7" width="19" height="1"/>
+      <rect y="9" width="19" height="1"/>
+    </g>
+    <rect width="8" height="5" fill="#3c3b6e"/>
+  </svg>`,
   EUR: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 30 20" width="100%" height="100%" preserveAspectRatio="none"><rect width="30" height="20" fill="#003399"/><g transform="translate(15,10)"><circle cx="0" cy="-4.2" r="1.1" fill="#FFCC00"/><circle cx="3.64" cy="-2.1" r="1.1" fill="#FFCC00"/><circle cx="3.64" cy="2.1" r="1.1" fill="#FFCC00"/><circle cx="0" cy="4.2" r="1.1" fill="#FFCC00"/><circle cx="-3.64" cy="2.1" r="1.1" fill="#FFCC00"/><circle cx="-3.64" cy="-2.1" r="1.1" fill="#FFCC00"/><circle cx="2.1" cy="-3.64" r="1.1" fill="#FFCC00"/><circle cx="2.1" cy="3.64" r="1.1" fill="#FFCC00"/><circle cx="-2.1" cy="3.64" r="1.1" fill="#FFCC00"/><circle cx="-2.1" cy="-3.64" r="1.1" fill="#FFCC00"/><circle cx="1.05" cy="-3.64" r="1.1" fill="#FFCC00"/><circle cx="1.05" cy="3.64" r="1.1" fill="#FFCC00"/></g></svg>`,
   PLN: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 3 2" width="100%" height="100%" preserveAspectRatio="none"><rect width="3" height="1" fill="#fff"/><rect width="3" height="1" y="1" fill="#DC143C"/></svg>`,
   RON: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 3 2" width="100%" height="100%" preserveAspectRatio="none"><rect width="1" height="2" fill="#002B7F"/><rect width="1" height="2" x="1" fill="#FCD116"/><rect width="1" height="2" x="2" fill="#CE1126"/></svg>`,
