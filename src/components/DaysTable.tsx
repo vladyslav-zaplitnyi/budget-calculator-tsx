@@ -296,20 +296,20 @@ const DaysTable: React.FC<DaysTableProps> = ({
                     return (
                       <React.Fragment key={currencyCode}>
                         <td className={`px-2 py-3 text-right text-xs tabular-nums ${currencyIdx === 0 ? 'border-l-2 border-gray-200' : 'border-l border-gray-100'} ${income > 0 ? 'text-emerald-600 font-medium' : 'text-gray-400'}`}>
-                          {income > 0 ? income.toFixed(2) : '-'}
+                          {income > 0 ? income.toFixed(2) : ''}
                         </td>
                         <td className={`px-2 py-3 text-right text-xs tabular-nums ${expense > 0 ? 'text-rose-600 font-medium' : 'text-gray-400'}`}>
-                          {expense > 0 ? expense.toFixed(2) : '-'}
+                          {expense > 0 ? expense.toFixed(2) : ''}
                         </td>
                         <td className={`px-2 py-3 text-right text-xs font-semibold tabular-nums ${
                           dayBalance > 0 ? 'text-emerald-600 bg-emerald-50/50' : dayBalance < 0 ? 'text-rose-600 bg-rose-50/50' : 'text-gray-600'
                         }`}>
-                          {dayBalance.toFixed(2)}
+                          {dayBalance !== 0 ? dayBalance.toFixed(2) : ''}
                         </td>
                         <td className={`px-2 py-3 text-right text-xs font-bold tabular-nums ${
                           cumulative >= (parseFloat(String(startBalance)) || 0) ? 'text-emerald-700 bg-emerald-50' : 'text-rose-700 bg-rose-50'
                         }`}>
-                          {cumulative.toFixed(2)}
+                          {cumulative !== 0 ? cumulative.toFixed(2) : ''}
                         </td>
                       </React.Fragment>
                     );
@@ -342,20 +342,20 @@ const DaysTable: React.FC<DaysTableProps> = ({
                     return (
                       <>
                         <td className={`px-2 py-3 border-l-2 border-indigo-200 text-right text-xs tabular-nums bg-indigo-50/80 ${convertedIncome > 0 ? 'text-emerald-700 font-medium' : 'text-gray-400'}`}>
-                          {convertedIncome > 0 ? convertedIncome.toFixed(2) : '-'}
+                          {convertedIncome > 0 ? convertedIncome.toFixed(2) : ''}
                         </td>
                         <td className={`px-2 py-3 text-right text-xs tabular-nums bg-indigo-50/80 ${convertedExpense > 0 ? 'text-rose-700 font-medium' : 'text-gray-400'}`}>
-                          {convertedExpense > 0 ? convertedExpense.toFixed(2) : '-'}
+                          {convertedExpense > 0 ? convertedExpense.toFixed(2) : ''}
                         </td>
                         <td className={`px-2 py-3 text-right text-xs font-semibold tabular-nums bg-indigo-100/60 ${
                           convertedDayBalance > 0 ? 'text-emerald-700' : convertedDayBalance < 0 ? 'text-rose-700' : 'text-gray-700'
                         }`}>
-                          {displaySymbol}{convertedDayBalance.toFixed(2)}
+                          {convertedDayBalance !== 0 ? `${displaySymbol}${convertedDayBalance.toFixed(2)}` : ''}
                         </td>
                         <td className={`px-2 py-3 text-right text-xs font-bold tabular-nums bg-indigo-100 ${
                           convertedCumulative >= 0 ? 'text-emerald-800' : 'text-rose-800'
                         }`}>
-                          {displaySymbol}{convertedCumulative.toFixed(2)}
+                          {convertedCumulative !== 0 ? `${displaySymbol}${convertedCumulative.toFixed(2)}` : ''}
                         </td>
                       </>
                     );

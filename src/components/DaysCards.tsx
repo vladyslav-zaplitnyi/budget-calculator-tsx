@@ -227,7 +227,7 @@ const DaysCards: React.FC<DaysCardsProps> = ({
                         ✅ {t('days.income')}
                       </label>
                       <div className="w-full px-2 py-2 text-sm text-right bg-emerald-50 border-2 border-emerald-200 rounded-lg font-semibold text-emerald-700 tabular-nums shadow-sm">
-                        {income > 0 ? income.toFixed(2) : '0.00'}
+                        {income > 0 ? income.toFixed(2) : ''}
                       </div>
                     </div>
                     <div>
@@ -235,7 +235,7 @@ const DaysCards: React.FC<DaysCardsProps> = ({
                         ❌ {t('days.expenses')}
                       </label>
                       <div className="w-full px-2 py-2 text-sm text-right bg-rose-50 border-2 border-rose-200 rounded-lg font-semibold text-rose-700 tabular-nums shadow-sm">
-                        {expense > 0 ? expense.toFixed(2) : '0.00'}
+                        {expense > 0 ? expense.toFixed(2) : ''}
                       </div>
                     </div>
                   </div>
@@ -243,9 +243,11 @@ const DaysCards: React.FC<DaysCardsProps> = ({
                     <span className="text-xs text-gray-600 font-medium block mb-0.5">
                       {t('days.dayBalance')}
                     </span>
-                    <span className={`text-base font-bold tabular-nums ${dayBalance > 0 ? 'text-emerald-600' : dayBalance < 0 ? 'text-rose-600' : 'text-gray-600'}`}>
-                      {symbol}{dayBalance.toFixed(2)}
-                    </span>
+                    {dayBalance !== 0 && (
+                      <span className={`text-base font-bold tabular-nums ${dayBalance > 0 ? 'text-emerald-600' : dayBalance < 0 ? 'text-rose-600' : 'text-gray-600'}`}>
+                        {symbol}{dayBalance.toFixed(2)}
+                      </span>
+                    )}
                   </div>
                 </div>
               );
@@ -286,9 +288,14 @@ const DaysCards: React.FC<DaysCardsProps> = ({
                       <span className="hidden xs:inline text-[10px] font-normal">{t('days.converted')}</span>
                     </h4>
                     <div className="text-xs font-semibold text-gray-600 tabular-nums">
-                      Σ: <span className={`font-bold ${convertedCumulative >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
-                        {displaySymbol}{convertedCumulative.toFixed(2)}
-                      </span>
+                      {convertedCumulative !== 0 && (
+                        <>
+                          Σ:{' '}
+                          <span className={`font-bold ${convertedCumulative >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
+                            {displaySymbol}{convertedCumulative.toFixed(2)}
+                          </span>
+                        </>
+                      )}
                     </div>
                   </div>
                   <div className="grid grid-cols-2 gap-2">
@@ -297,7 +304,7 @@ const DaysCards: React.FC<DaysCardsProps> = ({
                         ✅ {t('days.income')}
                       </label>
                       <div className="w-full px-2 py-2 text-sm text-right bg-emerald-50 border-2 border-emerald-200 rounded-lg font-semibold text-emerald-700 tabular-nums shadow-sm">
-                        {convertedIncome > 0 ? convertedIncome.toFixed(2) : '0.00'}
+                        {convertedIncome > 0 ? convertedIncome.toFixed(2) : ''}
                       </div>
                     </div>
                     <div>
@@ -305,7 +312,7 @@ const DaysCards: React.FC<DaysCardsProps> = ({
                         ❌ {t('days.expenses')}
                       </label>
                       <div className="w-full px-2 py-2 text-sm text-right bg-rose-50 border-2 border-rose-200 rounded-lg font-semibold text-rose-700 tabular-nums shadow-sm">
-                        {convertedExpense > 0 ? convertedExpense.toFixed(2) : '0.00'}
+                        {convertedExpense > 0 ? convertedExpense.toFixed(2) : ''}
                       </div>
                     </div>
                   </div>
@@ -313,9 +320,11 @@ const DaysCards: React.FC<DaysCardsProps> = ({
                     <span className="text-xs text-gray-600 font-medium block mb-0.5">
                       {t('days.dayBalance')}
                     </span>
-                    <span className={`text-base font-bold tabular-nums ${convertedDayBalance > 0 ? 'text-emerald-600' : convertedDayBalance < 0 ? 'text-rose-600' : 'text-gray-600'}`}>
-                      {displaySymbol}{convertedDayBalance.toFixed(2)}
-                    </span>
+                    {convertedDayBalance !== 0 && (
+                      <span className={`text-base font-bold tabular-nums ${convertedDayBalance > 0 ? 'text-emerald-600' : convertedDayBalance < 0 ? 'text-rose-600' : 'text-gray-600'}`}>
+                        {displaySymbol}{convertedDayBalance.toFixed(2)}
+                      </span>
+                    )}
                   </div>
                 </div>
               );
