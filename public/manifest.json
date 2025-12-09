@@ -1,6 +1,6 @@
 {
-  "short_name": "Budget Tracker",
-  "name": "3 Currency Budget Tracker",
+  "short_name": "Бюджет",
+  "name": "Бюджетний трекер",
   "icons": [
     {
       "src": "favicon_v2.ico",
@@ -20,6 +20,6 @@
   ],
   "start_url": ".",
   "display": "standalone",
-  "theme_color": "#000000",
+  "theme_color": "#4f46e5",
   "background_color": "#ffffff"
 }

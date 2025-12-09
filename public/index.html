@@ -9,7 +9,6 @@
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="format-detection" content="telephone=no" />
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
-    <!-- Покращена підтримка для різних браузерів -->
     <meta name="renderer" content="webkit" />
     <meta name="force-rendering" content="webkit" />
     <meta http-equiv="Cache-Control" content="no-transform" />
@@ -20,38 +19,42 @@
     />
     <meta name="keywords" content="бюджет, трекер, гроші, фінанси, UAH, USD, EUR, PLN, RON, CZK, доходи, витрати" />
     
-    <link rel="icon" href="%PUBLIC_URL%/favicon_v2.ico" />
-    <link rel="apple-touch-icon" href="%PUBLIC_URL%/apple-touch-icon.png" />
-    <link rel="manifest" href="%PUBLIC_URL%/manifest.json" />
-    <link rel="mask-icon" href="%PUBLIC_URL%/logo.svg" color="#4f46e5" />
-
+    <!-- Favicon для різних браузерів -->
+    <link rel="icon" type="image/x-icon" href="/favicon_v2.ico" />
+    <link rel="shortcut icon" type="image/x-icon" href="/favicon_v2.ico" />
+    
+    <!-- Apple Touch Icons (Safari iOS/iPadOS) -->
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+    <link rel="apple-touch-icon" sizes="152x152" href="/logo192_v2.png" />
+    <link rel="apple-touch-icon" sizes="120x120" href="/logo192_v2.png" />
+    
+    <!-- Safari Pinned Tab -->
+    <link rel="mask-icon" href="/logo.svg" color="#4f46e5" />
+    
+    <!-- Standard favicon sizes -->
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon_v2.ico" />
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon_v2.ico" />
+    
+    <!-- Manifest -->
+    <link rel="manifest" href="/manifest.json" />
+    
+    <!-- Open Graph -->
     <meta property="og:type" content="website" />
     <meta property="og:url" content="https://budget-calculator-68226.web.app/" />
     <meta property="og:title" content="Бюджетний трекер | 3 валюти" />
     <meta property="og:description" content="Сучасний бюджетний трекер на 31 день. Керуйте доходами та витратами у UAH, USD, EUR, PLN, RON." />
-    <meta property="og:image" content="%PUBLIC_URL%/logo512_v2.png" />
-
+    <meta property="og:image" content="/logo512_v2.png" />
+    
+    <!-- Preconnect для швидшого завантаження шрифтів -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
       href="https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;600;700;800;900&display=swap"
       rel="stylesheet"
     />
-    <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Noto+Sans:wght@900&display=swap" />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Noto+Sans:wght@900&display=swap"
-      rel="stylesheet"
-    />
-    <!--
-      Notice the use of %PUBLIC_URL% in the tags above.
-      It will be replaced with the URL of the `public` folder during the build.
-      Only files inside the `public` folder can be referenced from the HTML.
-
-      Unlike "/favicon.ico" or "favicon.ico", "%PUBLIC_URL%/favicon.ico" will
-      work correctly both with client-side routing and a non-root public URL.
-      Learn how to configure a non-root public URL by running `npm run build`.
-    -->
-    <title> Бюджетний трекер | 3 валюти</title>
+    
+    <title>Бюджетний трекер | 3 валюти</title>
   </head>
   <body>
     <noscript>You need to enable JavaScript to run this app.</noscript>
