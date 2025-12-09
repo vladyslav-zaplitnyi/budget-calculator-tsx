@@ -6,7 +6,7 @@ import { ACTIVE_BUDGET_COOKIE_KEY } from '../utils/constants';
 import { getCookie } from '../utils/cookieHelpers';
 import { BudgetStateWithSync } from '../contexts/BudgetContext';
 import { User } from 'firebase/auth';
-import { Budgets, ExchangeRates } from '../types';
+import { Budgets, ExchangeRates, Budget } from '../types';
 import { getBuyRate, hasPairStructure } from '../utils/typeGuards';
 import { WrongPasswordError } from '../utils/encryption';
 import { translate } from '../i18n/config';
@@ -132,8 +132,11 @@ export function useFirestoreSync(
     setSelectedCurrencies(DEFAULT_CURRENCIES);
     setExchangeRates({});
     setDays(createEmptyMonthDays());
-    setBudgets({});
-    loadedBudgetsRef.current = {};
+    
+    // Створюємо дефолтний бюджет з локалізованою назвою
+    const emptyBudget = createEmptyDefaultBudget();
+    setBudgets(emptyBudget);
+    loadedBudgetsRef.current = emptyBudget;
     setActiveBudgetId('default');
     setSyncStatus(getSyncStatusText('local'));
   };
@@ -301,58 +304,210 @@ export function useFirestoreSync(
             document.cookie = 'budgetTrackerActiveBudgetId=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
             document.cookie = 'budgetTrackerLanguage=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
             
-            // Перевіряємо чи є дані в localStorage
-            const localData = loadFromLocalStorage();
+            // ВАЖЛИВО: Даємо невелику затримку, щоб дані встигли зберегтися після імпорту
+            // Якщо дані не знайдені відразу, перевіряємо ще раз через 100мс
+            let hasLocalStorageData = localStorage.getItem('budgetTrackerData');
+            if (!hasLocalStorageData) {
+              console.log('📦 Дані не знайдені відразу, чекаємо 100мс...');
+              await new Promise(resolve => setTimeout(resolve, 100));
+              hasLocalStorageData = localStorage.getItem('budgetTrackerData');
+            }
             
-            if (localData && localData.budgets && Object.keys(localData.budgets).length > 0) {
-              // Є дані в localStorage - зберігаємо їх як "Основний"/"Main" бюджет з id 'default'
-              console.log('📦 Збереження поточного бюджету з localStorage як Основний/Main');
-              
-              const currentBudgets = localData.budgets;
-              const currentActiveId = localData.activeBudgetId || 'default';
-              const currentBudget = currentBudgets[currentActiveId];
-              
-              if (currentBudget) {
-                // Оновлюємо назву бюджету залежно від мови та використовуємо id 'default'
-                const budgetName = translate('budget.main');
-                const budgetsToSave: Budgets = {
-                  'default': {
-                    ...currentBudget,
-                    name: budgetName,
-                    // Переконаємося, що всі обов'язкові поля присутні
-                    startBalances: currentBudget.startBalances || {},
-                    selectedCurrencies: currentBudget.selectedCurrencies || DEFAULT_CURRENCIES,
-                    exchangeRates: currentBudget.exchangeRates || {},
-                    days: currentBudget.days || [],
-                    displayCurrency: currentBudget.displayCurrency || 'RON',
-                    displayCurrencyIndex: currentBudget.displayCurrencyIndex ?? 0
-                  }
-                };
-                
-                // Зберігаємо в Firestore з activeBudgetId = 'default'
-                saveToFirestore(
-                  user,
-                  budgetsToSave,
-                  'default',
-                  false,
-                  setSyncStatus,
-                  getSyncStatusText,
-                  null,
-                  setIsEncrypted
-                ).then(() => {
-                  // Після збереження, завантажуємо дані назад
-                  loadFromFirestore(user, null).then((savedData) => {
-                    if (savedData && !('isEncrypted' in savedData && 'needsPassword' in savedData)) {
-                      processFirestoreData(savedData);
-                    }
-                  });
-                }).catch((error) => {
-                  console.error('Помилка при збереженні бюджету:', error);
-                  initializeEmptyBudget();
+            console.log('📦 Перевірка localStorage:', hasLocalStorageData ? 'Є дані' : 'Немає даних');
+            
+            // Додаткова діагностика: виводимо вміст localStorage
+            if (hasLocalStorageData) {
+              try {
+                const parsed = JSON.parse(hasLocalStorageData);
+                console.log('📦 Вміст localStorage:', {
+                  hasBudgets: !!parsed.budgets,
+                  budgetsCount: parsed.budgets ? Object.keys(parsed.budgets).length : 0,
+                  activeBudgetId: parsed.activeBudgetId,
+                  budgetKeys: parsed.budgets ? Object.keys(parsed.budgets) : []
                 });
+              } catch (e) {
+                console.error('⚠️ Помилка парсингу localStorage:', e);
+              }
+            }
+            
+            if (hasLocalStorageData) {
+              // Є дані в localStorage - спробуємо завантажити їх
+              const localData = loadFromLocalStorage();
+              console.log('📦 Результат loadFromLocalStorage:', localData ? `Знайдено ${Object.keys(localData.budgets || {}).length} бюджетів` : 'null');
+              
+              if (localData && localData.budgets && Object.keys(localData.budgets).length > 0) {
+                // Є валідні дані в localStorage - зберігаємо їх як "Основний"/"Main" бюджет з id 'default'
+                console.log('📦 Збереження поточного бюджету з localStorage як Основний/Main');
+                
+                const currentBudgets = localData.budgets;
+                const currentActiveId = localData.activeBudgetId || 'default';
+                const currentBudget = currentBudgets[currentActiveId];
+                
+                if (currentBudget) {
+                  // Оновлюємо назву бюджету залежно від мови та використовуємо id 'default'
+                  const budgetName = translate('budget.defaultBudgetName');
+                  const budgetsToSave: Budgets = {
+                    'default': {
+                      ...currentBudget,
+                      name: budgetName,
+                      // Переконаємося, що всі обов'язкові поля присутні
+                      startBalances: currentBudget.startBalances || {},
+                      selectedCurrencies: currentBudget.selectedCurrencies || DEFAULT_CURRENCIES,
+                      exchangeRates: currentBudget.exchangeRates || {},
+                      days: currentBudget.days || [],
+                      displayCurrency: currentBudget.displayCurrency || 'RON',
+                      displayCurrencyIndex: currentBudget.displayCurrencyIndex ?? 0
+                    }
+                  };
+                  
+                  // Зберігаємо в Firestore з activeBudgetId = 'default'
+                  saveToFirestore(
+                    user,
+                    budgetsToSave,
+                    'default',
+                    false,
+                    setSyncStatus,
+                    getSyncStatusText,
+                    null,
+                    setIsEncrypted
+                  ).then(() => {
+                    // Після збереження, завантажуємо дані назад
+                    loadFromFirestore(user, null).then((savedData) => {
+                      if (savedData && !('isEncrypted' in savedData && 'needsPassword' in savedData)) {
+                        processFirestoreData(savedData);
+                      }
+                    });
+                  }).catch((error) => {
+                    console.error('Помилка при збереженні бюджету:', error);
+                    initializeEmptyBudget();
+                  });
+                } else {
+                  // Немає поточного бюджету - спробуємо знайти будь-який бюджет
+                  console.log('⚠️ Активний бюджет не знайдено, шукаємо будь-який бюджет...');
+                  const budgetKeys = Object.keys(currentBudgets);
+                  if (budgetKeys.length > 0) {
+                    const firstBudgetKey = budgetKeys[0];
+                    const firstBudget = currentBudgets[firstBudgetKey];
+                    console.log(`📦 Використовуємо перший знайдений бюджет: ${firstBudgetKey}`);
+                    
+                    if (firstBudget) {
+                      const budgetName = translate('budget.defaultBudgetName');
+                      const budgetsToSave: Budgets = {
+                        'default': {
+                          ...firstBudget,
+                          name: budgetName,
+                          startBalances: firstBudget.startBalances || {},
+                          selectedCurrencies: firstBudget.selectedCurrencies || DEFAULT_CURRENCIES,
+                          exchangeRates: firstBudget.exchangeRates || {},
+                          days: firstBudget.days || [],
+                          displayCurrency: firstBudget.displayCurrency || 'RON',
+                          displayCurrencyIndex: firstBudget.displayCurrencyIndex ?? 0
+                        }
+                      };
+                      
+                      saveToFirestore(
+                        user,
+                        budgetsToSave,
+                        'default',
+                        false,
+                        setSyncStatus,
+                        getSyncStatusText,
+                        null,
+                        setIsEncrypted
+                      ).then(() => {
+                        loadFromFirestore(user, null).then((savedData) => {
+                          if (savedData && !('isEncrypted' in savedData && 'needsPassword' in savedData)) {
+                            processFirestoreData(savedData);
+                          }
+                        });
+                      }).catch((error) => {
+                        console.error('Помилка при збереженні бюджету:', error);
+                        initializeEmptyBudget();
+                      });
+                    } else {
+                      initializeEmptyBudget();
+                    }
+                  } else {
+                    // Немає поточного бюджету - створюємо порожній
+                    initializeEmptyBudget();
+                  }
+                }
               } else {
-                // Немає поточного бюджету - створюємо порожній
-                initializeEmptyBudget();
+                // Є budgetTrackerData, але структура не валідна - спробуємо відновити дані
+                console.log('📦 Дані в localStorage є, але структура не валідна. Спробуємо відновити...');
+                try {
+                  const parsedData = JSON.parse(hasLocalStorageData);
+                  
+                  // Перевіряємо чи є дані в старій структурі (без budgets)
+                  // або в budgets, але без валідного активного бюджету
+                  let recoveredData: any = null;
+                  
+                  // Спочатку перевіряємо чи є budgets з даними
+                  if (parsedData.budgets && typeof parsedData.budgets === 'object') {
+                    // Знаходимо перший бюджет з даними
+                    const budgetKeys = Object.keys(parsedData.budgets);
+                    for (const key of budgetKeys) {
+                      const budget = parsedData.budgets[key];
+                      if (budget && (budget.days || budget.startBalances || budget.selectedCurrencies)) {
+                        recoveredData = budget;
+                        break;
+                      }
+                    }
+                  }
+                  
+                  // Якщо не знайшли в budgets, перевіряємо старі поля на верхньому рівні
+                  if (!recoveredData && (parsedData.days || parsedData.startBalances || parsedData.selectedCurrencies)) {
+                    recoveredData = parsedData;
+                  }
+                  
+                  if (recoveredData) {
+                    // Спробуємо створити бюджет з наявних даних
+                    const budgetName = translate('budget.defaultBudgetName');
+                    const recoveredBudget: Budget = {
+                      name: budgetName,
+                      startBalances: recoveredData.startBalances || {},
+                      selectedCurrencies: validateSelectedCurrencies(recoveredData.selectedCurrencies || DEFAULT_CURRENCIES),
+                      exchangeRates: recoveredData.exchangeRates || {},
+                      days: recoveredData.days ? normalizeDaysArray(recoveredData.days) : [],
+                      displayCurrency: recoveredData.displayCurrency || 'RON',
+                      displayCurrencyIndex: recoveredData.displayCurrencyIndex ?? 0
+                    };
+                    
+                    const budgetsToSave: Budgets = {
+                      'default': recoveredBudget
+                    };
+                    
+                    // Зберігаємо в Firestore
+                    saveToFirestore(
+                      user,
+                      budgetsToSave,
+                      'default',
+                      false,
+                      setSyncStatus,
+                      getSyncStatusText,
+                      null,
+                      setIsEncrypted
+                    ).then(() => {
+                      // Після збереження, завантажуємо дані назад
+                      loadFromFirestore(user, null).then((savedData) => {
+                        if (savedData && !('isEncrypted' in savedData && 'needsPassword' in savedData)) {
+                          processFirestoreData(savedData);
+                        }
+                      });
+                    }).catch((error) => {
+                      console.error('Помилка при збереженні відновленого бюджету:', error);
+                      initializeEmptyBudget();
+                    });
+                  } else {
+                    // Немає даних для відновлення - створюємо порожній бюджет
+                    console.log('📦 Немає даних для відновлення, створюємо порожній бюджет');
+                    initializeEmptyBudget();
+                  }
+                } catch (parseError) {
+                  console.error('Помилка при парсингу даних з localStorage:', parseError);
+                  // Якщо не вдалося відновити - створюємо порожній бюджет
+                  initializeEmptyBudget();
+                }
               }
             } else {
               // Немає даних в localStorage - створюємо порожній бюджет

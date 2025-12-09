@@ -267,7 +267,7 @@ const SettingsCard: React.FC<SettingsCardProps> = ({
                         value={code} 
                         disabled={isSelected}
                       >
-                        <CurrencyFlag currencyCode={code} size={16} className="mr-1" /> {code} - {getCurrencyName(code, i18nInstance.language === 'uk' ? 'uk' : 'en')}
+                        {code} - {getCurrencyName(code, i18nInstance.language === 'uk' ? 'uk' : 'en')}
                       </option>
                     );
                   })}

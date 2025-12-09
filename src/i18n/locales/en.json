@@ -201,6 +201,7 @@
   },
   "budget": {
     "main": "Main",
+    "defaultBudgetName": "Main",
     "maxLimitReached": "Free version limit reached (max. 3 budgets).",
     "cannotDeleteLast": "Cannot delete the last budget. At least one budget must remain.",
     "cannotDeleteMain": "Cannot delete the main budget (Main/Основний)."
@@ -219,6 +220,20 @@
   "importExport": {
     "saveCancelled": "❌ Save cancelled",
     "fileSavedInfo": "✅ File saved: {{filename}}. 💡 To choose folder: Settings → General → Downloads → \"Always ask you where to save files\""
+  },
+  "importModal": {
+    "title": "Import Budget",
+    "fileLabel": "File:",
+    "savedAtLabel": "Saved at:",
+    "unknownDate": "unknown date",
+    "selectAction": "Choose how to import this budget:",
+    "createNew": "Create as New Budget",
+    "overwrite": "Overwrite Current Budget",
+    "cancel": "Cancel",
+    "limitReached": "Limit reached ({{count}}/3)",
+    "hint": "💡 Hint:",
+    "hintDeleteBudget": "Delete one of the existing budgets to create a new one.",
+    "hintOrLogout": "Or log out and continue using."
   },
   "common": {
     "ok": "OK",

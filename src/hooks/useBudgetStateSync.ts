@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { BudgetStateWithSync } from '../contexts/BudgetContext';
 import { Budgets, Budget } from '../types';
 import { DEFAULT_CURRENCIES } from '../utils/currencies';
+import { translate } from '../i18n/config';
 
 /**
  * Hook для синхронізації стану бюджету (баланси, курси, дні) в об'єкт budgets
@@ -24,8 +25,8 @@ export function useBudgetStateSync(
   } = budgetState;
 
   // Допоміжна функція для створення бюджету з усіма обов'язковими полями
-  const createBudgetWithDefaults = (name: string = 'Основний'): Budget => ({
-    name,
+  const createBudgetWithDefaults = (name?: string): Budget => ({
+    name: name || translate('budget.defaultBudgetName'),
     startBalances: {},
     selectedCurrencies: DEFAULT_CURRENCIES,
     exchangeRates: {},
@@ -55,10 +56,10 @@ export function useBudgetStateSync(
       allKeys.forEach(key => {
         // Спочатку беремо з prevBudgets, потім з ref (якщо це сценарій відновлення)
         const existing = prevBudgets?.[key] || (isRestoreScenario ? loadedBudgetsRef.current?.[key] : undefined);
-        safePrev[key] = existing || createBudgetWithDefaults('Основний');
+        safePrev[key] = existing || createBudgetWithDefaults();
       });
       
-      const existingBudget = safePrev[currentId] || createBudgetWithDefaults('Основний');
+      const existingBudget = safePrev[currentId] || createBudgetWithDefaults();
 
       // Оновлюємо startBalances: залишаємо тільки обрані валюти
       // ВАЖЛИВО: Беремо значення з існуючого бюджету, а не з окремих станів
@@ -102,10 +103,10 @@ export function useBudgetStateSync(
       const safePrev: Budgets = {};
       allKeys.forEach(key => {
         const existing = prevBudgets?.[key] || (isRestoreScenario ? loadedBudgetsRef.current?.[key] : undefined);
-        safePrev[key] = existing || createBudgetWithDefaults('Основний');
+        safePrev[key] = existing || createBudgetWithDefaults();
       });
       
-      const existingBudget = safePrev[currentId] || createBudgetWithDefaults('Основний');
+      const existingBudget = safePrev[currentId] || createBudgetWithDefaults();
       
       // ВАЖЛИВО: Зберігаємо всі курси з існуючого бюджету та об'єднуємо з поточними курсами зі стану
       // Це гарантує, що курси для невибраних валют не втрачаються
@@ -144,10 +145,10 @@ export function useBudgetStateSync(
       const safePrev: Budgets = {};
       allKeys.forEach(key => {
         const existing = prevBudgets?.[key] || (isRestoreScenario ? loadedBudgetsRef.current?.[key] : undefined);
-        safePrev[key] = existing || createBudgetWithDefaults('Основний');
+        safePrev[key] = existing || createBudgetWithDefaults();
       });
       
-      const existingBudget = safePrev[currentId] || createBudgetWithDefaults('Основний');
+      const existingBudget = safePrev[currentId] || createBudgetWithDefaults();
       
       // ВАЖЛИВО: Зберігаємо всі курси з існуючого бюджету
       // Курси не повинні втрачатися при синхронізації днів
@@ -183,10 +184,10 @@ export function useBudgetStateSync(
       const safePrev: Budgets = {};
       allKeys.forEach(key => {
         const existing = prevBudgets?.[key] || (isRestoreScenario ? loadedBudgetsRef.current?.[key] : undefined);
-        safePrev[key] = existing || createBudgetWithDefaults('Основний');
+        safePrev[key] = existing || createBudgetWithDefaults();
       });
       
-      const existingBudget = safePrev[currentId] || createBudgetWithDefaults('Основний');
+      const existingBudget = safePrev[currentId] || createBudgetWithDefaults();
       
       // ВАЖЛИВО: Зберігаємо всі курси з існуючого бюджету
       // Курси не повинні втрачатися при синхронізації displayCurrency

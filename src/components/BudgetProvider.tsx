@@ -5,6 +5,7 @@ import { useBudgetSync } from '../hooks/useBudgetSync';
 import { useCurrencyRates } from '../hooks/useCurrencyRates';
 import { useAuth } from '../hooks/useAuth';
 import { translate } from '../i18n/config';
+import { loadFromLocalStorage, saveToLocalStorage } from '../utils/storageHelpers';
 import PasswordModal from './PasswordModal';
 import DeleteAccountModal from './DeleteAccountModal';
 import AlertModal from './AlertModal';
@@ -117,6 +118,43 @@ export function BudgetProvider({ children }: BudgetProviderProps) {
     setSyncStatus(getSyncStatusText(statusType));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [budgetState.language, getSyncStatusText]);
+
+  // Оновлюємо назву бюджету в localStorage при зміні мови (тільки для неавторизованих користувачів)
+  useEffect(() => {
+    // Якщо користувач авторизований, не оновлюємо - дані синхронізуються з Firestore
+    if (user !== null) return;
+    
+    // Якщо це початкове завантаження, не оновлюємо
+    if (authLoading) return;
+
+    try {
+      const localData = loadFromLocalStorage();
+      if (localData && localData.budgets && localData.budgets['default']) {
+        const defaultBudget = localData.budgets['default'];
+        const newBudgetName = translate('budget.defaultBudgetName');
+        
+        // Оновлюємо назву тільки якщо вона відрізняється
+        if (defaultBudget.name !== newBudgetName) {
+          const updatedBudgets = {
+            ...localData.budgets,
+            'default': {
+              ...defaultBudget,
+              name: newBudgetName
+            }
+          };
+          
+          // Оновлюємо budgets в стані
+          budgetState.setBudgets(updatedBudgets);
+          
+          // Зберігаємо в localStorage
+          saveToLocalStorage(updatedBudgets, localData.activeBudgetId || 'default');
+        }
+      }
+    } catch (error) {
+      console.error('Помилка при оновленні назви бюджету при зміні мови:', error);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [budgetState.language, user, authLoading]);
 
   // Мемоізуємо value для контексту, щоб уникнути зайвих ререндерів
   const value: BudgetContextValue = useMemo(() => ({

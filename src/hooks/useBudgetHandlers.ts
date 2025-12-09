@@ -67,6 +67,10 @@ export function useBudgetHandlers() {
     handleExportToJsonFile: budgetImportExport.handleExportToJsonFile,
     handleImportFromJsonFile: budgetImportExport.handleImportFromJsonFile,
     handleJsonFileSelected: budgetImportExport.handleJsonFileSelected,
-    fileInputRef: budgetImportExport.fileInputRef
+    fileInputRef: budgetImportExport.fileInputRef,
+    showImportModal: budgetImportExport.showImportModal,
+    resolveImport: budgetImportExport.resolveImport,
+    cancelImport: budgetImportExport.cancelImport,
+    pendingImport: budgetImportExport.pendingImport
   };
 }

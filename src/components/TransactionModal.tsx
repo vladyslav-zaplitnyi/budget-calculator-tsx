@@ -3,7 +3,6 @@ import { useTranslation } from 'react-i18next';
 import { translate } from '../i18n/config';
 import { AVAILABLE_CURRENCIES, getCurrencyName } from '../utils/currencies';
 import { Transaction } from '../types';
-import CurrencyFlag from './CurrencyFlag';
 import AlertModal from './AlertModal';
 
 interface TransactionModalProps {
@@ -177,7 +176,7 @@ const TransactionModal: React.FC<TransactionModalProps> = ({
                 if (!curr) return null;
                 return (
                   <option key={code} value={code}>
-                    <CurrencyFlag currencyCode={code} size={16} className="mr-1" /> {code} ({getCurrencyName(code, i18nInstance.language === 'uk' ? 'uk' : 'en')})
+                    {code} ({getCurrencyName(code, i18nInstance.language === 'uk' ? 'uk' : 'en')})
                   </option>
                 );
               })}

@@ -9,6 +9,7 @@ import Statistics from './Statistics';
 import AlertModal from './AlertModal';
 import PromptModal from './PromptModal';
 import ConfirmModal from './ConfirmModal';
+import ImportModal from './ImportModal';
 import { useBudgetContext } from '../contexts/BudgetContext';
 import { useBudgetHandlers } from '../hooks/useBudgetHandlers';
 import { calculateTotals, calculateFinalBalances, convertCurrency } from '../utils/calculations';
@@ -97,7 +98,11 @@ export default function BudgetTracker() {
     showDeleteBudgetConfirmModal,
     handleConfirmDeleteBudget,
     handleCancelDeleteBudget,
-    budgetToDeleteName
+    budgetToDeleteName,
+    showImportModal,
+    resolveImport,
+    cancelImport,
+    pendingImport
   } = handlers;
 
   // Створюємо об'єкт початкових балансів для вибраних валют
@@ -349,6 +354,18 @@ export default function BudgetTracker() {
         message={translate('settings.budget.deleteConfirm.message', { budgetName: budgetToDeleteName || translate('settings.budget.untitled') })}
         confirmButtonText={translate('settings.budget.deleteConfirm.confirm')}
         cancelButtonText={translate('settings.budget.deleteConfirm.cancel')}
+      />
+
+      {/* ImportModal для розумного імпорту */}
+      <ImportModal
+        isOpen={showImportModal}
+        onClose={cancelImport}
+        onCreateNew={() => resolveImport('new')}
+        onOverwrite={() => resolveImport('overwrite')}
+        savedAt={pendingImport?.savedAt || null}
+        budgetName={pendingImport?.budgetName || pendingImport?.settings?.name || translate('budget.main')}
+        canCreateNew={Object.keys(budgets).length < 3}
+        currentBudgetsCount={Object.keys(budgets).length}
       />
     </div>
   );

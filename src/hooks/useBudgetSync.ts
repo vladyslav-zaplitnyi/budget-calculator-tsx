@@ -58,6 +58,49 @@ export function useBudgetSync(
   useEffect(() => {
     if (isInitialLoad || authLoading) return;
 
+    // ВАЖЛИВО: Перевіряємо, чи budgets не порожній перед збереженням
+    // Це запобігає перезапису даних порожнім об'єктом після імпорту
+    if (!budgets || Object.keys(budgets).length === 0) {
+      console.log('⚠️ useBudgetSync: budgets порожній, пропускаємо збереження');
+      return;
+    }
+
+    // Перевіряємо, чи активний бюджет існує і містить дані
+    const currentId = activeBudgetId || 'default';
+    const currentBudget = budgets[currentId];
+    if (!currentBudget) {
+      console.log('⚠️ useBudgetSync: активний бюджет не знайдено, пропускаємо збереження');
+      return;
+    }
+
+    // ВАЖЛИВО: Перевіряємо, чи в localStorage вже є валідні дані
+    // Якщо є, і поточний бюджет порожній (немає днів, балансів), не перезаписуємо
+    // Це запобігає втраті даних після імпорту
+    if (!user) {
+      try {
+        const existingData = localStorage.getItem('budgetTrackerData');
+        if (existingData) {
+          const parsed = JSON.parse(existingData);
+          if (parsed.budgets && parsed.budgets[currentId]) {
+            const existingBudget = parsed.budgets[currentId];
+            // Якщо існуючий бюджет має дані, а поточний порожній - не перезаписуємо
+            const existingHasData = (existingBudget.days && existingBudget.days.length > 0) ||
+                                   (existingBudget.startBalances && Object.keys(existingBudget.startBalances).length > 0);
+            const currentHasData = (currentBudget.days && currentBudget.days.length > 0) ||
+                                  (currentBudget.startBalances && Object.keys(currentBudget.startBalances).length > 0);
+            
+            if (existingHasData && !currentHasData) {
+              console.log('⚠️ useBudgetSync: існуючі дані в localStorage, поточний бюджет порожній - пропускаємо збереження');
+              return;
+            }
+          }
+        }
+      } catch (e) {
+        // Якщо помилка парсингу - продовжуємо збереження
+        console.warn('⚠️ Помилка перевірки localStorage:', e);
+      }
+    }
+
     // Зберігаємо дані в localStorage завжди при зміні
     // ВАЖЛИВО: Всі баланси, курси, дні та вибрані валюти зберігаються
     // всередині об'єкта `budgets` (через useBudgetStateSync).

@@ -60,7 +60,7 @@ export function useBudgetSettings() {
       
       const safePrev = budgets || {};
       const existingBudget = safePrev[currentId] || {
-        name: 'Основний',
+        name: translate('budget.defaultBudgetName'),
         startBalances: {},
         selectedCurrencies: DEFAULT_CURRENCIES,
         exchangeRates: {},
@@ -116,7 +116,7 @@ export function useBudgetSettings() {
       
       const safePrev = budgets || {};
       const existingBudget = safePrev[currentId] || {
-        name: 'Основний',
+        name: translate('budget.defaultBudgetName'),
         startBalances: {},
         selectedCurrencies: DEFAULT_CURRENCIES,
         exchangeRates: {},
@@ -157,7 +157,7 @@ export function useBudgetSettings() {
     const currentId = activeBudgetId || 'default';
     const safePrev = budgets || {};
     const existingBudget = safePrev[currentId] || {
-      name: 'Основний',
+      name: translate('budget.defaultBudgetName'),
       startBalances: {},
       selectedCurrencies: DEFAULT_CURRENCIES,
       exchangeRates: {},
@@ -241,7 +241,7 @@ export function useBudgetSettings() {
     setBudgets((prevBudgets: Budgets) => {
       const safePrev = prevBudgets || {};
       const existingBudget = safePrev[currentId] || {
-        name: 'Основний',
+        name: translate('budget.defaultBudgetName'),
         startBalances: {},
         selectedCurrencies: DEFAULT_CURRENCIES,
         exchangeRates: {},
@@ -333,7 +333,7 @@ export function useBudgetSettings() {
     setBudgets((prevBudgets: Budgets) => {
       const safePrev = prevBudgets || {};
       const existingBudget = safePrev[currentId] || {
-        name: 'Основний',
+        name: translate('budget.defaultBudgetName'),
         startBalances: {},
         selectedCurrencies: DEFAULT_CURRENCIES,
         exchangeRates: {},
@@ -393,7 +393,7 @@ export function useBudgetSettings() {
       // Зберігаємо дані з шифруванням
       const budgetsToSave = budgets && Object.keys(budgets).length > 0 ? budgets : {
         [activeBudgetId || 'default']: {
-          name: translate('budget.main'),
+          name: translate('budget.defaultBudgetName'),
           startBalances: {},
           selectedCurrencies: selectedCurrencies || DEFAULT_CURRENCIES,
           exchangeRates: exchangeRates || {},
@@ -454,7 +454,7 @@ export function useBudgetSettings() {
       // Зберігаємо дані без шифрування
       const budgetsToSave = budgets && Object.keys(budgets).length > 0 ? budgets : {
         [activeBudgetId || 'default']: {
-          name: translate('budget.main'),
+          name: translate('budget.defaultBudgetName'),
           startBalances: {},
           selectedCurrencies: selectedCurrencies || DEFAULT_CURRENCIES,
           exchangeRates: exchangeRates || {},

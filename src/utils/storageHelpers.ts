@@ -7,6 +7,7 @@ import { handleError } from './errorHandler';
 import { encryptData, decryptData, WrongPasswordError } from './encryption';
 import { createEmptyMonthDays } from './dayHelpers';
 import { DEFAULT_CURRENCIES } from './currencies';
+import { translate } from '../i18n/config';
 
 // Допоміжна функція для конвертації Firestore Timestamp в рядок ISO
 const convertTimestampToString = (value: unknown): string | undefined => {
@@ -34,7 +35,7 @@ export const createEmptyDefaultBudget = (): Budgets => {
   
   return {
     'default': {
-      name: 'Основний',
+      name: translate('budget.defaultBudgetName'),
       startBalances: emptyStartBalances,
       selectedCurrencies: DEFAULT_CURRENCIES,
       exchangeRates: {},
@@ -54,33 +55,46 @@ export const loadFromLocalStorage = (): LoadedUserData | null => {
     const parsedData: UserData = JSON.parse(saved);
 
     // Перевіряємо, чи є нова структура
-    if (parsedData.budgets && parsedData.activeBudgetId && Object.keys(parsedData.budgets).length > 0) {
-      const activeId = parsedData.activeBudgetId;
-      const activeBudget = parsedData.budgets[activeId];
+    if (parsedData.budgets && Object.keys(parsedData.budgets).length > 0) {
+      const activeId = parsedData.activeBudgetId || 'default';
+      let activeBudget = parsedData.budgets[activeId];
       
-      // Відновлюємо displayCurrency та displayCurrencyIndex з активного бюджету в localStorage
-      if (activeBudget?.displayCurrency) {
-        try {
-          localStorage.setItem('displayCurrency', activeBudget.displayCurrency);
-        } catch (error) {
-          console.error('Помилка при збереженні displayCurrency в localStorage:', error);
-        }
-      }
-      if (activeBudget?.displayCurrencyIndex !== undefined) {
-        try {
-          localStorage.setItem('displayCurrencyIndex', activeBudget.displayCurrencyIndex.toString());
-        } catch (error) {
-          console.error('Помилка при збереженні displayCurrencyIndex в localStorage:', error);
+      // Якщо активний бюджет не знайдено, використовуємо перший доступний
+      if (!activeBudget) {
+        const budgetKeys = Object.keys(parsedData.budgets);
+        if (budgetKeys.length > 0) {
+          const firstKey = budgetKeys[0];
+          activeBudget = parsedData.budgets[firstKey];
+          console.log(`⚠️ Активний бюджет ${activeId} не знайдено, використовуємо ${firstKey}`);
         }
       }
       
-      // Повертаємо LoadedUserData
-      return {
-        ...parsedData,
-        days: activeBudget?.days || [],
-        selectedCurrencies: activeBudget?.selectedCurrencies || ['UAH', 'USD', 'EUR'],
-        exchangeRates: activeBudget?.exchangeRates || {}
-      };
+      if (activeBudget) {
+        // Відновлюємо displayCurrency та displayCurrencyIndex з активного бюджету в localStorage
+        if (activeBudget.displayCurrency) {
+          try {
+            localStorage.setItem('displayCurrency', activeBudget.displayCurrency);
+          } catch (error) {
+            console.error('Помилка при збереженні displayCurrency в localStorage:', error);
+          }
+        }
+        if (activeBudget.displayCurrencyIndex !== undefined) {
+          try {
+            localStorage.setItem('displayCurrencyIndex', activeBudget.displayCurrencyIndex.toString());
+          } catch (error) {
+            console.error('Помилка при збереженні displayCurrencyIndex в localStorage:', error);
+          }
+        }
+        
+        // Повертаємо LoadedUserData
+        return {
+          ...parsedData,
+          activeBudgetId: activeId, // Гарантуємо правильний activeBudgetId
+          days: activeBudget.days || [],
+          selectedCurrencies: activeBudget.selectedCurrencies || ['UAH', 'USD', 'EUR'],
+          exchangeRates: activeBudget.exchangeRates || {}
+        };
+      }
     }
 
     // Якщо структура не валідна, повертаємо null
@@ -352,7 +366,9 @@ export const loadFromFirestore = async (
       }
     } else {
       // Якщо документа немає - це новий користувач
-      localStorage.removeItem('budgetTrackerData');
+      // ВАЖЛИВО: НЕ очищаємо budgetTrackerData тут.
+      // Локальні дані (імпортовані або створені анонімно) можуть бути використані
+      // для ініціалізації першого бюджету в Firestore при першому логіні.
       return null;
     }
   } catch (error) {

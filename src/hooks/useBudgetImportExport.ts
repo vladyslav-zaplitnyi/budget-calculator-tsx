@@ -1,9 +1,9 @@
-import { useRef, useCallback, ChangeEvent } from 'react';
+import { useRef, useCallback, ChangeEvent, useState } from 'react';
 import { useBudgetContext } from '../contexts/BudgetContext';
 import { normalizeDaysArray } from '../utils/dayHelpers';
 import { saveToLocalStorage } from '../utils/storageHelpers';
 import { validateSelectedCurrencies, DEFAULT_CURRENCIES } from '../utils/currencies';
-import { Budgets, Day, Transaction } from '../types';
+import { Budgets, Day, Transaction, Budget } from '../types';
 import { validateDay, validateTransaction } from '../schemas/budgetSchema';
 import { handleError } from '../utils/errorHandler';
 import { translate } from '../i18n/config';
@@ -31,8 +31,14 @@ export function useBudgetImportExport() {
     displayCurrency,
     displayCurrencyIndex,
     setDisplayCurrency,
-    setDisplayCurrencyIndex
+    setDisplayCurrencyIndex,
+    setActiveBudgetId,
+    user
   } = context;
+
+  // Стан для розумного імпорту (тільки для авторизованих користувачів)
+  const [pendingImport, setPendingImport] = useState<any | null>(null);
+  const [showImportModal, setShowImportModal] = useState(false);
 
   const handleExportToJsonFile = useCallback(async () => {
     try {
@@ -164,6 +170,242 @@ export function useBudgetImportExport() {
     }
   }, []);
 
+  // Допоміжна функція для застосування імпортованих даних
+  const applyImportData = useCallback((data: any, targetBudgetId: string, budgetName: string) => {
+    // Обробка валют
+    let loadedCurrencies = ['UAH', 'USD', 'EUR'];
+    if (data.settings?.selectedCurrencies && Array.isArray(data.settings.selectedCurrencies)) {
+      loadedCurrencies = validateSelectedCurrencies(data.settings.selectedCurrencies);
+    }
+
+    const loadedExchangeRates = data.settings?.exchangeRates && typeof data.settings.exchangeRates === 'object'
+      ? data.settings.exchangeRates
+      : {};
+
+    // Завантажуємо startBalances ПЕРЕД встановленням валют
+    const startBalancesFromSettings: Record<string, number | null> = {};
+    if (data.settings?.startBalances && typeof data.settings.startBalances === 'object') {
+      Object.entries(data.settings.startBalances).forEach(([currencyCode, balance]) => {
+        if (typeof balance === 'number') {
+          startBalancesFromSettings[currencyCode] = balance;
+        } else if (balance === null || balance === '') {
+          startBalancesFromSettings[currencyCode] = null;
+        } else {
+          startBalancesFromSettings[currencyCode] = null;
+        }
+      });
+    }
+
+    // Обробка днів
+    let normalizedDays: Day[] | null = null;
+    if (data.days && Array.isArray(data.days)) {
+      interface LoadedDay {
+        day?: number;
+        description?: string;
+        transactions?: Transaction[];
+      }
+
+      const loadedDays = (data.days as LoadedDay[]).map((d) => ({
+        day: d.day || 0,
+        description: String(d.description || '').trim(),
+        transactions: Array.isArray(d.transactions) ? d.transactions : []
+      }));
+
+      const newDays: Day[] = [];
+      for (let i = 1; i <= 31; i++) {
+        const loadedDay = loadedDays.find((d) => d.day === i);
+        if (loadedDay) {
+          const validatedTransactions: Transaction[] = [];
+          if (Array.isArray(loadedDay.transactions)) {
+            for (const transaction of loadedDay.transactions) {
+              try {
+                validatedTransactions.push(validateTransaction(transaction));
+              } catch (error) {
+                handleError(
+                  error instanceof Error ? error : new Error(String(error)),
+                  {
+                    context: 'useBudgetImportExport',
+                    action: 'applyImportData',
+                    details: `Помилка валідації транзакції в день ${i}`
+                  }
+                );
+                console.warn(`⚠️ Транзакція в день ${i} не валідна і буде пропущена`);
+              }
+            }
+          }
+
+          if (validatedTransactions.length > 5) {
+            const warningMessage = translate('transaction.maxTransactions', { 
+              day: i, 
+              count: validatedTransactions.length 
+            });
+            console.warn(warningMessage);
+            setLoadMessage(warningMessage);
+            validatedTransactions.splice(5);
+          }
+
+          const dayData: Day = {
+            day: loadedDay.day || i,
+            description: String(loadedDay.description || '').trim(),
+            transactions: validatedTransactions
+          };
+
+          try {
+            newDays.push(validateDay(dayData));
+          } catch (error) {
+            handleError(
+              error instanceof Error ? error : new Error(String(error)),
+              {
+                context: 'useBudgetImportExport',
+                action: 'applyImportData',
+                details: `Помилка валідації дня ${i}`
+              }
+            );
+            newDays.push({
+              day: i,
+              transactions: [],
+              description: ''
+            });
+            console.warn(`⚠️ День ${i} не валідний, використано значення за замовчуванням`);
+          }
+        } else {
+          newDays.push({
+            day: i,
+            transactions: [],
+            description: ''
+          });
+        }
+      }
+
+      normalizedDays = normalizeDaysArray(newDays);
+    }
+
+    // ВАЖЛИВО: Спочатку оновлюємо бюджет з правильними startBalances,
+    // щоб useBudgetStateSync не перезаписав їх при зміні selectedCurrencies або днів
+    const startBalances: Record<string, number | null> = {};
+    loadedCurrencies.forEach(currencyCode => {
+      if (startBalancesFromSettings[currencyCode] !== undefined) {
+        startBalances[currencyCode] = startBalancesFromSettings[currencyCode];
+      } else {
+        startBalances[currencyCode] = null;
+      }
+    });
+
+    // Оновлюємо або створюємо бюджет ПЕРЕД встановленням валют та днів
+    setBudgets((prevBudgets: Budgets) => {
+      const safePrev = prevBudgets || {};
+      
+      const updatedBudget: Budget = {
+        name: budgetName,
+        startBalances,
+        selectedCurrencies: loadedCurrencies,
+        exchangeRates: loadedExchangeRates,
+        days: normalizedDays || days,
+        displayCurrency: data.displayCurrency || loadedCurrencies[0] || 'UAH',
+        displayCurrencyIndex: data.displayCurrencyIndex ?? 0
+      };
+
+      const updatedBudgets = {
+        ...safePrev,
+        [targetBudgetId]: updatedBudget
+      };
+
+      console.log('💾 Збереження імпортованих даних в localStorage:', {
+        targetBudgetId,
+        budgetName: updatedBudget.name,
+        hasDays: (updatedBudget.days || []).length > 0,
+        hasStartBalances: Object.keys(updatedBudget.startBalances || {}).length > 0,
+        currencies: updatedBudget.selectedCurrencies
+      });
+      
+      // ВАЖЛИВО: Зберігаємо синхронно ПЕРЕД поверненням, щоб дані гарантовано збереглися
+      saveToLocalStorage(updatedBudgets, targetBudgetId);
+      
+      // Додаткова перевірка: переконуємося, що дані збереглися
+      const verifySaved = localStorage.getItem('budgetTrackerData');
+      if (verifySaved) {
+        try {
+          const parsed = JSON.parse(verifySaved);
+          console.log('✅ Підтвердження збереження:', parsed.budgets ? `Знайдено ${Object.keys(parsed.budgets).length} бюджетів` : 'Немає budgets');
+        } catch (e) {
+          console.error('⚠️ Помилка перевірки збережених даних:', e);
+        }
+      } else {
+        console.error('❌ Помилка: дані не збереглися в localStorage!');
+      }
+      
+      return updatedBudgets;
+    });
+
+    // ВАЖЛИВО: Встановлюємо дні, валюти та курси ПІСЛЯ оновлення бюджету
+    // Використовуємо setTimeout з більшою затримкою, щоб гарантувати, що setBudgets завершився
+    // і budgets оновився перед викликом setDays/setSelectedCurrencies
+    setTimeout(() => {
+      // Встановлюємо дні
+      if (normalizedDays) {
+        setDays(normalizedDays);
+      }
+
+      // Відновлюємо displayCurrency та displayCurrencyIndex
+      if (data.displayCurrency && typeof data.displayCurrency === 'string') {
+        const currencyIndex = loadedCurrencies.indexOf(data.displayCurrency);
+        if (currencyIndex !== -1) {
+          setDisplayCurrency(data.displayCurrency);
+          setDisplayCurrencyIndex(currencyIndex);
+        } else {
+          const savedIndex = typeof data.displayCurrencyIndex === 'number' 
+            ? Math.min(data.displayCurrencyIndex, loadedCurrencies.length - 1)
+            : 0;
+          setDisplayCurrency(loadedCurrencies[savedIndex] || 'UAH');
+          setDisplayCurrencyIndex(savedIndex);
+        }
+      }
+
+      // Встановлюємо валюти ПІСЛЯ оновлення бюджету,
+      // щоб useBudgetStateSync не перезаписав startBalances
+      setSelectedCurrencies(loadedCurrencies);
+      
+      if (Object.keys(loadedExchangeRates).length > 0) {
+        setExchangeRates(loadedExchangeRates);
+      }
+      
+      // Додаткова перевірка: переконуємося, що дані все ще в localStorage
+      setTimeout(() => {
+        const finalCheck = localStorage.getItem('budgetTrackerData');
+        if (finalCheck) {
+          try {
+            const parsed = JSON.parse(finalCheck);
+            const budgetCount = parsed.budgets ? Object.keys(parsed.budgets).length : 0;
+            console.log(`✅ Фінальна перевірка після імпорту: ${budgetCount} бюджетів в localStorage`);
+          } catch (e) {
+            console.error('⚠️ Помилка фінальної перевірки:', e);
+          }
+        } else {
+          console.error('❌ КРИТИЧНО: Дані зникли з localStorage після імпорту!');
+        }
+      }, 200);
+    }, 100);
+  }, [days, setSelectedCurrencies, setExchangeRates, setBudgets, setDays, setLoadMessage, setDisplayCurrency, setDisplayCurrencyIndex]);
+
+  // Функція для прямого імпорту (для неавторизованих користувачів)
+  const applyImportDataDirectly = useCallback((data: any, targetBudgetId: string, budgetName: string, fileName: string) => {
+    try {
+      setIsLoading(true);
+      applyImportData(data, targetBudgetId, budgetName);
+      setLoadMessage(`✅ Імпортовано з файлу: ${fileName}`);
+      setTimeout(() => {
+        setLoadMessage('');
+        setIsLoading(false);
+      }, 3000);
+    } catch (err) {
+      console.error('Помилка при імпорті:', err);
+      setLoadMessage(translate('errors.importError'));
+      setTimeout(() => setLoadMessage(''), 4000);
+      setIsLoading(false);
+    }
+  }, [applyImportData, setIsLoading, setLoadMessage]);
+
+  // Обробник вибору файлу для імпорту
   const handleJsonFileSelected = useCallback((event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files && event.target.files[0];
     if (!file) return;
@@ -175,242 +417,35 @@ export function useBudgetImportExport() {
     reader.onload = (e) => {
       try {
         const text = e.target?.result;
-        if (typeof text !== 'string') return;
+        if (typeof text !== 'string') {
+          setIsLoading(false);
+          return;
+        }
         
         const data = JSON.parse(text);
 
-        console.log('📂 Імпорт даних з локального JSON-файлу:', file.name);
+        console.log('📂 Завантажено дані з локального JSON-файлу:', file.name);
 
-        // Обробка displayCurrency та displayCurrencyIndex (після завантаження selectedCurrencies)
-        // Але спочатку завантажуємо selectedCurrencies, щоб перевірити валідність displayCurrency
-        let loadedCurrencies = ['UAH', 'USD', 'EUR'];
-        if (data.settings?.selectedCurrencies && Array.isArray(data.settings.selectedCurrencies)) {
-          loadedCurrencies = validateSelectedCurrencies(data.settings.selectedCurrencies);
-        }
-
-        // Відновлюємо displayCurrency та displayCurrencyIndex
-        if (data.displayCurrency && typeof data.displayCurrency === 'string') {
-          // Перевіряємо, чи валюта є в завантажених валютах
-          const currencyIndex = loadedCurrencies.indexOf(data.displayCurrency);
-          if (currencyIndex !== -1) {
-            setDisplayCurrency(data.displayCurrency);
-            setDisplayCurrencyIndex(currencyIndex);
-          } else {
-            // Якщо валюта не знайдена, використовуємо індекс з даних або 0
-            const savedIndex = typeof data.displayCurrencyIndex === 'number' 
-              ? Math.min(data.displayCurrencyIndex, loadedCurrencies.length - 1)
-              : 0;
-            setDisplayCurrency(loadedCurrencies[savedIndex] || 'UAH');
-            setDisplayCurrencyIndex(savedIndex);
-          }
-        }
-
-        if (data.settings) {
-          if (data.settings.selectedCurrencies && Array.isArray(data.settings.selectedCurrencies)) {
-            setSelectedCurrencies(loadedCurrencies);
-          }
-
-          const loadedExchangeRates = data.settings.exchangeRates && typeof data.settings.exchangeRates === 'object'
-            ? data.settings.exchangeRates
-            : {};
-          
-          if (Object.keys(loadedExchangeRates).length > 0) {
-            setExchangeRates(loadedExchangeRates);
-          }
-
-          // Завантажуємо startBalances
-          const startBalancesFromSettings: Record<string, number | null> = {};
-          
-          if (data.settings.startBalances && typeof data.settings.startBalances === 'object') {
-            Object.entries(data.settings.startBalances).forEach(([currencyCode, balance]) => {
-              if (typeof balance === 'number') {
-                startBalancesFromSettings[currencyCode] = balance;
-              } else if (balance === null || balance === '') {
-                startBalancesFromSettings[currencyCode] = null;
-              } else {
-                startBalancesFromSettings[currencyCode] = null;
-              }
-            });
-          }
-          
+        // Якщо користувач авторизований - показуємо модальне вікно вибору
+        if (user) {
+          console.log('👤 Авторизований користувач: показуємо діалог вибору');
+          setPendingImport(data);
+          setShowImportModal(true);
+          setIsLoading(false);
+        } else {
+          // Якщо НЕ авторизований - просто імпортуємо в поточний бюджет
+          console.log('👤 Анонімний користувач: імпорт в поточний бюджет');
           const currentId = activeBudgetId || 'default';
-          
-          setBudgets((prevBudgets: Budgets) => {
-            const safePrev = prevBudgets || {};
-            const existingBudget = safePrev[currentId] || {
-              name: translate('budget.main'),
-              startBalances: {},
-              selectedCurrencies: DEFAULT_CURRENCIES,
-              exchangeRates: {},
-              days: []
-            };
-            
-            const startBalances: Record<string, number | null> = { ...(existingBudget.startBalances || {}) };
-            
-            // Оновлюємо баланси з імпортованих даних
-            loadedCurrencies.forEach(currencyCode => {
-              if (startBalancesFromSettings[currencyCode] !== undefined) {
-                startBalances[currencyCode] = startBalancesFromSettings[currencyCode];
-              } else if (startBalances[currencyCode] === undefined) {
-                startBalances[currencyCode] = null;
-              }
-            });
-            
-            return {
-              ...safePrev,
-              [currentId]: {
-                ...existingBudget,
-                startBalances,
-                selectedCurrencies: loadedCurrencies,
-                exchangeRates: loadedExchangeRates,
-                days: existingBudget.days || []
-              }
-            };
-          });
+          const currentBudget = budgets?.[currentId];
+          const currentBudgetName = currentBudget?.name || translate('budget.main');
+          applyImportDataDirectly(data, currentId, currentBudgetName, file.name);
         }
-
-        let normalizedDays: Day[] | null = null;
-        if (data.days && Array.isArray(data.days)) {
-          interface LoadedDay {
-            day?: number;
-            description?: string;
-            transactions?: Transaction[];
-          }
-
-          const loadedDays = (data.days as LoadedDay[]).map((d) => ({
-            day: d.day || 0,
-            description: String(d.description || '').trim(),
-            transactions: Array.isArray(d.transactions) ? d.transactions : []
-          }));
-
-          const newDays: Day[] = [];
-          for (let i = 1; i <= 31; i++) {
-            const loadedDay = loadedDays.find((d) => d.day === i);
-            if (loadedDay) {
-              // Валідація транзакцій перед додаванням
-              const validatedTransactions: Transaction[] = [];
-              if (Array.isArray(loadedDay.transactions)) {
-                for (const transaction of loadedDay.transactions) {
-                  try {
-                    validatedTransactions.push(validateTransaction(transaction));
-                  } catch (error) {
-                    handleError(
-                      error instanceof Error ? error : new Error(String(error)),
-                      {
-                        context: 'useBudgetImportExport',
-                        action: 'handleJsonFileSelected',
-                        details: `Помилка валідації транзакції в день ${i}`
-                      }
-                    );
-                    // Пропускаємо невалідну транзакцію
-                    console.warn(`⚠️ Транзакція в день ${i} не валідна і буде пропущена`);
-                  }
-                }
-              }
-
-              // Валідація: максимум 5 транзакцій на день
-              if (validatedTransactions.length > 5) {
-                const warningMessage = translate('transaction.maxTransactions', { 
-                  day: i, 
-                  count: validatedTransactions.length 
-                });
-                console.warn(warningMessage);
-                setLoadMessage(warningMessage);
-                // Обрізаємо до 5 транзакцій
-                validatedTransactions.splice(5);
-              }
-
-              const dayData: Day = {
-                day: loadedDay.day || i,
-                description: String(loadedDay.description || '').trim(),
-                transactions: validatedTransactions
-              };
-
-              // Валідація дня
-              try {
-                newDays.push(validateDay(dayData));
-              } catch (error) {
-                handleError(
-                  error instanceof Error ? error : new Error(String(error)),
-                  {
-                    context: 'useBudgetImportExport',
-                    action: 'handleJsonFileSelected',
-                    details: `Помилка валідації дня ${i}`
-                  }
-                );
-                // Додаємо день з базовими значеннями якщо валідація не пройшла
-                newDays.push({
-                  day: i,
-                  transactions: [],
-                  description: ''
-                });
-                console.warn(`⚠️ День ${i} не валідний, використано значення за замовчуванням`);
-              }
-            } else {
-              newDays.push({
-                day: i,
-                transactions: [],
-                description: ''
-              });
-            }
-          }
-
-          normalizedDays = normalizeDaysArray(newDays);
-          setDays(normalizedDays);
-        }
-
-        setTimeout(() => {
-          if (data.settings?.selectedCurrencies) {
-            const validated = validateSelectedCurrencies(data.settings.selectedCurrencies);
-            setSelectedCurrencies(validated);
-          }
-          
-          if (data.settings?.exchangeRates) {
-            setExchangeRates(data.settings.exchangeRates);
-          }
-          
-          // Оновлюємо budgets з days та зберігаємо в localStorage
-          const currentId = activeBudgetId || 'default';
-          setBudgets((prevBudgets: Budgets) => {
-            const safePrev = prevBudgets || {};
-            const updatedBudget = safePrev[currentId] || {
-              name: translate('budget.main'),
-              startBalances: {},
-              selectedCurrencies: DEFAULT_CURRENCIES,
-              exchangeRates: {},
-              days: []
-            };
-            
-            // Оновлюємо days в бюджеті
-            const budgetWithDays = {
-              ...updatedBudget,
-              days: normalizedDays || days,
-              startBalances: updatedBudget.startBalances || {},
-              selectedCurrencies: updatedBudget.selectedCurrencies || DEFAULT_CURRENCIES,
-              exchangeRates: updatedBudget.exchangeRates || {}
-            };
-            
-            const updatedBudgets = {
-              ...safePrev,
-              [currentId]: budgetWithDays
-            };
-            
-            // Зберігаємо в localStorage з budgets
-            // Всі динамічні startBalances вже знаходяться всередині updatedBudgets
-            saveToLocalStorage(updatedBudgets, currentId);
-            
-            return updatedBudgets;
-          });
-        }, 150);
-
-        setLoadMessage(`✅ Імпортовано з файлу: ${file.name}`);
-        setTimeout(() => setLoadMessage(''), 3000);
       } catch (err) {
         console.error('Помилка при читанні JSON-файлу:', err);
         setLoadMessage(translate('errors.importError'));
         setTimeout(() => setLoadMessage(''), 4000);
-      } finally {
         setIsLoading(false);
+      } finally {
         event.target.value = '';
       }
     };
@@ -424,13 +459,84 @@ export function useBudgetImportExport() {
     };
 
     reader.readAsText(file, 'utf-8');
-  }, [activeBudgetId, days, setSelectedCurrencies, setExchangeRates, setBudgets, setDays, setIsLoading, setLoadMessage, setDisplayCurrency, setDisplayCurrencyIndex]);
+  }, [user, activeBudgetId, budgets, applyImportDataDirectly, setIsLoading, setLoadMessage]);
+
+  // Функція для вирішення конфлікту імпорту (тільки для авторизованих користувачів)
+  const resolveImport = useCallback((action: 'new' | 'overwrite') => {
+    if (!pendingImport) return;
+
+    try {
+      const data = pendingImport;
+      const currentBudgets = budgets || {};
+      const count = Object.keys(currentBudgets).length;
+
+      if (action === 'new') {
+        // Перевірка ліміту
+        if (count >= 3) {
+          setLoadMessage('❌ Ліміт 3 бюджети досягнуто! Видаліть один, щоб додати новий.');
+          setTimeout(() => setLoadMessage(''), 4000);
+          setShowImportModal(false);
+          setPendingImport(null);
+          return;
+        }
+
+        // Створюємо нову назву з датою збереження
+        const savedDate = data.savedAt ? new Date(data.savedAt) : new Date();
+        const budgetName = data.budgetName || data.settings?.name || translate('budget.main');
+        const dateStr = savedDate.toLocaleString();
+        const newBudgetName = `${budgetName} (від ${dateStr})`;
+
+        // Генеруємо ID
+        const baseId = newBudgetName
+          .toLowerCase()
+          .replace(/[^a-z0-9]+/g, '-')
+          .replace(/^-+|-+$/g, '') || 'budget';
+
+        let newId = baseId;
+        let suffix = 1;
+        while (currentBudgets[newId]) {
+          newId = `${baseId}-${suffix++}`;
+        }
+
+        // Обробка даних з файлу
+        applyImportData(data, newId, newBudgetName);
+        setActiveBudgetId(newId);
+        setLoadMessage(`✅ Створено новий бюджет: ${newBudgetName}`);
+      } else {
+        // Перезаписуємо поточний бюджет
+        const currentId = activeBudgetId || 'default';
+        const currentBudgetName = currentBudgets[currentId]?.name || translate('budget.main');
+        applyImportData(data, currentId, currentBudgetName);
+        setLoadMessage(`✅ Оновлено бюджет: ${currentBudgetName}`);
+      }
+
+      setTimeout(() => setLoadMessage(''), 3000);
+    } catch (err) {
+      console.error('Помилка при імпорті:', err);
+      setLoadMessage(translate('errors.importError'));
+      setTimeout(() => setLoadMessage(''), 4000);
+    } finally {
+      setShowImportModal(false);
+      setPendingImport(null);
+    }
+  }, [pendingImport, budgets, activeBudgetId, applyImportData, setActiveBudgetId, setLoadMessage]);
+
+  // Функція для скасування імпорту
+  const cancelImport = useCallback(() => {
+    setShowImportModal(false);
+    setPendingImport(null);
+    setLoadMessage('');
+  }, [setLoadMessage]);
 
   return {
     handleExportToJsonFile,
     handleImportFromJsonFile,
     handleJsonFileSelected,
-    fileInputRef
+    fileInputRef,
+    showImportModal,
+    resolveImport,
+    cancelImport,
+    pendingImport
   };
 }
 
