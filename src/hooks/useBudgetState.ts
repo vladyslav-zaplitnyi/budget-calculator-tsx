@@ -374,6 +374,17 @@ export function useBudgetState(): BudgetStateInterface {
     currencyStateRef.current = currencyState;
   }, [currencyState]);
 
+  // 🛡️ Страховка ініціалізації днів для "холодного старту" в інкогніто
+  // Якщо завантаження завершено, але днів немає (0) — це баг першого запуску.
+  // Генеруємо дефолтну структуру місяця (1-31).
+  useEffect(() => {
+    if (!messageState.isLoading && budgetState.days.length === 0) {
+      console.log("⚡ Примусова ініціалізація днів для нового користувача");
+      const defaultDays = normalizeDaysArray([]);
+      setDays(defaultDays);
+    }
+  }, [messageState.isLoading, budgetState.days.length, setDays]);
+
   // Зберігаємо вибір мови та синхронізуємо з i18next
   useEffect(() => {
     try {

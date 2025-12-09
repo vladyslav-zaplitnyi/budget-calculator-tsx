@@ -118,3 +118,4 @@ const handleJsonFileSelected = useCallback((event) => {
 - Простоту для тих, кому вона потрібна (анонімні)
 - Захист від помилок на всіх рівнях
 
+
