@@ -36,7 +36,7 @@ const Footer: React.FC<FooterProps> = ({ language = 'uk' }) => {
               <span className="sm:hidden">{t('footer.cookie')}</span>
             </a>
             <a
-              href="https://www.linkedin.com/in/vlad-zaplitnyi-39b3022b2/"
+              href="https://www.linkedin.com/in/vladyslav-zaplitnyi-39b3022b2"
               target="_blank"
               rel="noopener noreferrer"
               className="flex items-center justify-center w-10 h-10 rounded-full bg-white text-slate-700 hover:text-white hover:bg-[#0077B5] transition-all duration-300 shadow-md hover:shadow-lg transform hover:scale-110 active:scale-95"
