@@ -92,15 +92,15 @@ const BudgetStatus: React.FC<BudgetStatusProps> = ({
         })}
 
         {/* Total in Display Currency */}
-        <div className="bg-gradient-to-br from-indigo-500 to-violet-600 p-4 rounded-xl shadow-lg border-2 border-indigo-300 hover:border-indigo-400 hover:shadow-2xl transition-all text-white relative">
+        <div className="bg-gradient-to-br from-indigo-500 to-violet-600 p-4 rounded-xl shadow-lg border-2 border-indigo-300 hover:border-indigo-400 hover:shadow-2xl transition-all !text-white relative">
           <div className="flex items-center justify-between mb-2">
-            <p className="text-xs sm:text-sm font-semibold font-display tracking-tight">
+            <p className="text-xs sm:text-sm font-semibold font-display tracking-tight !text-white ">
               {t('budgetStatus.totalValue')}
             </p>
             <span className="text-xl">💎</span>
           </div>
           <div className="flex items-center justify-between mb-1">
-            <p className="text-2xl sm:text-3xl lg:text-4xl font-extrabold font-display break-words overflow-hidden tabular-nums budget-number">
+            <p className="text-2xl sm:text-3xl lg:text-4xl font-extrabold font-display break-words overflow-hidden tabular-nums budget-number samsung-white-text">
               {getCurrencySymbol(displayCurrency)}
               {(() => {
                 if (totalInDisplayCurrency !== undefined) {
@@ -117,7 +117,7 @@ const BudgetStatus: React.FC<BudgetStatusProps> = ({
               <button
                 type="button"
                 onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                className="flex items-center space-x-1 bg-white/20 hover:bg-white/30 rounded-lg px-2 py-1.5 transition-all hover:scale-105"
+                className="flex items-center space-x-1 bg-white/20 hover:bg-white/30 rounded-lg px-2 py-1.5 transition-all hover:scale-105 "
                 title={t('budgetStatus.selectDisplayCurrency')}
               >
                 <CurrencyFlag currencyCode={displayCurrency} size={16} />
@@ -181,7 +181,7 @@ const BudgetStatus: React.FC<BudgetStatusProps> = ({
               )}
             </div>
           </div>
-          <p className="text-xs opacity-90 font-mono break-words overflow-hidden tabular-nums">
+          <p className="text-xs opacity-90 font-mono break-words overflow-hidden tabular-nums samsung-white-text ">
             {displayCurrency} ({selectedCurrencies.map((code, idx) => {
               const balance = finalBalances[`finalBalance${code}`] || 0;
               const symbol = getCurrencySymbol(code);

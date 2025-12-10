@@ -410,6 +410,18 @@ td {
   /* Залишаємо світлу тему, але підготовка до dark mode */
 }
 
+/* ========== SAMSUNG/ANDROID FIX ========== */
+
+/* Mix-blend-mode */
+.samsung-white-text {
+  color: white !important;
+  mix-blend-mode: screen;
+  filter: brightness(10) contrast(10);
+  isolation: isolate;
+}
+
+/* ======================================== */
+
 /* Покращення для печаті */
 @media print {
   .no-print {

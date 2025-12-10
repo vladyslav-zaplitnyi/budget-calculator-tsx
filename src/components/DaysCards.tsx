@@ -125,8 +125,8 @@ const DaysCards: React.FC<DaysCardsProps> = ({
             {/* Day Header */}
             <div className="flex items-center justify-between mb-3 pb-3 border-b-2 border-gray-200">
               <div className="flex items-center gap-2">
-                <span className="inline-block bg-indigo-600 text-white font-bold text-base sm:text-lg rounded-lg px-3 py-1.5 font-display select-none" style={{ border: '3px solid #4f46e5', boxShadow: '0 2px 4px rgba(79, 70, 229, 0.3)' }}>
-                  {t('days.dayNumber')} {day.day}
+                <span className="inline-block bg-indigo-600 !text-white font-bold text-base sm:text-lg rounded-lg px-3 py-1.5 font-display select-none" style={{ border: '3px solid #4f46e5', boxShadow: '0 2px 4px rgba(79, 70, 229, 0.3)' }}>
+                  {t('days.dayNumber')} <span className='samsung-white-text'>{day.day}</span>
                 </span>
               </div>
               <div className="text-xs font-semibold text-gray-500 font-display">
@@ -175,7 +175,7 @@ const DaysCards: React.FC<DaysCardsProps> = ({
               {canAddMore ? (
                 <button
                   onClick={() => handleAddTransaction(index)}
-                  className="w-full px-3 py-2.5 text-sm bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-all font-semibold font-display shadow-md hover:shadow-lg hover:scale-[1.02]"
+                  className="w-full px-3 py-2.5 text-sm bg-blue-500 !text-white rounded-lg hover:bg-blue-600 transition-all font-semibold font-display shadow-md hover:shadow-lg hover:scale-[1.02]"
                 >
                   ➕ {t('days.addTransaction')}
                 </button>
@@ -215,7 +215,7 @@ const DaysCards: React.FC<DaysCardsProps> = ({
                       <span className="hidden xs:inline">{getCurrencyName(currencyCode, i18nInstance.language === 'uk' ? 'uk' : 'en')}</span>
                       <span>({currencyCode})</span>
                     </h4>
-                    <div className="text-xs font-semibold text-gray-600 tabular-nums">
+                    <div className="text-xs font-semibold text-gray-900 tabular-nums">
                       Σ: <span className={`font-bold ${cumulative >= (parseFloat(String(startBalance)) || 0) ? 'text-emerald-600' : 'text-rose-600'}`}>
                         {symbol}{cumulative.toFixed(2)}
                       </span>
@@ -282,12 +282,12 @@ const DaysCards: React.FC<DaysCardsProps> = ({
               return (
                 <div className="bg-gradient-to-br from-indigo-50 to-violet-100/70 p-3 rounded-lg border-2 border-indigo-300 shadow-sm">
                   <div className="flex items-center justify-between mb-2">
-                    <h4 className="text-xs font-bold text-gray-700 font-display flex items-center gap-1.5">
+                    <h4 className="text-xs font-bold text-gray-900 font-display flex items-center gap-1.5">
                       <CurrencyFlag currencyCode={displayCurrency} size={18} />
                       <span>{displayCurrency}</span>
                       <span className="hidden xs:inline text-[10px] font-normal">{t('days.converted')}</span>
                     </h4>
-                    <div className="text-xs font-semibold text-gray-600 tabular-nums">
+                    <div className="text-xs font-semibold text-gray-900 tabular-nums">
                       {convertedCumulative !== 0 && (
                         <>
                           Σ:{' '}

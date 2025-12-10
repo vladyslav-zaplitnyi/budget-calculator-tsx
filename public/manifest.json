@@ -3,19 +3,24 @@
   "name": "Бюджетний трекер",
   "icons": [
     {
-      "src": "favicon_v2.ico",
+      "src": "favicon_v2.ico?v=5",
       "sizes": "64x64 32x32 24x24 16x16",
       "type": "image/x-icon"
     },
     {
-      "src": "logo192_v2.png",
+      "src": "logo192_v2.png?v=5",
       "type": "image/png",
       "sizes": "192x192"
     },
     {
-      "src": "logo512_v2.png",
+      "src": "logo512_v2.png?v=5",
       "type": "image/png",
       "sizes": "512x512"
+    },
+    {
+      "src": "apple-touch-icon.png?v=5",
+      "type": "image/png",
+      "sizes": "180x180"
     }
   ],
   "start_url": ".",

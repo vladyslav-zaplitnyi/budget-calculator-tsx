@@ -136,20 +136,20 @@ const DaysTable: React.FC<DaysTableProps> = ({
     <div className="hidden md:block bg-white rounded-2xl shadow-xl overflow-hidden mb-4 sm:mb-6">
       <div className="table-container overflow-x-auto lg:max-h-[85vh] lg:overflow-y-auto">
         <table className="w-full text-sm tabular-nums">
-          <thead className="bg-gradient-to-r from-indigo-600 via-blue-600 to-violet-600 text-white sticky-table-header">
+          <thead className="bg-gradient-to-r from-indigo-600 via-blue-600 to-violet-600 !text-white sticky-table-header">
             <tr>
-              <th className="px-3 py-3 text-left font-semibold font-display text-xs sm:text-sm" rowSpan={2}>
+              <th className="px-3 py-3 text-left font-semibold font-display text-xs sm:text-sm !text-white" rowSpan={2}>
                 {translate('days.day')}
               </th>
-              <th className="px-3 py-3 text-left font-semibold font-display text-xs sm:text-sm" rowSpan={2}>
+              <th className="px-3 py-3 text-left font-semibold font-display text-xs sm:text-sm !text-white" rowSpan={2}>
                 {translate('days.description')}
               </th>
               {selectedCurrencies.map((currencyCode) => {
                 const currency = getCurrencyInfo(currencyCode);
                 if (!currency) return null;
                 return (
-                  <th key={currencyCode} className="px-3 py-3 text-center font-semibold font-display text-xs sm:text-sm border-l border-indigo-400" colSpan={4}>
-                    <div className="flex items-center justify-center gap-1.5">
+                  <th key={currencyCode} className="px-3 py-3 text-center font-semibold font-display text-xs sm:text-sm border-l border-indigo-400 !text-white" colSpan={4}>
+                    <div className="flex items-center justify-center gap-1.5 !text-white">
                       <CurrencyFlag currencyCode={currencyCode} size={18} className="inline-block" />
                       <span className="hidden lg:inline">{getCurrencyName(currencyCode, i18nInstance.language === 'uk' ? 'uk' : 'en')}</span>
                       <span>({currencyCode})</span>
@@ -157,8 +157,8 @@ const DaysTable: React.FC<DaysTableProps> = ({
                   </th>
                 );
               })}
-              <th className="px-3 py-3 text-center font-semibold font-display text-xs sm:text-sm border-l border-indigo-400 bg-indigo-100 text-black" colSpan={4}>
-                <div className="flex items-center justify-center gap-1.5">
+              <th className="px-3 py-3 text-center font-semibold font-display text-xs sm:text-sm border-l border-indigo-400 !text-white" colSpan={4}>
+                <div className="flex items-center justify-center gap-1.5 !text-white">
                   <CurrencyFlag currencyCode={displayCurrency} size={18} className="inline-block" />
                   <span>{displayCurrency}</span>
                   <span className="hidden lg:inline">{translate('days.converted')}</span>
@@ -168,37 +168,37 @@ const DaysTable: React.FC<DaysTableProps> = ({
             <tr>
               {selectedCurrencies.map((currencyCode, idx) => (
                 <React.Fragment key={currencyCode}>
-                  <th className={`px-2 py-2 text-right text-[10px] sm:text-xs font-medium ${idx === 0 ? 'border-l border-indigo-400' : 'border-l border-indigo-400'}`}>
+                  <th className={`px-2 py-2 text-right text-[10px] sm:text-xs font-medium !text-white ${idx === 0 ? 'border-l border-indigo-400' : 'border-l border-indigo-400'}`}>
                     <span className="hidden sm:inline">{translate('days.income')}</span>
                     <span className="sm:hidden">✅</span>
                   </th>
-                  <th className="px-2 py-2 text-right text-[10px] sm:text-xs font-medium">
+                  <th className="px-2 py-2 text-right text-[10px] sm:text-xs font-medium !text-white">
                     <span className="hidden sm:inline">{translate('days.expenses')}</span>
                     <span className="sm:hidden">❌</span>
                   </th>
-                  <th className="px-2 py-2 text-right text-[10px] sm:text-xs font-medium">
+                  <th className="px-2 py-2 text-right text-[10px] sm:text-xs font-medium !text-white">
                     <span className="hidden lg:inline">{translate('days.balance')}</span>
                     <span className="lg:hidden">Δ</span>
                   </th>
-                  <th className="px-2 py-2 text-right text-[10px] sm:text-xs font-medium">
+                  <th className="px-2 py-2 text-right text-[10px] sm:text-xs font-medium !text-white">
                     <span className="hidden lg:inline">{translate('days.cumulativeShort')}</span>
                     <span className="lg:hidden">Σ</span>
                   </th>
                 </React.Fragment>
               ))}
-              <th className="px-2 py-2 text-right text-[10px] sm:text-xs font-medium border-l border-indigo-400 bg-indigo-50 text-black">
+              <th className="px-2 py-2 text-right text-[10px] sm:text-xs font-medium border-l border-indigo-400 !text-white">
                 <span className="hidden sm:inline">{translate('days.income')}</span>
                 <span className="sm:hidden">✅</span>
               </th>
-              <th className="px-2 py-2 text-right text-[10px] sm:text-xs font-medium bg-indigo-50 text-black">
+              <th className="px-2 py-2 text-right text-[10px] sm:text-xs font-medium !text-white">
                 <span className="hidden sm:inline">{translate('days.expenses')}</span>
                 <span className="sm:hidden">❌</span>
               </th>
-              <th className="px-2 py-2 text-right text-[10px] sm:text-xs font-medium bg-indigo-50 text-black">
+              <th className="px-2 py-2 text-right text-[10px] sm:text-xs font-medium !text-white">
                 <span className="hidden lg:inline">{translate('days.balance')}</span>
                 <span className="lg:hidden">Δ</span>
               </th>
-              <th className="px-2 py-2 text-right text-[10px] sm:text-xs font-medium bg-indigo-50 text-black">
+              <th className="px-2 py-2 text-right text-[10px] sm:text-xs font-medium !text-white">
                 <span className="hidden lg:inline">{translate('days.cumulativeShort')}</span>
                 <span className="lg:hidden">Σ</span>
               </th>
@@ -216,7 +216,7 @@ const DaysTable: React.FC<DaysTableProps> = ({
               return (
                 <tr key={day.day} className="hover:bg-blue-50 transition-colors border-b border-gray-100">
                   <td className="px-3 py-3 font-bold text-gray-900 font-display text-sm whitespace-nowrap text-center">
-                    <span className="inline-block py-1 px-2.5 rounded-lg bg-indigo-600 text-white select-none" style={{ border: '2px solid #4f46e5', boxShadow: '0 1px 3px rgba(79, 70, 229, 0.3)' }}>
+                    <span className="inline-block py-1 px-2.5 rounded-lg bg-indigo-600 !text-white select-none" style={{ border: '2px solid #4f46e5', boxShadow: '0 1px 3px rgba(79, 70, 229, 0.3)' }}>
                       {day.day}
                     </span>
                   </td>
@@ -236,7 +236,7 @@ const DaysTable: React.FC<DaysTableProps> = ({
                       {canAddMore ? (
                         <button
                           onClick={() => handleAddTransaction(index)}
-                          className="w-full px-2 py-1 text-xs bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors font-semibold"
+                          className="w-full px-2 py-1 text-xs bg-blue-500 !text-white rounded-lg hover:bg-blue-600 transition-colors font-semibold"
                         >
                           {translate('days.addTransaction')}
                         </button>

@@ -107,10 +107,10 @@ const Header: React.FC<HeaderProps> = ({
             <span className="mr-1">💰</span>
             {t('header.subtitle')}
           </span>
-          <h1 className="text-2xl lg:text-3xl xl:text-4xl font-extrabold leading-tight text-white">
+          <h1 className="text-2xl lg:text-3xl xl:text-4xl font-extrabold leading-tight samsung-white-text">
             {t('header.title')}
           </h1>
-          <p className="text-center lg:text-left text-indigo-100 text-sm sm:text-base mt-1">
+          <p className="text-center lg:text-left text-indigo-100 text-sm sm:text-base mt-1 samsung-white-text">
             {t('header.description')}
           </p>
         </div>
@@ -234,10 +234,10 @@ const Header: React.FC<HeaderProps> = ({
           <span className="text-[11px] uppercase tracking-[0.18em] text-indigo-100/90">
             {t('header.subtitle')}
           </span>
-          <h1 className="text-2xl sm:text-3xl font-extrabold leading-tight text-white">
+          <h1 className="text-2xl sm:text-3xl font-extrabold leading-tight samsung-white-text">
             {t('header.title')}
           </h1>
-          <p className="text-center text-indigo-100 text-sm sm:text-base mt-1">
+          <p className="text-center text-indigo-100 text-sm sm:text-base mt-1 samsung-white-text">
             {t('header.description')}
           </p>
         </div>
