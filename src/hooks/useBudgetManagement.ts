@@ -67,11 +67,18 @@ export function useBudgetManagement() {
       newId = `${baseId}-${suffix++}`;
     }
 
-    const newDays = createEmptyMonthDays();
-    const newExchangeRates = { ...exchangeRates };
-
     // ВАЖЛИВО: Беремо значення з поточного активного бюджету, а не з окремих станів
     const currentBudget = budgets?.[activeBudgetId || 'default'];
+    
+    // Беремо budgetDate з поточного бюджету або використовуємо поточну дату
+    const budgetDate = currentBudget?.budgetDate || {
+      year: new Date().getFullYear(),
+      month: new Date().getMonth()
+    };
+    
+    const newDays = createEmptyMonthDays(budgetDate.year, budgetDate.month);
+    const newExchangeRates = { ...exchangeRates };
+
     const newStartBalances: Record<string, number | null> = {};
     selectedCurrencies.forEach(code => {
       // Завжди беремо значення з поточного бюджету
@@ -89,7 +96,8 @@ export function useBudgetManagement() {
       startBalances: newStartBalances,
       days: newDays,
       displayCurrency: currentDisplayCurrency,
-      displayCurrencyIndex: currentDisplayCurrencyIndex
+      displayCurrencyIndex: currentDisplayCurrencyIndex,
+      budgetDate
     };
 
     const updatedBudgets = {

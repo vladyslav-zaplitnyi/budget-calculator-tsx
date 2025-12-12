@@ -5,6 +5,7 @@ import { translate } from '../i18n/config';
 import i18n from '../i18n/config';
 import SettingsModal from './SettingsModal';
 import CurrencyFlag from './CurrencyFlag';
+import { getMonthYearLabel } from '../utils/dateHelpers';
 
 interface HeaderProps {
   isUk: boolean;
@@ -32,6 +33,9 @@ interface HeaderProps {
   showDisableEncryptionModal?: boolean;
   setShowEnableEncryptionModal?: (show: boolean) => void;
   setShowDisableEncryptionModal?: (show: boolean) => void;
+  // Budget date
+  budgetYear?: number;
+  budgetMonth?: number;
 }
 
 const GoogleIcon = () => (
@@ -93,10 +97,17 @@ const Header: React.FC<HeaderProps> = ({
   showEnableEncryptionModal = false,
   showDisableEncryptionModal = false,
   setShowEnableEncryptionModal,
-  setShowDisableEncryptionModal
+  setShowDisableEncryptionModal,
+  budgetYear,
+  budgetMonth
 }) => {
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
   const { t } = useTranslation();
+  
+  // Форматуємо дату бюджету для відображення
+  const budgetMonthLabel = budgetYear !== undefined && budgetMonth !== undefined
+    ? getMonthYearLabel(language, budgetYear, budgetMonth)
+    : null;
   return (
     <div className="bg-gradient-to-r from-indigo-600 via-blue-600 to-indigo-700 rounded-2xl shadow-2xl p-4 sm:p-6 md:p-8 mb-4 sm:mb-6 text-white">
       {/* Десктоп / планшет: заголовок зліва, панель дій справа */}
@@ -113,6 +124,17 @@ const Header: React.FC<HeaderProps> = ({
           <p className="text-center lg:text-left text-indigo-100 text-sm sm:text-base mt-1 samsung-white-text">
             {t('header.description')}
           </p>
+          {budgetMonthLabel && (
+            <div 
+              className="inline-flex items-center justify-center lg:justify-start gap-1.5 mt-2 bg-white/15 backdrop-blur-sm px-3 py-1.5 rounded-full border border-white/20 shadow-sm cursor-help"
+              title={t('settings.budgetMonth.tooltip')}
+            >
+              <span className="text-xs font-medium text-white/90">📅</span>
+              <span className="text-xs sm:text-sm font-semibold text-white">
+                {budgetMonthLabel}
+              </span>
+            </div>
+          )}
         </div>
 
         {/* Контейнер: статус, авторизація, мова */}
@@ -240,6 +262,17 @@ const Header: React.FC<HeaderProps> = ({
           <p className="text-center text-indigo-100 text-sm sm:text-base mt-1 samsung-white-text">
             {t('header.description')}
           </p>
+          {budgetMonthLabel && (
+            <div 
+              className="inline-flex items-center justify-center gap-1.5 mt-2 bg-white/15 backdrop-blur-sm px-3 py-1.5 rounded-full border border-white/20 shadow-sm cursor-help"
+              title={t('settings.budgetMonth.tooltip')}
+            >
+              <span className="text-xs font-medium text-white/90">📅</span>
+              <span className="text-xs sm:text-sm font-semibold text-white">
+                {budgetMonthLabel}
+              </span>
+            </div>
+          )}
         </div>
 
         <div className="flex flex-col gap-2 items-stretch">

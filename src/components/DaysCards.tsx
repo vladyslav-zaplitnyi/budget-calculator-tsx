@@ -23,6 +23,8 @@ interface DaysCardsProps {
   displayCurrency?: string;
   exchangeRates?: ExchangeRates;
   startBalances?: Record<string, number | null>;
+  budgetYear: number;
+  budgetMonth: number;
 }
 
 const DaysCards: React.FC<DaysCardsProps> = ({
@@ -32,12 +34,11 @@ const DaysCards: React.FC<DaysCardsProps> = ({
   selectedCurrencies = ['UAH', 'USD', 'EUR'],
   displayCurrency = 'UAH',
   exchangeRates = {},
-  startBalances = {}
+  startBalances = {},
+  budgetYear,
+  budgetMonth
 }) => {
   const { t, i18n: i18nInstance } = useTranslation();
-  const currentDate = new Date();
-  const currentYear = currentDate.getFullYear();
-  const currentMonth = currentDate.getMonth();
   const [modalState, setModalState] = useState<{
     isOpen: boolean;
     dayIndex: number | null;
@@ -120,8 +121,8 @@ const DaysCards: React.FC<DaysCardsProps> = ({
         if (!day) return null;
         const amounts = calculateDayAmountsFromTransactions(day, selectedCurrencies);
         const weekday = getWeekdayShortName(
-          currentYear,
-          currentMonth,
+          budgetYear,
+          budgetMonth,
           day.day,
           i18nInstance.language || 'en'
         );

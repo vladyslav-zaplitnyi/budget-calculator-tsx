@@ -56,18 +56,13 @@ export function useBudgetSettings() {
   const handleConfirmClearAll = useCallback(() => {
     setShowClearAllConfirmModal(false);
       const currentId = activeBudgetId || 'default';
-      const emptyDays = createEmptyMonthDays();
-      
       const safePrev = budgets || {};
-      const existingBudget = safePrev[currentId] || {
-        name: translate('budget.defaultBudgetName'),
-        startBalances: {},
-        selectedCurrencies: DEFAULT_CURRENCIES,
-        exchangeRates: {},
-        days: [],
-        displayCurrency: 'RON',
-        displayCurrencyIndex: 0
+      const existingBudget = safePrev[currentId];
+      const budgetDate = existingBudget?.budgetDate || {
+        year: new Date().getFullYear(),
+        month: new Date().getMonth()
       };
+      const emptyDays = createEmptyMonthDays(budgetDate.year, budgetDate.month);
       
       const clearedStartBalances: Record<string, number | null> = {};
       selectedCurrencies.forEach(currencyCode => {
@@ -81,7 +76,8 @@ export function useBudgetSettings() {
         selectedCurrencies: existingBudget.selectedCurrencies || selectedCurrencies || DEFAULT_CURRENCIES,
         exchangeRates: existingBudget.exchangeRates || {},
         displayCurrency: existingBudget.displayCurrency || 'RON',
-        displayCurrencyIndex: existingBudget.displayCurrencyIndex ?? 0
+        displayCurrencyIndex: existingBudget.displayCurrencyIndex ?? 0,
+        budgetDate: existingBudget.budgetDate || budgetDate
       };
       
       const updatedBudgets: Budgets = {
@@ -112,8 +108,6 @@ export function useBudgetSettings() {
   const handleConfirmClearAllDays = useCallback(() => {
     setShowClearAllDaysConfirmModal(false);
       const currentId = activeBudgetId || 'default';
-      const emptyDays = createEmptyMonthDays();
-      
       const safePrev = budgets || {};
       const existingBudget = safePrev[currentId] || {
         name: translate('budget.defaultBudgetName'),
@@ -124,6 +118,12 @@ export function useBudgetSettings() {
         displayCurrency: 'RON',
         displayCurrencyIndex: 0
       };
+      
+      const budgetDate = existingBudget.budgetDate || {
+        year: new Date().getFullYear(),
+        month: new Date().getMonth()
+      };
+      const emptyDays = createEmptyMonthDays(budgetDate.year, budgetDate.month);
       
       // Очищаємо тільки дні, залишаємо все інше без змін
       const clearedBudget = {
@@ -166,6 +166,26 @@ export function useBudgetSettings() {
       displayCurrencyIndex: 0
     };
 
+    // Отримуємо поточну дату бюджету
+    const currentBudgetDate = existingBudget.budgetDate || {
+      year: new Date().getFullYear(),
+      month: new Date().getMonth()
+    };
+
+    // Обчислюємо наступний місяць
+    let newMonth = currentBudgetDate.month + 1;
+    let newYear = currentBudgetDate.year;
+    
+    if (newMonth > 11) {
+      newMonth = 0;
+      newYear = newYear + 1;
+    }
+
+    const newBudgetDate = {
+      year: newYear,
+      month: newMonth
+    };
+
     // Отримуємо поточні початкові баланси
     const currentStartBalances = existingBudget.startBalances || {};
 
@@ -186,14 +206,15 @@ export function useBudgetSettings() {
       newStartBalances[currencyCode] = finalBalance;
     });
 
-    // Створюємо порожні дні
-    const emptyDays = createEmptyMonthDays();
+    // Створюємо порожні дні для нового місяця
+    const emptyDays = createEmptyMonthDays(newYear, newMonth);
 
-    // Оновлюємо бюджет: стираємо дні та встановлюємо нові початкові баланси
+    // Оновлюємо бюджет: стираємо дні, встановлюємо нові початкові баланси і оновлюємо дату
     const updatedBudget = {
       ...existingBudget,
       startBalances: newStartBalances,
-      days: emptyDays
+      days: emptyDays,
+      budgetDate: newBudgetDate
     };
 
     const updatedBudgets: Budgets = {
@@ -224,7 +245,7 @@ export function useBudgetSettings() {
     }
 
     setShowStartNewMonthModal(false);
-    console.log('✅ Новий місяць розпочато');
+    console.log('✅ Новий місяць розпочато:', newBudgetDate);
   }, [activeBudgetId, budgets, days, selectedCurrencies, setBudgets, setDays, user, encryptionPassword, setSyncStatus, getSyncStatusText, setIsEncrypted]);
 
   const handleCancelStartNewMonth = useCallback(() => {

@@ -37,6 +37,11 @@ export interface Budget {
   displayCurrency?: string;
   /** Індекс валюти для відображення */
   displayCurrencyIndex?: number;
+  /** Дата бюджету (рік і місяць, 0-11) */
+  budgetDate?: {
+    year: number;
+    month: number;
+  };
 }
 
 export interface Budgets {

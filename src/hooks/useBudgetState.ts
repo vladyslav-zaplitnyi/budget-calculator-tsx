@@ -50,6 +50,9 @@ export interface BudgetStateInterface {
   setEncryptionPassword: (password: string | null) => void;
   isEncrypted: boolean;
   setIsEncrypted: (encrypted: boolean) => void;
+  // Budget date
+  budgetDate: { year: number; month: number };
+  setBudgetDate: (date: { year: number; month: number }) => void;
 }
 
 export function useBudgetState(): BudgetStateInterface {
@@ -415,6 +418,39 @@ export function useBudgetState(): BudgetStateInterface {
     }
   }, [displayState.displayCurrency, displayState.displayCurrencyIndex]);
 
+  // Функція для оновлення budgetDate активного бюджету
+  const setBudgetDate = useCallback((date: { year: number; month: number }) => {
+    const currentId = budgetStateRef.current.activeBudgetId || 'default';
+    setBudgets((prevBudgets: Budgets) => {
+      const safePrev = prevBudgets || {};
+      const existingBudget = safePrev[currentId];
+      
+      if (!existingBudget) return safePrev;
+      
+      return {
+        ...safePrev,
+        [currentId]: {
+          ...existingBudget,
+          budgetDate: date
+        }
+      };
+    });
+  }, [setBudgets]);
+
+  // Обчислюємо поточний budgetDate з активного бюджету
+  const budgetDate = useMemo(() => {
+    const activeBudget = budgetState.budgets[budgetState.activeBudgetId || 'default'];
+    if (activeBudget?.budgetDate) {
+      return activeBudget.budgetDate;
+    }
+    // Якщо budgetDate не встановлено, використовуємо поточну дату
+    const now = new Date();
+    return {
+      year: now.getFullYear(),
+      month: now.getMonth()
+    };
+  }, [budgetState.budgets, budgetState.activeBudgetId]);
+
   // Мемоізуємо об'єкт стану, щоб уникнути створення нового об'єкта на кожен рендер
   return useMemo(() => ({
     // Мова
@@ -469,7 +505,11 @@ export function useBudgetState(): BudgetStateInterface {
     encryptionPassword,
     setEncryptionPassword,
     isEncrypted,
-    setIsEncrypted
+    setIsEncrypted,
+    
+    // Budget date
+    budgetDate,
+    setBudgetDate
   }), [
     displayState.language,
     displayState.displayCurrency,
@@ -505,7 +545,9 @@ export function useBudgetState(): BudgetStateInterface {
     encryptionPassword,
     setEncryptionPassword,
     isEncrypted,
-    setIsEncrypted
+    setIsEncrypted,
+    budgetDate,
+    setBudgetDate
   ]);
 }
 

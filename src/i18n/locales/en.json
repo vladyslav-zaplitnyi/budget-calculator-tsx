@@ -83,9 +83,14 @@
     "startNewMonth": {
       "button": "📅 Start new month",
       "title": "Start new month",
-      "message": "All data for days will be deleted, and the current budget will become the starting balance for the new month. Continue?",
+      "message": "All data for days will be deleted, and the current budget will become the starting balance for the next month. Budget date will automatically change to the next month. Continue?",
       "confirm": "Yes, start new month",
       "cancel": "Cancel"
+    },
+    "budgetMonth": {
+      "label": "Budget Month",
+      "currentMonth": "Current Month",
+      "tooltip": "Budget month. When importing a file, the date is set from the file. When clicking \"Start new month\", the date automatically changes to the next month."
     },
     "security": {
       "title": "Security",

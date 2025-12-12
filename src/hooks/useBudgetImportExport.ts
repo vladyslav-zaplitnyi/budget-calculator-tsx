@@ -62,6 +62,10 @@ export function useBudgetImportExport() {
         displayCurrency: displayCurrency,
         displayCurrencyIndex: displayCurrencyIndex,
         budgetName: activeBudget?.name || translate('budget.main'),
+        budgetDate: activeBudget?.budgetDate || {
+          year: new Date().getFullYear(),
+          month: new Date().getMonth()
+        },
         settings: settingsToSave,
         days: days.map((day, index) => ({
           day: day.day || (index + 1),
@@ -196,6 +200,31 @@ export function useBudgetImportExport() {
       });
     }
 
+    // Обробка budgetDate
+    let budgetDate: { year: number; month: number };
+    if (data.budgetDate && typeof data.budgetDate === 'object' && 
+        typeof data.budgetDate.year === 'number' && 
+        typeof data.budgetDate.month === 'number') {
+      budgetDate = {
+        year: data.budgetDate.year,
+        month: data.budgetDate.month
+      };
+    } else if (data.savedAt && typeof data.savedAt === 'string') {
+      // Якщо budgetDate не вказано, але є savedAt, використовуємо його
+      const savedDate = new Date(data.savedAt);
+      budgetDate = {
+        year: savedDate.getFullYear(),
+        month: savedDate.getMonth()
+      };
+    } else {
+      // Використовуємо поточну дату як fallback
+      const now = new Date();
+      budgetDate = {
+        year: now.getFullYear(),
+        month: now.getMonth()
+      };
+    }
+
     // Обробка днів
     let normalizedDays: Day[] | null = null;
     if (data.days && Array.isArray(data.days)) {
@@ -302,7 +331,8 @@ export function useBudgetImportExport() {
         exchangeRates: loadedExchangeRates,
         days: normalizedDays || days,
         displayCurrency: data.displayCurrency || loadedCurrencies[0] || 'UAH',
-        displayCurrencyIndex: data.displayCurrencyIndex ?? 0
+        displayCurrencyIndex: data.displayCurrencyIndex ?? 0,
+        budgetDate
       };
 
       const updatedBudgets = {

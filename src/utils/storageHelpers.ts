@@ -31,7 +31,14 @@ export const createEmptyDefaultBudget = (): Budgets => {
     emptyStartBalances[currencyCode] = null;
   });
   
-  const emptyDays = createEmptyMonthDays();
+  // Ініціалізуємо дату бюджету поточною датою
+  const now = new Date();
+  const budgetDate = {
+    year: now.getFullYear(),
+    month: now.getMonth()
+  };
+  
+  const emptyDays = createEmptyMonthDays(budgetDate.year, budgetDate.month);
   
   return {
     'default': {
@@ -41,7 +48,8 @@ export const createEmptyDefaultBudget = (): Budgets => {
       exchangeRates: {},
       days: emptyDays,
       displayCurrency: 'RON',
-      displayCurrencyIndex: 0
+      displayCurrencyIndex: 0,
+      budgetDate
     }
   };
 };

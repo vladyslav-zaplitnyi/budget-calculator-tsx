@@ -50,7 +50,8 @@ export default function BudgetTracker() {
     isEncrypted,
     showPasswordModal,
     handlePasswordSubmit,
-    passwordError
+    passwordError,
+    budgetDate
   } = context;
 
   const {
@@ -203,6 +204,8 @@ export default function BudgetTracker() {
             showDisableEncryptionModal={showDisableEncryptionModal}
             setShowEnableEncryptionModal={setShowEnableEncryptionModal}
             setShowDisableEncryptionModal={setShowDisableEncryptionModal}
+            budgetYear={budgetDate.year}
+            budgetMonth={budgetDate.month}
           />
 
           {/* Приховуємо весь контент між Header і Footer, якщо потрібен пароль */}
@@ -273,6 +276,8 @@ export default function BudgetTracker() {
                 selectedCurrencies={selectedCurrencies}
                 displayCurrency={displayCurrency}
                 exchangeRates={exchangeRates}
+                budgetYear={budgetDate.year}
+                budgetMonth={budgetDate.month}
               />
 
               <DaysCards
@@ -283,6 +288,8 @@ export default function BudgetTracker() {
                 selectedCurrencies={selectedCurrencies}
                 displayCurrency={displayCurrency}
                 exchangeRates={exchangeRates}
+                budgetYear={budgetDate.year}
+                budgetMonth={budgetDate.month}
               />
 
               <Statistics

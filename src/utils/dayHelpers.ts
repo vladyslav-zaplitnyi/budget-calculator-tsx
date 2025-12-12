@@ -1,14 +1,23 @@
 import { Day } from '../types';
+import { getDaysInMonth } from './dateHelpers';
 
 // Генерує унікальний ID для транзакції
 export const generateTransactionId = (): string => {
   return `t${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 };
 
-// Створює порожній масив на 31 день
-export const createEmptyMonthDays = (): Day[] => {
+// Створює порожній масив днів для конкретного року і місяця
+export const createEmptyMonthDays = (year?: number, month?: number): Day[] => {
+  // Якщо рік і місяць не вказані, використовуємо поточну дату
+  const now = new Date();
+  const targetYear = year ?? now.getFullYear();
+  const targetMonth = month ?? now.getMonth();
+  
+  // Отримуємо кількість днів у місяці
+  const daysInMonth = getDaysInMonth(targetYear, targetMonth);
+  
   const initialDays: Day[] = [];
-  for (let i = 1; i <= 31; i++) {
+  for (let i = 1; i <= daysInMonth; i++) {
     initialDays.push({
       day: i,
       transactions: [],

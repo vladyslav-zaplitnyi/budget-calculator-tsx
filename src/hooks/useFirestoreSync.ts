@@ -129,12 +129,13 @@ export function useFirestoreSync(
 
   // Допоміжна функція для ініціалізації порожнього бюджету
   const initializeEmptyBudget = () => {
-    setSelectedCurrencies(DEFAULT_CURRENCIES);
-    setExchangeRates({});
-    setDays(createEmptyMonthDays());
-    
     // Створюємо дефолтний бюджет з локалізованою назвою
     const emptyBudget = createEmptyDefaultBudget();
+    const defaultBudget = emptyBudget['default'];
+    
+    setSelectedCurrencies(DEFAULT_CURRENCIES);
+    setExchangeRates({});
+    setDays(defaultBudget.days); // Використовуємо дні з дефолтного бюджету
     setBudgets(emptyBudget);
     loadedBudgetsRef.current = emptyBudget;
     setActiveBudgetId('default');
