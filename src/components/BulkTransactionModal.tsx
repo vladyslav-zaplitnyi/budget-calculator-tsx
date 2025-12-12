@@ -16,6 +16,59 @@ interface BulkTransactionModalProps {
   selectedCurrencies?: string[];
 }
 
+const getDaysInMonth = (year: number, monthIndex: number) => {
+  return new Date(year, monthIndex + 1, 0).getDate();
+};
+
+// Converts JS getDay() result (0=Sun..6=Sat) to Monday-based index (0=Mon..6=Sun)
+const toMondayBasedWeekdayIndex = (jsDay: number) => {
+  return (jsDay + 6) % 7;
+};
+
+const capitalizeFirstLetter = (value: string) => {
+  if (!value) return value;
+  return value[0].toUpperCase() + value.slice(1);
+};
+
+const getMonthYearLabel = (locale: string, year: number, monthIndex: number) => {
+  const formatter = new Intl.DateTimeFormat(locale, {
+    month: 'long',
+    year: 'numeric'
+  });
+  return capitalizeFirstLetter(formatter.format(new Date(year, monthIndex, 1)));
+};
+
+const getWeekdayLabelsMondayFirst = (locale: string) => {
+  // 2021-11-01 is a Monday. Use UTC to avoid DST edge cases.
+  const formatter = new Intl.DateTimeFormat(locale, { weekday: 'short', timeZone: 'UTC' });
+  const mondayUtc = new Date(Date.UTC(2021, 10, 1));
+  return Array.from({ length: 7 }, (_, i) => {
+    const label = formatter.format(new Date(mondayUtc.getTime() + i * 24 * 60 * 60 * 1000));
+    return label.replace(/\.$/, '');
+  });
+};
+
+const normalizeStringArray = (value: unknown): string[] | null => {
+  if (!Array.isArray(value)) return null;
+  if (!value.every(v => typeof v === 'string')) return null;
+  return value as string[];
+};
+
+const buildCalendarCellsForMonthMondayFirst = (year: number, monthIndex: number) => {
+  const daysInMonth = getDaysInMonth(year, monthIndex);
+  const jsFirstDay = new Date(year, monthIndex, 1).getDay(); // 0=Sun..6=Sat
+  const leadingEmptyCells = toMondayBasedWeekdayIndex(jsFirstDay); // 0=Mon..6=Sun
+
+  const cells: Array<number | null> = [];
+  for (let i = 0; i < leadingEmptyCells; i += 1) cells.push(null);
+  for (let day = 1; day <= daysInMonth; day += 1) cells.push(day);
+
+  // Fill the last week so the grid looks like a system calendar.
+  while (cells.length % 7 !== 0) cells.push(null);
+
+  return cells;
+};
+
 const BulkTransactionModal: React.FC<BulkTransactionModalProps> = ({
   isOpen,
   onClose,
@@ -55,6 +108,41 @@ const BulkTransactionModal: React.FC<BulkTransactionModalProps> = ({
   const selectedDaysSorted = useMemo(() => {
     return Array.from(selectedDays).sort((a, b) => a - b);
   }, [selectedDays]);
+
+  const { calendarCells, monthYearLabel, weekdayLabels } = useMemo(() => {
+    const now = new Date();
+    const year = now.getFullYear();
+    const monthIndex = now.getMonth();
+    const locale = i18nInstance.language || 'en';
+
+    const weekdaysFromLocales = normalizeStringArray(
+      t('calendar.weekdaysShort', { returnObjects: true })
+    );
+
+    const monthsFromLocales = normalizeStringArray(
+      t('calendar.monthsLong', { returnObjects: true })
+    );
+
+    const weekdayLabelsLocal =
+      weekdaysFromLocales && weekdaysFromLocales.length === 7
+        ? weekdaysFromLocales
+        : getWeekdayLabelsMondayFirst(locale);
+
+    const monthName =
+      monthsFromLocales && monthsFromLocales.length === 12
+        ? monthsFromLocales[monthIndex]
+        : null;
+
+    const monthYearLabelLocal = monthName
+      ? capitalizeFirstLetter(t('calendar.monthYear', { month: monthName, year }))
+      : getMonthYearLabel(locale, year, monthIndex);
+
+    return {
+      calendarCells: buildCalendarCellsForMonthMondayFirst(year, monthIndex),
+      monthYearLabel: monthYearLabelLocal,
+      weekdayLabels: weekdayLabelsLocal
+    };
+  }, [i18nInstance.language, t]);
 
   const toggleDay = (dayNumber: number) => {
     setSelectedDays(prev => {
@@ -236,9 +324,32 @@ const BulkTransactionModal: React.FC<BulkTransactionModalProps> = ({
             </label>
 
             <div className="bg-gray-50 border-2 border-gray-200 rounded-xl p-3">
+              <div className="flex items-center justify-center mb-3">
+                <div className="text-sm font-semibold text-gray-800">
+                  {monthYearLabel}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-7 gap-2 mb-2">
+                {weekdayLabels.map((label, idx) => (
+                  <div
+                    key={`${label}-${idx}`}
+                    className="text-center text-[11px] font-bold text-gray-500 select-none"
+                  >
+                    {label}
+                  </div>
+                ))}
+              </div>
+
               <div className="grid grid-cols-7 gap-2">
-                {Array.from({ length: 31 }, (_, i) => i + 1).map((dayNumber) => {
+                {calendarCells.map((cell, idx) => {
+                  if (cell === null) {
+                    return <div key={`empty-${idx}`} className="h-9" />;
+                  }
+
+                  const dayNumber = cell;
                   const isSelected = selectedDays.has(dayNumber);
+
                   return (
                     <button
                       key={dayNumber}

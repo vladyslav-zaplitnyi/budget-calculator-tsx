@@ -152,6 +152,24 @@
     "addTransaction": "Add Transaction",
     "converted": "(Converted)"
   },
+  "calendar": {
+    "weekdaysShort": ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
+    "monthsLong": [
+      "January",
+      "February",
+      "March",
+      "April",
+      "May",
+      "June",
+      "July",
+      "August",
+      "September",
+      "October",
+      "November",
+      "December"
+    ],
+    "monthYear": "{{month}} {{year}}"
+  },
   "statistics": {
     "title": "Detailed statistics",
     "income": "Income",
