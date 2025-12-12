@@ -6,6 +6,7 @@ import { Budgets, ExchangeRates, Day } from '../types';
 import { isExchangeRatePair, getBuyRate } from '../utils/typeGuards';
 import ConfirmModal from './ConfirmModal';
 import CurrencyFlag from './CurrencyFlag';
+import BulkTransactionModal from './BulkTransactionModal';
 
 interface SettingsCardProps {
   isUk: boolean;
@@ -48,6 +49,7 @@ interface SettingsCardProps {
   setShowDisableEncryptionModal?: (show: boolean) => void;
   isEncrypted?: boolean;
   updateDay?: (index: number, field: string, value: any) => void;
+  days?: Day[];
 }
 
 const SettingsCard: React.FC<SettingsCardProps> = ({
@@ -89,7 +91,8 @@ const SettingsCard: React.FC<SettingsCardProps> = ({
   setShowEnableEncryptionModal,
   setShowDisableEncryptionModal,
   isEncrypted = false,
-  updateDay
+  updateDay,
+  days = []
 }) => {
   const { t, i18n: i18nInstance } = useTranslation();
   
@@ -115,6 +118,8 @@ const SettingsCard: React.FC<SettingsCardProps> = ({
       return true;
     }
   });
+
+  const [showRecurringModal, setShowRecurringModal] = useState(false);
   
   // Синхронізуємо displayCurrencies з selectedCurrencies, коли немає pending зміни
   React.useEffect(() => {
@@ -590,12 +595,28 @@ const SettingsCard: React.FC<SettingsCardProps> = ({
               {t('settings.clearAll')}
             </button>
           </div>
-          <button
-            onClick={handleStartNewMonth}
-            className="w-full px-4 sm:px-6 py-3 rounded-xl font-bold transition-all text-sm sm:text-base bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white shadow-lg hover:shadow-xl active:scale-95"
-          >
-            {t('settings.startNewMonth.button')}
-          </button>
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+            <button
+              onClick={handleStartNewMonth}
+              className="w-full px-4 sm:px-6 py-3 rounded-xl font-bold transition-all text-sm sm:text-base bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white shadow-lg hover:shadow-xl active:scale-95"
+            >
+              {t('settings.startNewMonth.button')}
+            </button>
+            <button
+              type="button"
+              onClick={() => setShowRecurringModal(true)}
+              disabled={!updateDay || !days || days.length === 0}
+              className={`w-full px-4 sm:px-6 py-3 rounded-xl font-bold transition-all text-sm sm:text-base text-white shadow-lg hover:shadow-xl active:scale-95 ${
+                !updateDay || !days || days.length === 0
+                  ? 'bg-gray-400 cursor-not-allowed'
+                  : 'bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700'
+              }`}
+              title={t('bulkTransactions.button')}
+            >
+              <span className="mr-2">➕</span>
+              {t('bulkTransactions.button')}
+            </button>
+          </div>
         </div>
       </div>
       
@@ -619,6 +640,15 @@ const SettingsCard: React.FC<SettingsCardProps> = ({
         message={t('settings.startNewMonth.message')}
         confirmButtonText={t('settings.startNewMonth.confirm')}
         cancelButtonText={t('settings.startNewMonth.cancel')}
+      />
+
+      <BulkTransactionModal
+        isOpen={showRecurringModal}
+        onClose={() => setShowRecurringModal(false)}
+        days={days}
+        updateDay={updateDay || (() => {})}
+        maxTransactions={5}
+        selectedCurrencies={selectedCurrencies}
       />
     </div>
   );

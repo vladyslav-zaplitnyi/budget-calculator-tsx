@@ -114,6 +114,12 @@
     "totalValue": "Total value",
     "selectDisplayCurrency": "Select display currency"
   },
+  "bulkTransactions": {
+    "button": "Add transactions",
+    "title": "Add transactions",
+    "selectDays": "Select Days",
+    "errorMaxTransactions": "Days: {{days}} have max transactions"
+  },
   "transaction": {
     "add": "Add Transaction",
     "edit": "Edit Transaction",

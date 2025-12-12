@@ -114,6 +114,12 @@
     "totalValue": "Загальна вартість",
     "selectDisplayCurrency": "Обрати валюту відображення"
   },
+  "bulkTransactions": {
+    "button": "Додати транзакції",
+    "title": "Додати транзакції",
+    "selectDays": "Оберіть дні",
+    "errorMaxTransactions": "Дні: {{days}} мають максимум транзакцій"
+  },
   "transaction": {
     "add": "Додати операцію",
     "edit": "Редагувати операцію",

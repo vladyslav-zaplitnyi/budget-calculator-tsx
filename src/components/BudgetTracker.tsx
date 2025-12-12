@@ -248,6 +248,7 @@ export default function BudgetTracker() {
                 setShowDisableEncryptionModal={setShowDisableEncryptionModal}
                 isEncrypted={isEncrypted}
                 updateDay={updateDay}
+                days={days}
               />
 
               <BudgetStatus
