@@ -13,6 +13,7 @@ import AlertModal from './AlertModal';
 import { generateTransactionId } from '../utils/dayHelpers';
 import { Day, ExchangeRates, Transaction } from '../types';
 import CurrencyFlag from './CurrencyFlag';
+import { capitalizeFirstLetter, getWeekdayShortName } from '../utils/dateHelpers';
 
 interface DaysCardsProps {
   isUk: boolean;
@@ -34,6 +35,9 @@ const DaysCards: React.FC<DaysCardsProps> = ({
   startBalances = {}
 }) => {
   const { t, i18n: i18nInstance } = useTranslation();
+  const currentDate = new Date();
+  const currentYear = currentDate.getFullYear();
+  const currentMonth = currentDate.getMonth();
   const [modalState, setModalState] = useState<{
     isOpen: boolean;
     dayIndex: number | null;
@@ -115,6 +119,12 @@ const DaysCards: React.FC<DaysCardsProps> = ({
       {days.map((day, index) => {
         if (!day) return null;
         const amounts = calculateDayAmountsFromTransactions(day, selectedCurrencies);
+        const weekday = getWeekdayShortName(
+          currentYear,
+          currentMonth,
+          day.day,
+          i18nInstance.language || 'en'
+        );
         
         const transactions = Array.isArray(day.transactions) ? day.transactions : [];
         const transactionCount = transactions.length;
@@ -127,6 +137,9 @@ const DaysCards: React.FC<DaysCardsProps> = ({
               <div className="flex items-center gap-2">
                 <span className="inline-block bg-indigo-600 !text-white font-bold text-base sm:text-lg rounded-lg px-3 py-1.5 font-display select-none" style={{ border: '3px solid #4f46e5', boxShadow: '0 2px 4px rgba(79, 70, 229, 0.3)' }}>
                   {t('days.dayNumber')} <span className='samsung-white-text'>{day.day}</span>
+                </span>
+                <span className="text-sm font-bold text-gray-500 uppercase bg-gray-100 px-2 py-1 rounded-md">
+                  {capitalizeFirstLetter(weekday)}
                 </span>
               </div>
               <div className="text-xs font-semibold text-gray-500 font-display">

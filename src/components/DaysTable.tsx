@@ -12,6 +12,7 @@ import AlertModal from './AlertModal';
 import { generateTransactionId } from '../utils/dayHelpers';
 import { Day, ExchangeRates, Transaction } from '../types';
 import CurrencyFlag from './CurrencyFlag';
+import { capitalizeFirstLetter, getWeekdayShortName } from '../utils/dateHelpers';
 
 interface DaysTableProps {
   isUk: boolean;
@@ -33,6 +34,9 @@ const DaysTable: React.FC<DaysTableProps> = ({
   startBalances = {}
 }) => {
   const { t: translate, i18n: i18nInstance } = useTranslation();
+  const currentDate = new Date();
+  const currentYear = currentDate.getFullYear();
+  const currentMonth = currentDate.getMonth();
   const [modalState, setModalState] = useState<{
     isOpen: boolean;
     dayIndex: number | null;
@@ -208,6 +212,12 @@ const DaysTable: React.FC<DaysTableProps> = ({
             {days.map((day, index) => {
               if (!day) return null;
               const amounts = calculateDayAmountsFromTransactions(day, selectedCurrencies);
+              const weekday = getWeekdayShortName(
+                currentYear,
+                currentMonth,
+                day.day,
+                i18nInstance.language || 'en'
+              );
               
               const transactions = Array.isArray(day.transactions) ? day.transactions : [];
               const transactionCount = transactions.length;
@@ -221,9 +231,17 @@ const DaysTable: React.FC<DaysTableProps> = ({
                   }`}
                 >
                   <td className="px-3 py-3 font-bold text-gray-900 font-display text-sm whitespace-nowrap text-center">
-                    <span className="inline-block py-1 px-2.5 rounded-lg bg-indigo-600 !text-white select-none" style={{ border: '2px solid #4f46e5', boxShadow: '0 1px 3px rgba(79, 70, 229, 0.3)' }}>
-                      {day.day}
-                    </span>
+                    <div className="flex flex-col items-center">
+                      <span
+                        className="inline-block py-1 px-2.5 rounded-lg bg-indigo-600 !text-white select-none"
+                        style={{ border: '2px solid #4f46e5', boxShadow: '0 1px 3px rgba(79, 70, 229, 0.3)' }}
+                      >
+                        {day.day}
+                      </span>
+                      <span className="text-[14px] uppercase text-gray-500 mt-1">
+                        {capitalizeFirstLetter(weekday)}
+                      </span>
+                    </div>
                   </td>
                   <td className="px-3 py-3 min-w-[200px] max-w-[300px]">
                     <div className="space-y-2">
