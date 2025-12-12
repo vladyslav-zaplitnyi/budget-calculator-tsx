@@ -103,6 +103,18 @@ const SettingsCard: React.FC<SettingsCardProps> = ({
   const [displayCurrencies, setDisplayCurrencies] = useState<string[]>(selectedCurrencies);
   // Стан для згортання/розгортання секції локальної взаємодії
   const [isLocalInteractionExpanded, setIsLocalInteractionExpanded] = useState(false);
+  // Стан для згортання/розгортання секції курсів обміну (за замовчуванням відкрита, далі — з localStorage)
+  const exchangeRatesExpandedStorageKey = 'settings_exchangeRates_expanded';
+  const [isExchangeRatesExpanded, setIsExchangeRatesExpanded] = useState<boolean>(() => {
+    try {
+      if (typeof window === 'undefined') return true;
+      const stored = window.localStorage.getItem(exchangeRatesExpandedStorageKey);
+      if (stored === null) return true;
+      return stored === 'true';
+    } catch {
+      return true;
+    }
+  });
   
   // Синхронізуємо displayCurrencies з selectedCurrencies, коли немає pending зміни
   React.useEffect(() => {
@@ -110,6 +122,20 @@ const SettingsCard: React.FC<SettingsCardProps> = ({
       setDisplayCurrencies(selectedCurrencies);
     }
   }, [selectedCurrencies, showCurrencyChangeConfirm]);
+
+  const toggleExchangeRatesExpanded = () => {
+    setIsExchangeRatesExpanded(prev => {
+      const next = !prev;
+      try {
+        if (typeof window !== 'undefined') {
+          window.localStorage.setItem(exchangeRatesExpandedStorageKey, String(next));
+        }
+      } catch {
+        // ignore storage errors
+      }
+      return next;
+    });
+  };
   
   const handleCurrencySelect = (currencyCode: string, index: number) => {
     const previousValue = selectedCurrencies[index];
@@ -328,136 +354,150 @@ const SettingsCard: React.FC<SettingsCardProps> = ({
 
       {/* Exchange Rates */}
       <div className="mb-4 sm:mb-6">
-        <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-2">
-          {t('settings.exchangeRates.title')}
-        </label>
-        <div className="space-y-4">
-          {selectedCurrencies.map((currencyCode, index) => {
-            if (currencyCode === baseCurrency) return null; // Не показуємо курс базової валюти до самої себе
-            
-            const pairKey = `${baseCurrency}_${currencyCode}`;
-            const reversePairKey = `${currencyCode}_${baseCurrency}`;
-            
-            let buyRate, sellRate;
-            const pairValue = exchangeRates[pairKey];
-            const reversePairValue = exchangeRates[reversePairKey];
-            
-            if (isExchangeRatePair(pairValue)) {
-              buyRate = pairValue.buy || 0;
-              sellRate = pairValue.sell || 0;
-            } else if (isExchangeRatePair(reversePairValue)) {
-              sellRate = reversePairValue.buy ? 1 / reversePairValue.buy : 0;
-              buyRate = reversePairValue.sell ? 1 / reversePairValue.sell : 0;
-            } else {
-              const rateVal = exchangeRates[currencyCode];
-              let oldRate: number | undefined;
-              if (typeof rateVal === 'number') {
-                  oldRate = rateVal;
-              } else if (isExchangeRatePair(rateVal)) {
-                  oldRate = getBuyRate(rateVal, 0);
-              } else {
-                  // Отримуємо курс з exchangeRates
-                  const pairKey = `${baseCurrency}_${currencyCode}`;
-                  const ratePair = exchangeRates[pairKey];
-                  if (isExchangeRatePair(ratePair)) {
-                    oldRate = ratePair.buy;
-                  } else if (typeof ratePair === 'number') {
-                    oldRate = ratePair;
+        <button
+          type="button"
+          onClick={toggleExchangeRatesExpanded}
+          className="w-full flex items-center justify-between text-left mb-2 focus:outline-none focus:ring-2 focus:ring-indigo-400 rounded-lg p-1 -m-1"
+        >
+          <span className="block text-xs sm:text-sm font-semibold text-gray-700">
+            {t('settings.exchangeRates.title')}
+          </span>
+          <span className="text-gray-600 text-lg transition-transform duration-200">
+            {isExchangeRatesExpanded ? '▼' : '▶'}
+          </span>
+        </button>
+
+        {isExchangeRatesExpanded && (
+          <>
+            <div className="space-y-4">
+              {selectedCurrencies.map((currencyCode, index) => {
+                if (currencyCode === baseCurrency) return null; // Не показуємо курс базової валюти до самої себе
+                
+                const pairKey = `${baseCurrency}_${currencyCode}`;
+                const reversePairKey = `${currencyCode}_${baseCurrency}`;
+                
+                let buyRate, sellRate;
+                const pairValue = exchangeRates[pairKey];
+                const reversePairValue = exchangeRates[reversePairKey];
+                
+                if (isExchangeRatePair(pairValue)) {
+                  buyRate = pairValue.buy || 0;
+                  sellRate = pairValue.sell || 0;
+                } else if (isExchangeRatePair(reversePairValue)) {
+                  sellRate = reversePairValue.buy ? 1 / reversePairValue.buy : 0;
+                  buyRate = reversePairValue.sell ? 1 / reversePairValue.sell : 0;
+                } else {
+                  const rateVal = exchangeRates[currencyCode];
+                  let oldRate: number | undefined;
+                  if (typeof rateVal === 'number') {
+                      oldRate = rateVal;
+                  } else if (isExchangeRatePair(rateVal)) {
+                      oldRate = getBuyRate(rateVal, 0);
                   } else {
-                    // Якщо курсу немає, не встановлюємо дефолтне значення
-                    oldRate = undefined;
+                      // Отримуємо курс з exchangeRates
+                      const pairKey = `${baseCurrency}_${currencyCode}`;
+                      const ratePair = exchangeRates[pairKey];
+                      if (isExchangeRatePair(ratePair)) {
+                        oldRate = ratePair.buy;
+                      } else if (typeof ratePair === 'number') {
+                        oldRate = ratePair;
+                      } else {
+                        // Якщо курсу немає, не встановлюємо дефолтне значення
+                        oldRate = undefined;
+                      }
                   }
-              }
-              buyRate = oldRate ?? 0;
-              sellRate = oldRate ? oldRate * 1.01 : 0;
-            }
-            
-            const colors = [
-              'from-violet-50 to-indigo-100/70 border-violet-200',
-              'from-fuchsia-50 to-purple-100/70 border-fuchsia-200',
-              'from-rose-50 to-pink-100/70 border-rose-200'
-            ];
-            const colorClass = colors[index % colors.length];
-            
-            return (
-              <div key={currencyCode} className={`bg-gradient-to-br ${colorClass} p-3 sm:p-4 rounded-xl border-2 hover:border-opacity-70 transition-all`}>
-                <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-3">
-                  <CurrencyFlag currencyCode={baseCurrency} size={16} className="mr-1" /> {baseCurrency} ↔ <CurrencyFlag currencyCode={currencyCode} size={16} className="ml-1" /> {currencyCode}
-                </label>
-                <div className="grid grid-cols-2 gap-3">
-                  {/* Купівля */}
-                  <div>
-                    <label className="block text-[10px] sm:text-xs font-semibold text-gray-600 mb-1">
-                      {t('settings.exchangeRates.buy')} ({baseCurrency} → {currencyCode})
+                  buyRate = oldRate ?? 0;
+                  sellRate = oldRate ? oldRate * 1.01 : 0;
+                }
+                
+                const colors = [
+                  'from-violet-50 to-indigo-100/70 border-violet-200',
+                  'from-fuchsia-50 to-purple-100/70 border-fuchsia-200',
+                  'from-rose-50 to-pink-100/70 border-rose-200'
+                ];
+                const colorClass = colors[index % colors.length];
+                
+                return (
+                  <div key={currencyCode} className={`bg-gradient-to-br ${colorClass} p-3 sm:p-4 rounded-xl border-2 hover:border-opacity-70 transition-all`}>
+                    <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-3">
+                      <CurrencyFlag currencyCode={baseCurrency} size={16} className="mr-1" /> {baseCurrency} ↔ <CurrencyFlag currencyCode={currencyCode} size={16} className="ml-1" /> {currencyCode}
                     </label>
-                    <input
-                      type="number"
-                      step="0.01"
-                      placeholder="0"
-                      value={buyRate === 0 ? '' : buyRate}
-                      onChange={(e) => {
-                        const newRate = parseFloat(e.target.value) || 0;
-                        if (handleExchangeRateChange) {
-                          handleExchangeRateChange(pairKey, 'buy', newRate);
-                        }
-                      }}
-                      className="w-full px-2 sm:px-3 py-2 text-sm sm:text-base font-semibold border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 transition-all"
-                    />
+                    <div className="grid grid-cols-2 gap-3">
+                      {/* Купівля */}
+                      <div>
+                        <label className="block text-[10px] sm:text-xs font-semibold text-gray-600 mb-1">
+                          {t('settings.exchangeRates.buy')} ({baseCurrency} → {currencyCode})
+                        </label>
+                        <input
+                          type="number"
+                          step="0.01"
+                          placeholder="0"
+                          value={buyRate === 0 ? '' : buyRate}
+                          onChange={(e) => {
+                            const newRate = parseFloat(e.target.value) || 0;
+                            if (handleExchangeRateChange) {
+                              handleExchangeRateChange(pairKey, 'buy', newRate);
+                            }
+                          }}
+                          className="w-full px-2 sm:px-3 py-2 text-sm sm:text-base font-semibold border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 transition-all"
+                        />
+                      </div>
+                      {/* Продаж */}
+                      <div>
+                        <label className="block text-[10px] sm:text-xs font-semibold text-gray-600 mb-1">
+                          {t('settings.exchangeRates.sell')} ({currencyCode} → {baseCurrency})
+                        </label>
+                        <input
+                          type="number"
+                          step="0.01"
+                          placeholder="0"
+                          value={sellRate === 0 ? '' : sellRate}
+                          onChange={(e) => {
+                            const newRate = parseFloat(e.target.value) || 0;
+                            if (handleExchangeRateChange) {
+                              handleExchangeRateChange(pairKey, 'sell', newRate);
+                            }
+                          }}
+                          className="w-full px-2 sm:px-3 py-2 text-sm sm:text-base font-semibold border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 transition-all"
+                        />
+                      </div>
+                    </div>
                   </div>
-                  {/* Продаж */}
-                  <div>
-                    <label className="block text-[10px] sm:text-xs font-semibold text-gray-600 mb-1">
-                      {t('settings.exchangeRates.sell')} ({currencyCode} → {baseCurrency})
-                    </label>
-                    <input
-                      type="number"
-                      step="0.01"
-                      placeholder="0"
-                      value={sellRate === 0 ? '' : sellRate}
-                      onChange={(e) => {
-                        const newRate = parseFloat(e.target.value) || 0;
-                        if (handleExchangeRateChange) {
-                          handleExchangeRateChange(pairKey, 'sell', newRate);
-                        }
-                      }}
-                      className="w-full px-2 sm:px-3 py-2 text-sm sm:text-base font-semibold border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 transition-all"
-                    />
-                  </div>
-                </div>
+                );
+              })}
+            </div>
+            <p className="mt-1 text-[10px] sm:text-xs text-gray-500">
+              {t('settings.exchangeRates.description')}
+            </p>
+            {/* Кнопка оновлення курсів НБУ */}
+            {handleUpdateNbuRates && (
+              <div className="mt-3">
+                <button
+                  type="button"
+                  onClick={handleUpdateNbuRates}
+                  disabled={isUpdatingRates}
+                  className={`w-full px-4 sm:px-6 py-2 sm:py-3 rounded-xl font-bold transition-all text-xs sm:text-sm ${
+                    isUpdatingRates
+                      ? 'bg-gray-400 cursor-not-allowed text-white'
+                      : 'bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white shadow-lg hover:shadow-xl active:scale-95'
+                  }`}
+                >
+                  {isUpdatingRates
+                    ? t('settings.exchangeRates.updating')
+                    : t('settings.exchangeRates.update')}
+                </button>
+                {rateUpdateMessage && (
+                  <span
+                    className={`block mt-2 text-xs sm:text-sm font-semibold px-3 py-2 rounded-lg ${
+                      rateUpdateMessage.includes('✅') ? 'text-green-700 bg-green-100' : 'text-red-700 bg-red-100'
+                    }`}
+                  >
+                    {rateUpdateMessage}
+                  </span>
+                )}
               </div>
-            );
-          })}
-        </div>
-        <p className="mt-1 text-[10px] sm:text-xs text-gray-500">
-          {t('settings.exchangeRates.description')}
-        </p>
-        {/* Кнопка оновлення курсів НБУ */}
-        {handleUpdateNbuRates && (
-          <div className="mt-3">
-            <button
-              type="button"
-              onClick={handleUpdateNbuRates}
-              disabled={isUpdatingRates}
-              className={`w-full px-4 sm:px-6 py-2 sm:py-3 rounded-xl font-bold transition-all text-xs sm:text-sm ${
-                isUpdatingRates
-                  ? 'bg-gray-400 cursor-not-allowed text-white'
-                  : 'bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white shadow-lg hover:shadow-xl active:scale-95'
-              }`}
-            >
-              {isUpdatingRates
-                ? t('settings.exchangeRates.updating')
-                : t('settings.exchangeRates.update')}
-            </button>
-            {rateUpdateMessage && (
-              <span
-                className={`block mt-2 text-xs sm:text-sm font-semibold px-3 py-2 rounded-lg ${
-                  rateUpdateMessage.includes('✅') ? 'text-green-700 bg-green-100' : 'text-red-700 bg-red-100'
-                }`}
-              >
-                {rateUpdateMessage}
-              </span>
             )}
-          </div>
+          </>
         )}
       </div>
 
