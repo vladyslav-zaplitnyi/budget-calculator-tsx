@@ -24,6 +24,16 @@ const convertTimestampToString = (value: unknown): string | undefined => {
   return undefined;
 };
 
+// Глибока санітизація: видаляє всі поля з `undefined` (включно вкладені) через JSON-серіалізацію.
+// ВАЖЛИВО: не застосовувати до об'єктів з Firestore FieldValue (наприклад, serverTimestamp()),
+// бо вони не є JSON-серіалізовними.
+const deepSanitizeUndefined = <T,>(data: T): T => JSON.parse(JSON.stringify(data)) as T;
+
+const getCurrentBudgetDate = (): { year: number; month: number } => {
+  const now = new Date();
+  return { year: now.getFullYear(), month: now.getMonth() };
+};
+
 // Функція для створення пустого дефолтного бюджету (як після "стерти всі поля")
 export const createEmptyDefaultBudget = (): Budgets => {
   const emptyStartBalances: Record<string, number | null> = {};
@@ -149,9 +159,18 @@ export const saveToFirestore = async (
   if (!user) return;
 
   try {
+    // 1) Гарантуємо, що budgetDate завжди існує (для старих бюджетів він міг бути відсутній)
+    const fallbackBudgetDate = getCurrentBudgetDate();
+    Object.values(budgetsToSave).forEach((budget) => {
+      if (budget && budget.budgetDate == null) {
+        budget.budgetDate = fallbackBudgetDate;
+      }
+    });
+
     // Валідація даних перед збереженням
     try {
-      validateBudgets(budgetsToSave);
+      // Валідуємо вже санітизовані дані (undefined буде прибрано нижче), щоб уникнути "тихих" проблем
+      validateBudgets(deepSanitizeUndefined(budgetsToSave));
     } catch (validationError) {
       handleError(
         validationError instanceof Error ? validationError : new Error(String(validationError)),
@@ -193,10 +212,20 @@ export const saveToFirestore = async (
     
     // Перевіряємо, чи потрібно шифрувати дані
     if (encryptionPassword) {
+      // 🗓️ КОНТЕКСТ ЧАСУ: Логування збереження budgetDate
+      const activeBudget = budgetsToSave[activeId];
+      if (activeBudget?.budgetDate) {
+        console.log('📅 Збереження budgetDate в Firestore (зашифроване):', activeBudget.budgetDate);
+      } else {
+        console.log('⚠️ budgetDate відсутній при збереженні в Firestore');
+      }
+      
       // Шифруємо дані
+      // 2) Фінальна санітизація (прибираємо undefined у дереві budgets перед подальшими операціями)
+      const sanitizedBudgets = deepSanitizeUndefined(budgetsToSave);
       const dataToEncrypt = {
         activeBudgetId: activeId,
-        budgets: budgetsToSave
+        budgets: sanitizedBudgets
       };
       const encryptedData = encryptData(dataToEncrypt, encryptionPassword);
       
@@ -212,12 +241,22 @@ export const saveToFirestore = async (
       
       await setDoc(userDocRef, data);
     } else {
-      const data: any = {
+      // 🗓️ КОНТЕКСТ ЧАСУ: Логування збереження budgetDate
+      const activeBudget = budgetsToSave[activeId];
+      if (activeBudget?.budgetDate) {
+        console.log('📅 Збереження budgetDate в Firestore (незашифроване):', activeBudget.budgetDate);
+      } else {
+        console.log('⚠️ budgetDate відсутній при збереженні в Firestore (незашифроване)');
+      }
+      
+      // 2) Фінальна санітизація перед Firestore: прибираємо всі undefined у payload,
+      // але НЕ пропускаємо через JSON `serverTimestamp()` (додаємо його після очищення).
+      const dataToSave = {
         isEncrypted: false,
         activeBudgetId: activeId,
-        budgets: budgetsToSave,
-        updatedAt: serverTimestamp()
+        budgets: deepSanitizeUndefined(budgetsToSave)
       };
+      const data: any = { ...deepSanitizeUndefined(dataToSave), updatedAt: serverTimestamp() };
       
       if (setIsEncrypted) {
         setIsEncrypted(false);
@@ -272,6 +311,13 @@ export const loadFromFirestore = async (
             : Object.keys(budgets)[0] || 'default';
           
           const activeBudget = budgets[activeId];
+          
+          // 🗓️ КОНТЕКСТ ЧАСУ: Логування завантаження budgetDate
+          if (activeBudget?.budgetDate) {
+            console.log('📅 Завантажено budgetDate з Firestore:', activeBudget.budgetDate);
+          } else {
+            console.log('⚠️ budgetDate відсутній в завантажених даних з Firestore');
+          }
           
           // Відновлюємо displayCurrency та displayCurrencyIndex з активного бюджету в localStorage
           if (activeBudget?.displayCurrency) {
@@ -331,6 +377,13 @@ export const loadFromFirestore = async (
           : Object.keys(budgets)[0] || 'default';
 
         const activeBudget = budgets[activeId];
+        
+        // 🗓️ КОНТЕКСТ ЧАСУ: Логування завантаження budgetDate
+        if (activeBudget?.budgetDate) {
+          console.log('📅 Завантажено budgetDate з Firestore (незашифровані дані):', activeBudget.budgetDate);
+        } else {
+          console.log('⚠️ budgetDate відсутній в завантажених незашифрованих даних з Firestore');
+        }
         
         // Відновлюємо displayCurrency та displayCurrencyIndex з активного бюджету в localStorage
         if (activeBudget?.displayCurrency) {

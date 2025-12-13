@@ -21,19 +21,26 @@ export function useBudgetStateSync(
     setBudgets,
     isInitialLoad,
     displayCurrency,
-    displayCurrencyIndex
+    displayCurrencyIndex,
   } = budgetState;
 
   // Допоміжна функція для створення бюджету з усіма обов'язковими полями
-  const createBudgetWithDefaults = (name?: string): Budget => ({
-    name: name || translate('budget.defaultBudgetName'),
-    startBalances: {},
-    selectedCurrencies: DEFAULT_CURRENCIES,
-    exchangeRates: {},
-    days: [],
-    displayCurrency: 'RON',
-    displayCurrencyIndex: 0
-  });
+  const createBudgetWithDefaults = (name?: string): Budget => {
+    const now = new Date();
+    return {
+      name: name || translate('budget.defaultBudgetName'),
+      startBalances: {},
+      selectedCurrencies: DEFAULT_CURRENCIES,
+      exchangeRates: {},
+      days: [],
+      displayCurrency: 'RON',
+      displayCurrencyIndex: 0,
+      budgetDate: {
+        year: now.getFullYear(),
+        month: now.getMonth()
+      }
+    };
+  };
 
   // Синхронізація початкових балансів у активний бюджет
   useEffect(() => {
@@ -80,7 +87,9 @@ export function useBudgetStateSync(
           startBalances: updatedStartBalances,
           selectedCurrencies: selectedCurrencies || existingBudget.selectedCurrencies || DEFAULT_CURRENCIES,
           exchangeRates: preservedExchangeRates,
-          days: existingBudget.days || []
+          days: existingBudget.days || [],
+          // Зберігаємо budgetDate з існуючого бюджету (важливо не втратити при синхронізації)
+          budgetDate: existingBudget.budgetDate
         }
       };
     });
@@ -122,7 +131,9 @@ export function useBudgetStateSync(
           exchangeRates: mergedExchangeRates,
           startBalances: existingBudget.startBalances || {},
           selectedCurrencies: existingBudget.selectedCurrencies || DEFAULT_CURRENCIES,
-          days: existingBudget.days || []
+          days: existingBudget.days || [],
+          // Зберігаємо budgetDate з існуючого бюджету
+          budgetDate: existingBudget.budgetDate
         }
       };
     });
@@ -161,7 +172,9 @@ export function useBudgetStateSync(
           days: days || [],
           startBalances: existingBudget.startBalances || {},
           selectedCurrencies: existingBudget.selectedCurrencies || DEFAULT_CURRENCIES,
-          exchangeRates: preservedExchangeRates
+          exchangeRates: preservedExchangeRates,
+          // Зберігаємо budgetDate з існуючого бюджету
+          budgetDate: existingBudget.budgetDate
         }
       };
     });
@@ -202,7 +215,9 @@ export function useBudgetStateSync(
           startBalances: existingBudget.startBalances || {},
           selectedCurrencies: existingBudget.selectedCurrencies || DEFAULT_CURRENCIES,
           exchangeRates: preservedExchangeRates,
-          days: existingBudget.days || []
+          days: existingBudget.days || [],
+          // Зберігаємо budgetDate з існуючого бюджету
+          budgetDate: existingBudget.budgetDate
         }
       };
     });

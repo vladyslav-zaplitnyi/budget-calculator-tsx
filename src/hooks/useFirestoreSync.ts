@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { loadFromFirestore, loadFromLocalStorage, saveToFirestore, createEmptyDefaultBudget, saveToLocalStorage } from '../utils/storageHelpers';
-import { normalizeDaysArray, createEmptyMonthDays } from '../utils/dayHelpers';
+import { normalizeDaysArray } from '../utils/dayHelpers';
 import { validateSelectedCurrencies, DEFAULT_CURRENCIES, BASE_CURRENCY } from '../utils/currencies';
 import { ACTIVE_BUDGET_COOKIE_KEY } from '../utils/constants';
 import { getCookie } from '../utils/cookieHelpers';
@@ -56,7 +56,8 @@ export function useFirestoreSync(
     setEncryptionPassword,
     setIsEncrypted,
     setDisplayCurrency,
-    setDisplayCurrencyIndex
+    setDisplayCurrencyIndex,
+    setBudgetDate
   } = budgetState;
 
   // Стан для модального вікна введення пароля
@@ -86,6 +87,17 @@ export function useFirestoreSync(
     const budgetDisplayCurrencyIndex = budget.displayCurrencyIndex ?? 0;
     setDisplayCurrency(budgetDisplayCurrency);
     setDisplayCurrencyIndex(budgetDisplayCurrencyIndex);
+    
+    // 🗓️ КОНТЕКСТ ЧАСУ: Встановлюємо budgetDate з бюджету
+    // Якщо поле відсутнє (старий запис), використовуємо поточну дату
+    if (budget.budgetDate) {
+      setBudgetDate(budget.budgetDate);
+    } else {
+      const now = new Date();
+      const defaultDate = { year: now.getFullYear(), month: now.getMonth() };
+      setBudgetDate(defaultDate);
+      console.log('⚠️ budgetDate відсутній в бюджеті, встановлено поточну дату:', defaultDate);
+    }
     
     // Зберігаємо в localStorage для синхронізації
     try {
