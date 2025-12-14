@@ -127,8 +127,8 @@
     "errorMaxTransactions": "Дні: {{days}} мають максимум транзакцій"
   },
   "transaction": {
-    "add": "Додати операцію",
-    "edit": "Редагувати операцію",
+    "add": "Додати транзакцію",
+    "edit": "Редагувати транзакцію",
     "type": "Тип операції",
     "expense": "❌ Витрата",
     "income": "✅ Дохід",
@@ -155,7 +155,7 @@
     "cumulativeShort": "Накопич.",
     "cumulativeLabel": "Накоп: ",
     "dayBalance": "Баланс дня: ",
-    "addTransaction": "Додати операцію",
+    "addTransaction": "Додати транзакцію",
     "converted": "(Конвертовано)"
   },
   "calendar": {
