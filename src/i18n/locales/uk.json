@@ -187,7 +187,8 @@
   },
   "footer": {
     "copyright": "© 2025 Budget Tracker. Всі права захищено.",
-    "cookie": "🍪 На печиво"
+    "cookie": "🍪 На печиво",
+    "feedback": "🐛 Знайшли помилку? / Маєте пропозицію?"
   },
   "errors": {
     "exportError": "❌ Помилка при експорті JSON",

@@ -18,12 +18,30 @@ const Footer: React.FC<FooterProps> = ({ language = 'uk' }) => {
     <footer className="mt-6 bg-gradient-to-r from-white/80 via-indigo-50/70 to-white/80 backdrop-blur-sm border-t border-indigo-200/50 shadow-sm">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-5">
         <div className="flex flex-col sm:flex-row items-center justify-between gap-3 sm:gap-4">
-          {/* Copyright */}
-          <div className="text-xs sm:text-sm text-slate-600 text-center sm:text-left order-2 sm:order-1">
-            <span className="font-medium">{t('footer.copyright')}</span>
+          
+          {/* Left Side: Copyright & Feedback */}
+          <div className="text-xs sm:text-sm text-slate-600 order-2 sm:order-1 flex flex-col sm:flex-row items-center gap-2 sm:gap-4">
+            <span className="font-medium text-center sm:text-left">{t('footer.copyright')}</span>
+            
+            {/* Роздільник (тільки на ПК) */}
+            <span className="hidden sm:block text-slate-300">|</span>
+            
+            {/* Посилання на форму */}
+            <a 
+              href="https://forms.gle/qq7XcvNYDSWDhBrZ9"
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="group flex items-center gap-1.5 text-slate-500 hover:text-indigo-600 transition-colors duration-200"
+              title={t('footer.feedback')}
+            >
+              {/* Емодзі трохи збільшене для кращої видимості */}
+              <span className="group-hover:underline decoration-indigo-300 underline-offset-2">
+                {t('footer.feedback')}
+              </span>
+            </a>
           </div>
           
-          {/* Actions */}
+          {/* Right Side: Actions (Donate & Social) */}
           <div className="flex items-center gap-3 sm:gap-4 order-1 sm:order-2">
             <a
               href="https://send.monobank.ua/jar/3iKJRe8Mcm"
@@ -53,4 +71,3 @@ const Footer: React.FC<FooterProps> = ({ language = 'uk' }) => {
 };
 
 export default React.memo(Footer);
-

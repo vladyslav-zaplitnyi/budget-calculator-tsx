@@ -187,7 +187,8 @@
   },
   "footer": {
     "copyright": "© 2025 Budget Tracker. All rights reserved.",
-    "cookie": "🍪 Buy me a cookie"
+    "cookie": "🍪 Buy me a cookie",
+    "feedback": "🐛 Found a bug? / Have a suggestion?"
   },
   "errors": {
     "exportError": "❌ Error while exporting JSON",
