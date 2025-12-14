@@ -206,6 +206,8 @@ export default function BudgetTracker() {
             setShowDisableEncryptionModal={setShowDisableEncryptionModal}
             budgetYear={budgetDate.year}
             budgetMonth={budgetDate.month}
+            setBudgetDate={context.setBudgetDate}
+            days={days}
           />
 
           {/* Приховуємо весь контент між Header і Footer, якщо потрібен пароль */}

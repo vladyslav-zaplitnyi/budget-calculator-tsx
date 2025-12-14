@@ -4,6 +4,7 @@
     "title": "Budget Tracker",
     "description": "31 days • 3 currencies",
     "pageTitle": "Budget Tracker | 3 currencies",
+    "today": "Today",
     "loading": "Loading...",
     "signedIn": "Signed in with Google",
     "logout": "Logout",
@@ -268,6 +269,20 @@
     "ok": "OK",
     "create": "Create",
     "cancel": "Cancel"
+  },
+  "monthYearPicker": {
+    "title": "Select Month and Year",
+    "month": "Month",
+    "year": "Year",
+    "apply": "Apply",
+    "cancel": "Cancel",
+    "warning": {
+      "title": "⚠️ Warning! This month has fewer days.",
+      "message": "Data for days that exceed this month will be deleted.",
+      "messageWithDays": "For days: {{days}}",
+      "continueButton": "Change anyway",
+      "cancelButton": "Cancel"
+    }
   }
 }
 

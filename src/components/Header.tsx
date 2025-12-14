@@ -5,7 +5,9 @@ import { translate } from '../i18n/config';
 import i18n from '../i18n/config';
 import SettingsModal from './SettingsModal';
 import CurrencyFlag from './CurrencyFlag';
+import MonthYearPickerModal from './MonthYearPickerModal';
 import { getMonthYearLabel } from '../utils/dateHelpers';
+import { Day } from '../types';
 
 interface HeaderProps {
   isUk: boolean;
@@ -36,6 +38,8 @@ interface HeaderProps {
   // Budget date
   budgetYear?: number;
   budgetMonth?: number;
+  setBudgetDate?: (date: { year: number; month: number }) => void;
+  days?: Day[];
 }
 
 const GoogleIcon = () => (
@@ -99,15 +103,37 @@ const Header: React.FC<HeaderProps> = ({
   setShowEnableEncryptionModal,
   setShowDisableEncryptionModal,
   budgetYear,
-  budgetMonth
+  budgetMonth,
+  setBudgetDate,
+  days = []
 }) => {
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
+  const [isMonthYearPickerOpen, setIsMonthYearPickerOpen] = useState(false);
   const { t } = useTranslation();
   
   // Форматуємо дату бюджету для відображення
   const budgetMonthLabel = budgetYear !== undefined && budgetMonth !== undefined
     ? getMonthYearLabel(language, budgetYear, budgetMonth)
     : null;
+
+  const handleTodayClick = () => {
+    if (!setBudgetDate) return;
+    const now = new Date();
+    setBudgetDate({ year: now.getFullYear(), month: now.getMonth() });
+  };
+
+  const handleMonthYearBadgeClick = () => {
+    if (setBudgetDate) {
+      setIsMonthYearPickerOpen(true);
+    }
+  };
+
+  const handleMonthYearApply = (year: number, month: number) => {
+    if (setBudgetDate) {
+      setBudgetDate({ year, month });
+    }
+  };
+
   return (
     <div className="bg-gradient-to-r from-indigo-600 via-blue-600 to-indigo-700 rounded-2xl shadow-2xl p-4 sm:p-6 md:p-8 mb-4 sm:mb-6 text-white">
       {/* Десктоп / планшет: заголовок зліва, панель дій справа */}
@@ -125,14 +151,26 @@ const Header: React.FC<HeaderProps> = ({
             {t('header.description')}
           </p>
           {budgetMonthLabel && (
-            <div 
-              className="inline-flex items-center justify-center lg:justify-start gap-1.5 mt-2 bg-white/15 backdrop-blur-sm px-3 py-1.5 rounded-full border border-white/20 shadow-sm cursor-help"
-              title={t('settings.budgetMonth.tooltip')}
-            >
-              <span className="text-xs font-medium text-white/90">📅</span>
-              <span className="text-xs sm:text-sm font-semibold text-white">
-                {budgetMonthLabel}
-              </span>
+            <div className="inline-flex items-center justify-center lg:justify-start gap-2 mt-2">
+              <div 
+                className={`inline-flex items-center justify-center lg:justify-start gap-1.5 bg-white/15 backdrop-blur-sm px-3 py-1.5 rounded-full border border-white/20 shadow-sm ${setBudgetDate ? 'cursor-pointer hover:bg-white/25 transition-all' : 'cursor-help'}`}
+                title={t('settings.budgetMonth.tooltip')}
+                onClick={handleMonthYearBadgeClick}
+              >
+                <span className="text-xs font-medium text-white/90">📅</span>
+                <span className="text-xs sm:text-sm font-semibold text-white">
+                  {budgetMonthLabel}
+                </span>
+              </div>
+              {setBudgetDate && (
+                <button
+                  type="button"
+                  onClick={handleTodayClick}
+                  className="inline-flex items-center gap-1.5 bg-white/95 hover:bg-white text-slate-800 px-3 py-1.5 rounded-full shadow-lg border border-white/30 transition-all text-xs sm:text-sm font-semibold"
+                >
+                  {t('header.today')}
+                </button>
+              )}
             </div>
           )}
         </div>
@@ -263,14 +301,26 @@ const Header: React.FC<HeaderProps> = ({
             {t('header.description')}
           </p>
           {budgetMonthLabel && (
-            <div 
-              className="inline-flex items-center justify-center gap-1.5 mt-2 bg-white/15 backdrop-blur-sm px-3 py-1.5 rounded-full border border-white/20 shadow-sm cursor-help"
-              title={t('settings.budgetMonth.tooltip')}
-            >
-              <span className="text-xs font-medium text-white/90">📅</span>
-              <span className="text-xs sm:text-sm font-semibold text-white">
-                {budgetMonthLabel}
-              </span>
+            <div className="inline-flex items-center justify-center gap-2 mt-2">
+              <div 
+                className={`inline-flex items-center justify-center gap-1.5 bg-white/15 backdrop-blur-sm px-3 py-1.5 rounded-full border border-white/20 shadow-sm ${setBudgetDate ? 'cursor-pointer hover:bg-white/25 transition-all' : 'cursor-help'}`}
+                title={t('settings.budgetMonth.tooltip')}
+                onClick={handleMonthYearBadgeClick}
+              >
+                <span className="text-xs font-medium text-white/90">📅</span>
+                <span className="text-xs sm:text-sm font-semibold text-white">
+                  {budgetMonthLabel}
+                </span>
+              </div>
+              {setBudgetDate && (
+                <button
+                  type="button"
+                  onClick={handleTodayClick}
+                  className="inline-flex items-center gap-1.5 bg-white/95 hover:bg-white text-slate-800 px-3 py-1.5 rounded-full shadow-lg border border-white/30 transition-all text-xs sm:text-sm font-semibold"
+                >
+                  {t('header.today')}
+                </button>
+              )}
             </div>
           )}
         </div>
@@ -395,6 +445,18 @@ const Header: React.FC<HeaderProps> = ({
         setShowEnableEncryptionModal={setShowEnableEncryptionModal}
         setShowDisableEncryptionModal={setShowDisableEncryptionModal}
       />
+
+      {/* Модальне вікно вибору місяця/року */}
+      {budgetYear !== undefined && budgetMonth !== undefined && (
+        <MonthYearPickerModal
+          isOpen={isMonthYearPickerOpen}
+          onClose={() => setIsMonthYearPickerOpen(false)}
+          currentYear={budgetYear}
+          currentMonth={budgetMonth}
+          onApply={handleMonthYearApply}
+          days={days}
+        />
+      )}
     </div>
   );
 };

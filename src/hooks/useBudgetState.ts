@@ -427,15 +427,78 @@ export function useBudgetState(): BudgetStateInterface {
       
       if (!existingBudget) return safePrev;
       
+      // Отримуємо кількість днів у новому місяці
+      const newDaysInMonth = new Date(date.year, date.month + 1, 0).getDate();
+      const currentDays = existingBudget.days || [];
+      
+      // Створюємо новий масив днів
+      let updatedDays: Day[];
+      
+      if (newDaysInMonth >= currentDays.length) {
+        // Якщо новий місяць має більше або стільки ж днів - додаємо нові дні
+        updatedDays = [...currentDays];
+        for (let i = currentDays.length; i < newDaysInMonth; i++) {
+          updatedDays.push({
+            day: i + 1,
+            transactions: [],
+            description: ''
+          });
+        }
+      } else {
+        // Якщо новий місяць має менше днів - очищаємо "зайві" дні
+        updatedDays = currentDays.map((day, index) => {
+          if (index >= newDaysInMonth) {
+            // Очищаємо дні які виходять за межі місяця
+            return {
+              day: day.day,
+              transactions: [],
+              description: ''
+            };
+          }
+          return day;
+        });
+      }
+      
       return {
         ...safePrev,
         [currentId]: {
           ...existingBudget,
-          budgetDate: date
+          budgetDate: date,
+          days: updatedDays
         }
       };
     });
-  }, [setBudgets]);
+    
+    // Також оновлюємо days в стані
+    setDays((prevDays: Day[]) => {
+      const newDaysInMonth = new Date(date.year, date.month + 1, 0).getDate();
+      
+      if (newDaysInMonth >= prevDays.length) {
+        // Додаємо нові дні
+        const updatedDays = [...prevDays];
+        for (let i = prevDays.length; i < newDaysInMonth; i++) {
+          updatedDays.push({
+            day: i + 1,
+            transactions: [],
+            description: ''
+          });
+        }
+        return updatedDays;
+      } else {
+        // Очищаємо дні які виходять за межі місяця
+        return prevDays.map((day, index) => {
+          if (index >= newDaysInMonth) {
+            return {
+              day: day.day,
+              transactions: [],
+              description: ''
+            };
+          }
+          return day;
+        });
+      }
+    });
+  }, [setBudgets, setDays]);
 
   // Обчислюємо поточний budgetDate з активного бюджету
   const budgetDate = useMemo(() => {

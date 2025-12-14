@@ -12,7 +12,7 @@ import AlertModal from './AlertModal';
 import { generateTransactionId } from '../utils/dayHelpers';
 import { Day, ExchangeRates, Transaction } from '../types';
 import CurrencyFlag from './CurrencyFlag';
-import { capitalizeFirstLetter, getWeekdayShortName } from '../utils/dateHelpers';
+import { capitalizeFirstLetter, getWeekdayShortName, getDaysInMonth } from '../utils/dateHelpers';
 
 interface DaysTableProps {
   isUk: boolean;
@@ -51,6 +51,12 @@ const DaysTable: React.FC<DaysTableProps> = ({
   const [alertMessage, setAlertMessage] = useState('');
 
   const MAX_TRANSACTIONS = 5;
+  
+  // Отримуємо реальну кількість днів у місяці
+  const daysInMonth = getDaysInMonth(budgetYear, budgetMonth);
+  
+  // Фільтруємо дні, щоб показати тільки реальні дні місяця
+  const visibleDays = days.slice(0, daysInMonth);
 
   const handleAddTransaction = (dayIndex: number) => {
     const day = days[dayIndex];
@@ -210,7 +216,7 @@ const DaysTable: React.FC<DaysTableProps> = ({
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-200">
-            {days.map((day, index) => {
+            {visibleDays.map((day, index) => {
               if (!day) return null;
               const amounts = calculateDayAmountsFromTransactions(day, selectedCurrencies);
               const weekday = getWeekdayShortName(
