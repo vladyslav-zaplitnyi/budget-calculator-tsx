@@ -98,6 +98,24 @@ const SettingsCard: React.FC<SettingsCardProps> = ({
   
   // Ensure budgets is always an object to prevent runtime errors
   const safeBudgets = budgets || {};
+
+  const hasTransactionsInDaysWithCurrency = (daysToCheck: Day[], currencyCode: string): boolean => {
+    return (daysToCheck || []).some(day =>
+      Array.isArray(day.transactions) && day.transactions.some(tx => tx.currency === currencyCode)
+    );
+  };
+
+  const removeTransactionsFromDaysByCurrency = (daysToUpdate: Day[], currencyCode: string) => {
+    if (!updateDay) return;
+    (daysToUpdate || []).forEach((day: Day, dayIndex: number) => {
+      if (Array.isArray(day.transactions) && day.transactions.length > 0) {
+        const updatedTransactions = day.transactions.filter(tx => tx.currency !== currencyCode);
+        if (updatedTransactions.length !== day.transactions.length) {
+          updateDay(dayIndex, 'transactions', updatedTransactions);
+        }
+      }
+    });
+  };
   
   // Стан для модального вікна підтвердження зміни валюти
   const [showCurrencyChangeConfirm, setShowCurrencyChangeConfirm] = useState(false);
@@ -156,11 +174,9 @@ const SettingsCard: React.FC<SettingsCardProps> = ({
     setDisplayCurrencies(newDisplayCurrencies);
     
     // Перевіряємо, чи є транзакції з валютою, яку намагаються змінити
-    const activeBudget = safeBudgets[activeBudgetId || 'default'];
-    const days = activeBudget?.days || [];
-    const hasTransactionsWithCurrency = days.some(day => 
-      day.transactions && day.transactions.some(transaction => transaction.currency === previousValue)
-    );
+    // ВАЖЛИВО: перевіряємо поточні `days` активного бюджету зі state (prop),
+    // щоб це працювало однаково для будь-якого обраного бюджету (не лише 'default').
+    const hasTransactionsWithCurrency = hasTransactionsInDaysWithCurrency(days, previousValue);
     
     // Зберігаємо нові валюти
     const newCurrencies = [...selectedCurrencies];
@@ -181,22 +197,10 @@ const SettingsCard: React.FC<SettingsCardProps> = ({
   const handleConfirmCurrencyChange = () => {
     if (pendingCurrencyChange && handleCurrencyChange) {
       // Видаляємо всі транзакції з валютою, яку змінюють
-      const activeBudget = safeBudgets[activeBudgetId || 'default'];
-      const days = activeBudget?.days || [];
       const currencyToRemove = pendingCurrencyChange.previousValue;
       
-      // Оновлюємо кожен день, видаляючи транзакції з цією валютою
-      days.forEach((day: Day, dayIndex: number) => {
-        if (day.transactions && day.transactions.length > 0) {
-          const updatedTransactions = day.transactions.filter(
-            transaction => transaction.currency !== currencyToRemove
-          );
-          // Оновлюємо тільки якщо кількість транзакцій змінилася
-          if (updatedTransactions.length !== day.transactions.length && updateDay) {
-            updateDay(dayIndex, 'transactions', updatedTransactions);
-          }
-        }
-      });
+      // Оновлюємо кожен день, видаляючи транзакції з цією валютою (для активного бюджету)
+      removeTransactionsFromDaysByCurrency(days, currencyToRemove);
       
       // Змінюємо валюту
       handleCurrencyChange(pendingCurrencyChange.currencies);
