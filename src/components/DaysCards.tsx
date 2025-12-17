@@ -364,6 +364,8 @@ const DaysCards: React.FC<DaysCardsProps> = ({
         selectedCurrencies={selectedCurrencies}
         currentBudgetYear={budgetYear}
         currentBudgetMonth={budgetMonth}
+        showDatePicker={false}
+        presetDay={modalState.dayIndex !== null ? days[modalState.dayIndex]?.day : undefined}
       />
       
       <AlertModal

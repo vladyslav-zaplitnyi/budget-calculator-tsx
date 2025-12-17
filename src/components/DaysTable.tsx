@@ -408,6 +408,8 @@ const DaysTable: React.FC<DaysTableProps> = ({
         selectedCurrencies={selectedCurrencies}
         currentBudgetYear={budgetYear}
         currentBudgetMonth={budgetMonth}
+        showDatePicker={false}
+        presetDay={modalState.dayIndex !== null ? days[modalState.dayIndex]?.day : undefined}
       />
       
       <AlertModal

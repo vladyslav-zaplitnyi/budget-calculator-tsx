@@ -21,6 +21,13 @@ interface TransactionModalProps {
   selectedCurrencies?: string[];
   currentBudgetYear: number;
   currentBudgetMonth: number;
+  /** When false, the Date label + calendar "mini table" are hidden. */
+  showDatePicker?: boolean;
+  /**
+   * Optional day number (1..31) used to preset the transaction date for the
+   * currently selected budget month/year (useful when opening from a day row).
+   */
+  presetDay?: number;
 }
 
 const TransactionModal: React.FC<TransactionModalProps> = ({
@@ -32,7 +39,9 @@ const TransactionModal: React.FC<TransactionModalProps> = ({
   maxTransactions,
   selectedCurrencies = ['UAH', 'USD', 'EUR'],
   currentBudgetYear,
-  currentBudgetMonth
+  currentBudgetMonth,
+  showDatePicker = true,
+  presetDay
 }) => {
   const { t, i18n: i18nInstance } = useTranslation();
   const [type, setType] = useState<'income' | 'expense'>('expense');
@@ -86,6 +95,15 @@ const TransactionModal: React.FC<TransactionModalProps> = ({
       setCurrency(selectedCurrencies[0] || 'UAH');
       setDescription('');
       
+      // Якщо модалка відкрилась з конкретного дня (таблиця/картка) — пріоритетно ставимо цей день
+      if (typeof presetDay === 'number' && presetDay >= 1) {
+        // Ставимо безпечний час (12:00), щоб уникати проблем із DST/UTC зсувами
+        const initialDate = new Date(currentBudgetYear, currentBudgetMonth, presetDay, 12, 0, 0);
+        setDate(initialDate);
+        setSelectedDay(presetDay);
+        return;
+      }
+
       // Smart Date Initialization для нової транзакції
       const now = new Date();
       const nowYear = now.getFullYear();
@@ -105,7 +123,7 @@ const TransactionModal: React.FC<TransactionModalProps> = ({
         setSelectedDay(1);
       }
     }
-  }, [transaction, isOpen, selectedCurrencies, currentBudgetYear, currentBudgetMonth]);
+  }, [transaction, isOpen, selectedCurrencies, currentBudgetYear, currentBudgetMonth, presetDay]);
 
   // Оновлюємо валюту, якщо вона більше не в обраних валютах
   useEffect(() => {
@@ -270,51 +288,53 @@ const TransactionModal: React.FC<TransactionModalProps> = ({
           </div>
 
           {/* Вибір дати */}
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2">
-              {t('transaction.date') || 'Дата'}
-            </label>
-            <div className="bg-gradient-to-r from-indigo-50 to-blue-50 rounded-lg p-3 border-2 border-indigo-200">
-              {/* Заголовок місяця */}
-              <div className="text-center mb-2 font-bold text-indigo-700">
-                {capitalizeFirstLetter(monthYearLabel)}
-              </div>
-              
-              {/* Дні тижня */}
-              <div className="grid grid-cols-7 gap-1 mb-1">
-                {weekdayLabels.map((label, idx) => (
-                  <div key={idx} className="text-center text-xs font-semibold text-gray-600 uppercase">
-                    {label.substring(0, 2)}
-                  </div>
-                ))}
-              </div>
-              
-              {/* Календар днів */}
-              <div className="grid grid-cols-7 gap-1">
-                {calendarCells.map((cell, idx) => {
-                  if (cell === null) {
-                    return <div key={`empty-${idx}`} className="aspect-square" />;
-                  }
-                  const dayNumber = cell;
-                  const isSelected = dayNumber === selectedDay;
-                  return (
-                    <button
-                      key={dayNumber}
-                      type="button"
-                      onClick={() => handleDaySelect(dayNumber)}
-                      className={`aspect-square rounded-lg text-sm font-semibold transition-all ${
-                        isSelected
-                          ? 'bg-indigo-600 text-white shadow-md scale-105'
-                          : 'bg-white text-gray-700 hover:bg-indigo-100 hover:scale-105'
-                      }`}
-                    >
-                      {dayNumber}
-                    </button>
-                  );
-                })}
+          {showDatePicker && (
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
+                {t('transaction.date') || 'Дата'}
+              </label>
+              <div className="bg-gradient-to-r from-indigo-50 to-blue-50 rounded-lg p-3 border-2 border-indigo-200">
+                {/* Заголовок місяця */}
+                <div className="text-center mb-2 font-bold text-indigo-700">
+                  {capitalizeFirstLetter(monthYearLabel)}
+                </div>
+                
+                {/* Дні тижня */}
+                <div className="grid grid-cols-7 gap-1 mb-1">
+                  {weekdayLabels.map((label, idx) => (
+                    <div key={idx} className="text-center text-xs font-semibold text-gray-600 uppercase">
+                      {label.substring(0, 2)}
+                    </div>
+                  ))}
+                </div>
+                
+                {/* Календар днів */}
+                <div className="grid grid-cols-7 gap-1">
+                  {calendarCells.map((cell, idx) => {
+                    if (cell === null) {
+                      return <div key={`empty-${idx}`} className="aspect-square" />;
+                    }
+                    const dayNumber = cell;
+                    const isSelected = dayNumber === selectedDay;
+                    return (
+                      <button
+                        key={dayNumber}
+                        type="button"
+                        onClick={() => handleDaySelect(dayNumber)}
+                        className={`aspect-square rounded-lg text-sm font-semibold transition-all ${
+                          isSelected
+                            ? 'bg-indigo-600 text-white shadow-md scale-105'
+                            : 'bg-white text-gray-700 hover:bg-indigo-100 hover:scale-105'
+                        }`}
+                      >
+                        {dayNumber}
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
             </div>
-          </div>
+          )}
 
           {/* Кнопки */}
           <div className="flex gap-2 pt-2">
