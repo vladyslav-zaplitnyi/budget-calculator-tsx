@@ -56,7 +56,7 @@ const TransactionModal: React.FC<TransactionModalProps> = ({
       monthYearLabel: monthYearLabelLocal,
       weekdayLabels: weekdayLabelsLocal
     };
-  }, [currentBudgetYear, currentBudgetMonth, i18nInstance.language, isOpen]);
+  }, [currentBudgetYear, currentBudgetMonth, i18nInstance.language]);
 
   useEffect(() => {
     // Спрацьовує тільки коли модалка відкривається
