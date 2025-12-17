@@ -212,3 +212,4 @@ User opens app → Budget "Main" is created
 
 
 
+
