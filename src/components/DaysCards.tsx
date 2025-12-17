@@ -354,6 +354,7 @@ const DaysCards: React.FC<DaysCardsProps> = ({
       })}
       
       <TransactionModal
+        key={`transaction-modal-${budgetYear}-${budgetMonth}`}
         isOpen={modalState.isOpen}
         onClose={() => setModalState({ isOpen: false, dayIndex: null, transaction: null })}
         onSave={handleSaveTransaction}
@@ -361,6 +362,8 @@ const DaysCards: React.FC<DaysCardsProps> = ({
         isUk={isUk}
         maxTransactions={MAX_TRANSACTIONS}
         selectedCurrencies={selectedCurrencies}
+        currentBudgetYear={budgetYear}
+        currentBudgetMonth={budgetMonth}
       />
       
       <AlertModal
@@ -374,5 +377,5 @@ const DaysCards: React.FC<DaysCardsProps> = ({
   );
 };
 
-export default React.memo(DaysCards);
+export default DaysCards;
 

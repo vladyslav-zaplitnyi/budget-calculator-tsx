@@ -26,7 +26,8 @@ export const TransactionSchema: z.ZodType<Transaction> = z.object({
   type: z.enum(['income', 'expense']),
   amount: z.number().nonnegative(),
   currency: z.string().min(1),
-  description: z.string()
+  description: z.string(),
+  date: z.union([z.date(), z.string()]).optional()
 });
 
 /**

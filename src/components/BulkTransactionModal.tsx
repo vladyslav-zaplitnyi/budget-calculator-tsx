@@ -20,6 +20,8 @@ interface BulkTransactionModalProps {
   updateDay: (index: number, field: string, value: any) => void;
   maxTransactions: number;
   selectedCurrencies?: string[];
+  budgetYear: number;
+  budgetMonth: number;
 }
 
 const normalizeStringArray = (value: unknown): string[] | null => {
@@ -34,7 +36,9 @@ const BulkTransactionModal: React.FC<BulkTransactionModalProps> = ({
   days,
   updateDay,
   maxTransactions,
-  selectedCurrencies = ['UAH', 'USD', 'EUR']
+  selectedCurrencies = ['UAH', 'USD', 'EUR'],
+  budgetYear,
+  budgetMonth
 }) => {
   const { t, i18n: i18nInstance } = useTranslation();
 
@@ -69,9 +73,8 @@ const BulkTransactionModal: React.FC<BulkTransactionModalProps> = ({
   }, [selectedDays]);
 
   const { calendarCells, monthYearLabel, weekdayLabels } = useMemo(() => {
-    const now = new Date();
-    const year = now.getFullYear();
-    const monthIndex = now.getMonth();
+    const year = budgetYear;
+    const monthIndex = budgetMonth;
     const locale = i18nInstance.language || 'en';
 
     const weekdaysFromLocales = normalizeStringArray(
@@ -101,7 +104,7 @@ const BulkTransactionModal: React.FC<BulkTransactionModalProps> = ({
       monthYearLabel: monthYearLabelLocal,
       weekdayLabels: weekdayLabelsLocal
     };
-  }, [i18nInstance.language, t]);
+  }, [budgetYear, budgetMonth, i18nInstance.language, t]);
 
   const toggleDay = (dayNumber: number) => {
     setSelectedDays(prev => {

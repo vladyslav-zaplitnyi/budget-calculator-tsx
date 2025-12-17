@@ -4,6 +4,7 @@ export interface Transaction {
   amount: number;
   currency: string;
   description: string;
+  date?: Date | string; // Optional for backwards compatibility
 }
 
 export interface Day {

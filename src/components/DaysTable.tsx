@@ -398,6 +398,7 @@ const DaysTable: React.FC<DaysTableProps> = ({
       </div>
       
       <TransactionModal
+        key={`transaction-modal-${budgetYear}-${budgetMonth}`}
         isOpen={modalState.isOpen}
         onClose={() => setModalState({ isOpen: false, dayIndex: null, transaction: null })}
         onSave={handleSaveTransaction}
@@ -405,6 +406,8 @@ const DaysTable: React.FC<DaysTableProps> = ({
         isUk={isUk}
         maxTransactions={MAX_TRANSACTIONS}
         selectedCurrencies={selectedCurrencies}
+        currentBudgetYear={budgetYear}
+        currentBudgetMonth={budgetMonth}
       />
       
       <AlertModal
@@ -418,5 +421,5 @@ const DaysTable: React.FC<DaysTableProps> = ({
   );
 };
 
-export default React.memo(DaysTable);
+export default DaysTable;
 

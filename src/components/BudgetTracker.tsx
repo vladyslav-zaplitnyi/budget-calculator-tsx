@@ -254,6 +254,8 @@ export default function BudgetTracker() {
                 isEncrypted={isEncrypted}
                 updateDay={updateDay}
                 days={days}
+                budgetYear={budgetDate.year}
+                budgetMonth={budgetDate.month}
               />
 
               <BudgetStatus

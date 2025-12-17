@@ -50,6 +50,8 @@ interface SettingsCardProps {
   isEncrypted?: boolean;
   updateDay?: (index: number, field: string, value: any) => void;
   days?: Day[];
+  budgetYear: number;
+  budgetMonth: number;
 }
 
 const SettingsCard: React.FC<SettingsCardProps> = ({
@@ -92,7 +94,9 @@ const SettingsCard: React.FC<SettingsCardProps> = ({
   setShowDisableEncryptionModal,
   isEncrypted = false,
   updateDay,
-  days = []
+  days = [],
+  budgetYear,
+  budgetMonth
 }) => {
   const { t, i18n: i18nInstance } = useTranslation();
   
@@ -653,6 +657,8 @@ const SettingsCard: React.FC<SettingsCardProps> = ({
         updateDay={updateDay || (() => {})}
         maxTransactions={5}
         selectedCurrencies={selectedCurrencies}
+        budgetYear={budgetYear}
+        budgetMonth={budgetMonth}
       />
     </div>
   );

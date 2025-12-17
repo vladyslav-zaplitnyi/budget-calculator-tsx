@@ -134,6 +134,7 @@
     "income": "✅ Дохід",
     "amount": "Сума",
     "currency": "Валюта",
+    "date": "Дата",
     "description": "Опис",
     "descriptionPlaceholder": "Короткий опис операції...",
     "cancel": "Скасувати",

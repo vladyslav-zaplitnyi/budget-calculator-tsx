@@ -134,6 +134,7 @@
     "income": "✅ Income",
     "amount": "Amount",
     "currency": "Currency",
+    "date": "Date",
     "description": "Description",
     "descriptionPlaceholder": "Short description...",
     "cancel": "Cancel",
