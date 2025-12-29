@@ -126,7 +126,9 @@ export function useBudgetSync(
     encryptionPassword,
     setIsEncrypted,
     // 🔒 ЗАПОБІЖНИК: Передаємо стан зашифрованих даних
-    isRemoteDataEncrypted: passwordModal.isRemoteDataEncrypted
+    isRemoteDataEncrypted: passwordModal.isRemoteDataEncrypted,
+    // 🔒 FETCH-FIRST: Передаємо стан завантаження даних
+    isDataLoaded: passwordModal.isDataLoaded
   });
 
   return {

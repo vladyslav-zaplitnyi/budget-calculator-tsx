@@ -20,6 +20,8 @@ interface UseSyncDebounceParams {
   setIsEncrypted?: (encrypted: boolean) => void;
   // 🔒 ЗАПОБІЖНИК: Прапорець, чи є зашифровані дані в Firestore
   isRemoteDataEncrypted?: boolean;
+  // 🔒 FETCH-FIRST: Прапорець, чи дані завантажені з хмари
+  isDataLoaded?: boolean;
 }
 
 /**
@@ -33,12 +35,18 @@ interface UseSyncDebounceParams {
  * - isRemoteDataEncrypted === true (в Firestore є зашифровані дані)
  * - encryptionPassword === null (пароль не введено)
  * 
+ * 🔒 FETCH-FIRST (СПОЧАТКУ ЗАВАНТАЖИТИ):
+ * Додаткова перевірка для запобігання перезапису даних з хмари:
+ * 
+ * БЛОКУВАННЯ ЗАПИСУ, ЯКЩО:
+ * - isDataLoaded === false (дані з Firestore ще не завантажені)
+ * 
  * РЕЗУЛЬТАТ БЛОКУВАННЯ:
  * - Запис у Firestore НЕ відбувається
  * - Виводиться попередження в консоль
  * - Статус встановлюється на 'local'
  * 
- * Це гарантує, що зашифровані дані НІКОЛИ не будуть перезаписані порожніми даними.
+ * Це гарантує правильну послідовність: Login -> Fetch -> Update State -> Unlock Auto-save
  */
 export function useSyncDebounce({
   budgets,
@@ -51,7 +59,8 @@ export function useSyncDebounce({
   getSyncStatusText,
   encryptionPassword,
   setIsEncrypted,
-  isRemoteDataEncrypted = false
+  isRemoteDataEncrypted = false,
+  isDataLoaded = false
 }: UseSyncDebounceParams) {
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -64,6 +73,13 @@ export function useSyncDebounce({
 
     setSyncStatus(getSyncStatusText('syncing'));
     saveTimeoutRef.current = setTimeout(() => {
+      // 🔒 FETCH-FIRST: Якщо дані ще не завантажені з хмари — НІЧОГО НЕ ПИШЕМО!
+      if (!isDataLoaded) {
+        console.warn('⛔ Блокування запису: Дані з Firestore ще не завантажені. Очікуємо завершення завантаження...');
+        setSyncStatus(getSyncStatusText('local'));
+        return;
+      }
+      
       // 🔒 ЗАПОБІЖНИК ЗАПИСУ: Якщо в хмарі дані зашифровані, але у нас немає пароля — НІЧОГО НЕ ПИШЕМО!
       if (isRemoteDataEncrypted && !encryptionPassword) {
         console.warn('⛔ Блокування запису: Спроба перезаписати зашифровані дані без пароля!');
@@ -100,7 +116,7 @@ export function useSyncDebounce({
         clearTimeout(saveTimeoutRef.current);
       }
     };
-  }, [budgets, activeBudgetId, user, isInitialLoad, authLoading, setSyncStatus, getSyncStatusText, encryptionPassword, setIsEncrypted, isRemoteDataEncrypted]);
+  }, [budgets, activeBudgetId, user, isInitialLoad, authLoading, setSyncStatus, getSyncStatusText, encryptionPassword, setIsEncrypted, isRemoteDataEncrypted, isDataLoaded]);
 
   return saveTimeoutRef;
 }

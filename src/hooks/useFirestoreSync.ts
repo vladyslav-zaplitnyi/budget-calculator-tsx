@@ -67,6 +67,11 @@ export function useFirestoreSync(
   
   // 🔒 ЗАПОБІЖНИК ЗАПИСУ: Стан для відстеження зашифрованих даних у Firestore
   const [isRemoteDataEncrypted, setIsRemoteDataEncrypted] = useState(false);
+  
+  // 🔒 FETCH-FIRST: Стан для блокування запису до завантаження даних з хмари
+  // false = дані ще не завантажені, заборонено писати в Firestore
+  // true = дані завантажені (або користувач новий), дозволено писати в Firestore
+  const [isDataLoaded, setIsDataLoaded] = useState(false);
 
   // Допоміжна функція для завантаження даних бюджету
   const loadBudgetData = (budget: typeof budgets[string], budgetId: string, allBudgets: Budgets) => {
@@ -153,6 +158,10 @@ export function useFirestoreSync(
     loadedBudgetsRef.current = emptyBudget;
     setActiveBudgetId('default');
     setSyncStatus(getSyncStatusText('local'));
+    
+    // 🔒 FETCH-FIRST: Новий користувач без даних, дозволяємо запис
+    setIsDataLoaded(true);
+    console.log('✅ Новий користувач, створено порожній бюджет. Запис розблоковано.');
   };
 
   // Функція для обробки даних з Firestore
@@ -281,6 +290,8 @@ export function useFirestoreSync(
   useEffect(() => {
     if (!user && !authLoading) {
       loadedBudgetsRef.current = null;
+      // 🔒 FETCH-FIRST: Скидаємо блокування при виході (буде встановлено при наступному вході)
+      setIsDataLoaded(false);
     }
   }, [user, authLoading, loadedBudgetsRef]);
 
@@ -311,6 +322,9 @@ export function useFirestoreSync(
           
           if (firestoreData) {
             processFirestoreData(firestoreData);
+            // 🔒 FETCH-FIRST: Дані успішно завантажені з Firestore, розблоковуємо запис
+            setIsDataLoaded(true);
+            console.log('✅ Дані завантажені з Firestore. Запис розблоковано.');
           } else {
             // Новий користувач - перевіряємо чи є дані в localStorage для збереження
             console.log('📦 Новий користувач - перевірка localStorage');
@@ -390,6 +404,9 @@ export function useFirestoreSync(
                     loadFromFirestore(user, null).then((savedData) => {
                       if (savedData && !('isEncrypted' in savedData && 'needsPassword' in savedData)) {
                         processFirestoreData(savedData);
+                        // 🔒 FETCH-FIRST: Дані нового користувача збережені та завантажені, розблоковуємо запис
+                        setIsDataLoaded(true);
+                        console.log('✅ Дані нового користувача збережені в Firestore. Запис розблоковано.');
                       }
                     });
                   }).catch((error) => {
@@ -433,6 +450,9 @@ export function useFirestoreSync(
                         loadFromFirestore(user, null).then((savedData) => {
                           if (savedData && !('isEncrypted' in savedData && 'needsPassword' in savedData)) {
                             processFirestoreData(savedData);
+                            // 🔒 FETCH-FIRST: Дані нового користувача збережені та завантажені, розблоковуємо запис
+                            setIsDataLoaded(true);
+                            console.log('✅ Дані нового користувача збережені в Firestore. Запис розблоковано.');
                           }
                         });
                       }).catch((error) => {
@@ -507,6 +527,9 @@ export function useFirestoreSync(
                       loadFromFirestore(user, null).then((savedData) => {
                         if (savedData && !('isEncrypted' in savedData && 'needsPassword' in savedData)) {
                           processFirestoreData(savedData);
+                          // 🔒 FETCH-FIRST: Відновлені дані збережені та завантажені, розблоковуємо запис
+                          setIsDataLoaded(true);
+                          console.log('✅ Відновлені дані збережені в Firestore. Запис розблоковано.');
                         }
                       });
                     }).catch((error) => {
@@ -646,6 +669,8 @@ export function useFirestoreSync(
         
         setSyncStatus(getSyncStatusText('local'));
         setIsInitialLoad(false);
+        // 🔒 FETCH-FIRST: Дані завантажені з localStorage, дозволяємо запис
+        setIsDataLoaded(true);
       }
     };
 
@@ -710,7 +735,9 @@ export function useFirestoreSync(
           // і useSyncDebounce не збереже старі дані з localStorage в БД
           setTimeout(() => {
             setIsInitialLoad(false);
-            console.log('🔑 ✅ isInitialLoad встановлено в false після завантаження з БД');
+            // 🔒 FETCH-FIRST: Зашифровані дані успішно завантажені, розблоковуємо запис
+            setIsDataLoaded(true);
+            console.log('🔑 ✅ isInitialLoad встановлено в false після завантаження з БД. Запис розблоковано.');
           }, 500);
           return;
         }
@@ -743,7 +770,8 @@ export function useFirestoreSync(
     passwordError,
     handlePasswordSubmit,
     handlePasswordCancel,
-    isRemoteDataEncrypted
+    isRemoteDataEncrypted,
+    isDataLoaded
   };
 }
 
