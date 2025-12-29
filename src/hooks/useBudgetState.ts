@@ -11,6 +11,7 @@ import { messageReducer, createMessageInitialState, messageActions } from '../re
 import { Day, ExchangeRates, Budgets } from '../types';
 import { hasPairStructure, getBuyRate } from '../utils/typeGuards';
 import i18n from '../i18n/config';
+import { roundToDecimals } from '../utils/rounding';
 
 export interface BudgetStateInterface {
   language: string;
@@ -79,12 +80,13 @@ export function useBudgetState(): BudgetStateInterface {
           const rate = getBuyRate(rateValue, 1);
           const pairKey = `${BASE_CURRENCY}_${code}`;
           const reversePairKey = `${code}_${BASE_CURRENCY}`;
+          const sellRate = roundToDecimals(rate * 1.005, 2);
           newRates[pairKey] = {
             buy: rate,
-            sell: rate * 1.005
+            sell: sellRate
           };
           newRates[reversePairKey] = {
-            buy: 1 / (rate * 1.005),
+            buy: 1 / sellRate,
             sell: 1 / rate
           };
         }

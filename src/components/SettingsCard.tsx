@@ -4,6 +4,7 @@ import { AVAILABLE_CURRENCIES, getCurrencyName } from '../utils/currencies';
 import { User } from 'firebase/auth';
 import { Budgets, ExchangeRates, Day } from '../types';
 import { isExchangeRatePair, getBuyRate } from '../utils/typeGuards';
+import { roundToDecimals } from '../utils/rounding';
 import ConfirmModal from './ConfirmModal';
 import CurrencyFlag from './CurrencyFlag';
 import BulkTransactionModal from './BulkTransactionModal';
@@ -395,9 +396,9 @@ const SettingsCard: React.FC<SettingsCardProps> = ({
                 
                 if (isExchangeRatePair(pairValue)) {
                   buyRate = pairValue.buy || 0;
-                  sellRate = pairValue.sell || 0;
+                  sellRate = pairValue.sell ? roundToDecimals(pairValue.sell, 2) : 0;
                 } else if (isExchangeRatePair(reversePairValue)) {
-                  sellRate = reversePairValue.buy ? 1 / reversePairValue.buy : 0;
+                  sellRate = reversePairValue.buy ? roundToDecimals(1 / reversePairValue.buy, 2) : 0;
                   buyRate = reversePairValue.sell ? 1 / reversePairValue.sell : 0;
                 } else {
                   const rateVal = exchangeRates[currencyCode];
@@ -420,7 +421,7 @@ const SettingsCard: React.FC<SettingsCardProps> = ({
                       }
                   }
                   buyRate = oldRate ?? 0;
-                  sellRate = oldRate ? oldRate * 1.01 : 0;
+                  sellRate = oldRate ? roundToDecimals(oldRate * 1.01, 2) : 0;
                 }
                 
                 const colors = [

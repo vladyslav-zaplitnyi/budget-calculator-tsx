@@ -4,6 +4,7 @@ import { BudgetStateWithSync } from '../contexts/BudgetContext';
 import { ExchangeRates } from '../types';
 import { handleError } from '../utils/errorHandler';
 import { translate } from '../i18n/config';
+import { roundToDecimals } from '../utils/rounding';
 
 export function useCurrencyRates(budgetState: BudgetStateWithSync) {
   const { fetchRatesForCurrencies } = useNbuRates();
@@ -41,7 +42,7 @@ export function useCurrencyRates(budgetState: BudgetStateWithSync) {
           const reversePairKey = `${currencyCode}_${baseCurrency}`;
           
           const buyRate = nbuRate;
-          const sellRate = nbuRate * 1.005;
+          const sellRate = roundToDecimals(nbuRate * 1.005, 2);
           
           updatedRates[pairKey] = {
             buy: buyRate,
@@ -60,7 +61,7 @@ export function useCurrencyRates(budgetState: BudgetStateWithSync) {
       const ratesList = Object.entries(newRates)
         .map(([code, rate]) => {
           const buyRate = rate;
-          const sellRate = rate * 1.005;
+          const sellRate = roundToDecimals(rate * 1.005, 2);
           return `${code}: купівля ${buyRate.toFixed(2)}, продаж ${sellRate.toFixed(2)}`;
         })
         .join(', ');

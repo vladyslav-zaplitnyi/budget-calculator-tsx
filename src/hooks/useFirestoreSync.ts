@@ -10,6 +10,7 @@ import { Budgets, ExchangeRates, Budget } from '../types';
 import { getBuyRate, hasPairStructure } from '../utils/typeGuards';
 import { WrongPasswordError } from '../utils/encryption';
 import { translate } from '../i18n/config';
+import { roundToDecimals } from '../utils/rounding';
 
 /**
  * Hook для завантаження та синхронізації даних з Firestore
@@ -191,13 +192,14 @@ export function useFirestoreSync(
             const pairKey = `${BASE_CURRENCY}_${code}`;
             const reversePairKey = `${code}_${BASE_CURRENCY}`;
             const rateVal = getBuyRate(rate, 1); 
+            const sellRate = roundToDecimals(rateVal * 1.005, 2);
 
             rates[pairKey] = {
               buy: rateVal,
-              sell: rateVal * 1.005
+              sell: sellRate
             };
             rates[reversePairKey] = {
-              buy: 1 / (rateVal * 1.005),
+              buy: 1 / sellRate,
               sell: 1 / rateVal
             };
           }
