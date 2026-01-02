@@ -16,6 +16,7 @@ interface SettingsCardProps {
   activeBudgetId: string;
   handleBudgetChange: (event: ChangeEvent<HTMLSelectElement>) => void;
   handleAddBudgetClick: () => void;
+  handleEditBudgetClick?: () => void;
   handleDeleteBudget: () => void;
   selectedCurrencies: string[];
   exchangeRates: ExchangeRates;
@@ -62,6 +63,7 @@ const SettingsCard: React.FC<SettingsCardProps> = ({
   activeBudgetId,
   handleBudgetChange,
   handleAddBudgetClick,
+  handleEditBudgetClick,
   handleDeleteBudget,
   selectedCurrencies = ['UAH', 'USD', 'EUR'],
   exchangeRates = {},
@@ -266,6 +268,19 @@ const SettingsCard: React.FC<SettingsCardProps> = ({
             >
               [+]
             </button>
+            {handleEditBudgetClick && (
+              <button
+                type="button"
+                onClick={handleEditBudgetClick}
+                className="inline-flex items-center justify-center px-3 py-2 sm:px-4 sm:py-2.5 rounded-lg bg-gradient-to-r from-yellow-400 to-yellow-500 text-white font-bold text-sm shadow-md hover:shadow-lg hover:from-yellow-500 hover:to-yellow-600 active:scale-95 transition-all"
+                title={t('settings.budget.edit')}
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M12 20h9"/>
+                  <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z"/>
+                </svg>
+              </button>
+            )}
             {safeBudgets && Object.keys(safeBudgets).length > 1 && activeBudgetId !== 'default' && (
               <button
                 type="button"

@@ -63,6 +63,7 @@ export default function BudgetTracker() {
     showStartNewMonthModal,
     handleBudgetChange,
     handleAddBudgetClick,
+    handleEditBudgetClick,
     handleDeleteBudget,
     handleCurrencyChange,
     handleExchangeRateChange,
@@ -103,7 +104,12 @@ export default function BudgetTracker() {
     showImportModal,
     resolveImport,
     cancelImport,
-    pendingImport
+    pendingImport,
+    // Edit budget name
+    showEditNameModal,
+    handleEditNameConfirm,
+    handleCancelEditName,
+    editingBudgetId
   } = handlers;
 
   // Створюємо об'єкт початкових балансів для вибраних валют
@@ -220,6 +226,7 @@ export default function BudgetTracker() {
                 activeBudgetId={activeBudgetId}
                 handleBudgetChange={handleBudgetChange}
                 handleAddBudgetClick={handleAddBudgetClick}
+                handleEditBudgetClick={handleEditBudgetClick}
                 handleDeleteBudget={handleDeleteBudget}
                 selectedCurrencies={selectedCurrencies}
                 exchangeRates={exchangeRates}
@@ -378,6 +385,18 @@ export default function BudgetTracker() {
         budgetName={pendingImport?.budgetName || pendingImport?.settings?.name || translate('budget.main')}
         canCreateNew={Object.keys(budgets).length < 3}
         currentBudgetsCount={Object.keys(budgets).length}
+      />
+
+      {/* PromptModal для редагування назви бюджету */}
+      <PromptModal
+        isOpen={showEditNameModal}
+        onClose={handleCancelEditName}
+        onConfirm={handleEditNameConfirm}
+        title={translate('settings.budget.editNameTitle')}
+        placeholder={translate('settings.budget.editNamePlaceholder')}
+        defaultValue={editingBudgetId && budgets[editingBudgetId] ? budgets[editingBudgetId].name : ''}
+        confirmButtonText={translate('common.save')}
+        cancelButtonText={translate('common.cancel')}
       />
     </div>
   );

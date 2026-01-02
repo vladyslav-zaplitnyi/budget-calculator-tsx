@@ -15,6 +15,7 @@ export function useBudgetHandlers() {
     // Budget management
     handleBudgetChange: budgetManagement.handleBudgetChange,
     handleAddBudgetClick: budgetManagement.handleAddBudgetClick,
+    handleEditBudgetClick: budgetManagement.handleEditBudgetClick,
     handleDeleteBudget: budgetManagement.handleDeleteBudget,
     showDeleteBudgetConfirmModal: budgetManagement.showDeleteBudgetConfirmModal,
     setShowDeleteBudgetConfirmModal: budgetManagement.setShowDeleteBudgetConfirmModal,
@@ -28,6 +29,12 @@ export function useBudgetHandlers() {
     setShowAlertModal: budgetManagement.setShowAlertModal,
     alertMessage: budgetManagement.alertMessage,
     alertType: budgetManagement.alertType,
+    // Edit budget name
+    showEditNameModal: budgetManagement.showEditNameModal,
+    setShowEditNameModal: budgetManagement.setShowEditNameModal,
+    handleEditNameConfirm: budgetManagement.handleEditNameConfirm,
+    handleCancelEditName: budgetManagement.handleCancelEditName,
+    editingBudgetId: budgetManagement.editingBudgetId,
     
     // Settings
     handleClearAll: budgetSettings.handleClearAll,

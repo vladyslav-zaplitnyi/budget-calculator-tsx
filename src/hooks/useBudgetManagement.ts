@@ -41,6 +41,9 @@ export function useBudgetManagement() {
   // Стан для ConfirmModal видалення бюджету
   const [showDeleteBudgetConfirmModal, setShowDeleteBudgetConfirmModal] = useState(false);
   const [budgetToDeleteName, setBudgetToDeleteName] = useState('');
+  // Стан для модального вікна редагування назви бюджету
+  const [showEditNameModal, setShowEditNameModal] = useState(false);
+  const [editingBudgetId, setEditingBudgetId] = useState<string | null>(null);
 
   const createNewBudget = useCallback((name: string) => {
     const trimmedName = (name || '').trim();
@@ -362,6 +365,91 @@ export function useBudgetManagement() {
     setBudgetToDeleteName('');
   }, []);
 
+  // Функція для оновлення назви бюджету
+  const updateBudgetName = useCallback((budgetId: string, newName: string) => {
+    const trimmedName = (newName || '').trim();
+    if (!trimmedName) {
+      setAlertMessage(translate('settings.budget.editNamePlaceholder'));
+      setAlertType('warning');
+      setShowAlertModal(true);
+      return;
+    }
+
+    const currentBudgets = budgets || {};
+    const budgetToUpdate = currentBudgets[budgetId];
+
+    if (!budgetToUpdate) {
+      console.error('Бюджет для оновлення не знайдено:', budgetId);
+      return;
+    }
+
+    // Оновлюємо назву бюджету
+    const updatedBudget: Budget = {
+      ...budgetToUpdate,
+      name: trimmedName
+    };
+
+    const updatedBudgets = {
+      ...currentBudgets,
+      [budgetId]: updatedBudget
+    };
+
+    // Оновлюємо стан
+    setBudgets(updatedBudgets);
+
+    // Зберігаємо в localStorage
+    try {
+      saveToLocalStorage(updatedBudgets, activeBudgetId);
+    } catch (error) {
+      console.error('Помилка при збереженні в localStorage:', error);
+    }
+
+    // Синхронізуємо з Firestore (якщо користувач авторизований)
+    if (user) {
+      (async () => {
+        try {
+          await saveToFirestore(
+            user, 
+            updatedBudgets, 
+            activeBudgetId, 
+            true, 
+            setSyncStatus, 
+            getSyncStatusText, 
+            encryptionPassword, 
+            setIsEncrypted
+          );
+          console.log('✅ Назва бюджету успішно оновлена');
+        } catch (error) {
+          console.error('❌ Помилка при оновленні назви бюджету в Firestore:', error);
+        }
+      })();
+    }
+  }, [budgets, activeBudgetId, user, encryptionPassword, setBudgets, setSyncStatus, getSyncStatusText, setIsEncrypted]);
+
+  const handleEditBudgetClick = useCallback(() => {
+    if (!user) {
+      setAlertMessage(translate('settings.budget.signInRequiredEdit'));
+      setAlertType('warning');
+      setShowAlertModal(true);
+      return;
+    }
+
+    setEditingBudgetId(activeBudgetId);
+    setShowEditNameModal(true);
+  }, [user, activeBudgetId]);
+
+  const handleEditNameConfirm = useCallback((newName: string) => {
+    if (!newName || !newName.trim() || !editingBudgetId) return;
+    updateBudgetName(editingBudgetId, newName);
+    setShowEditNameModal(false);
+    setEditingBudgetId(null);
+  }, [updateBudgetName, editingBudgetId]);
+
+  const handleCancelEditName = useCallback(() => {
+    setShowEditNameModal(false);
+    setEditingBudgetId(null);
+  }, []);
+
   return {
     createNewBudget,
     handleBudgetChange,
@@ -378,7 +466,15 @@ export function useBudgetManagement() {
     setShowDeleteBudgetConfirmModal,
     handleConfirmDeleteBudget,
     handleCancelDeleteBudget,
-    budgetToDeleteName
+    budgetToDeleteName,
+    // Нові функції для редагування назви
+    updateBudgetName,
+    handleEditBudgetClick,
+    handleEditNameConfirm,
+    handleCancelEditName,
+    showEditNameModal,
+    setShowEditNameModal,
+    editingBudgetId
   };
 }
 

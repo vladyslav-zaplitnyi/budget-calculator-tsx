@@ -27,9 +27,13 @@
       "untitled": "Untitled",
       "add": "Add new budget",
       "delete": "Delete current budget",
+      "edit": "Edit budget name",
       "namePrompt": "Enter budget name",
+      "editNameTitle": "Edit budget name",
+      "editNamePlaceholder": "Enter new name",
       "signInRequired": "Sign in with Google to create multiple budgets.",
       "signInRequiredDelete": "Sign in with Google to delete budgets.",
+      "signInRequiredEdit": "Sign in with Google to edit budget names.",
       "description": "Free version allows up to 3 budgets. Main budget (Main/Основний) cannot be deleted.",
       "deleteConfirm": {
         "title": "Delete budget?",
@@ -270,7 +274,8 @@
   "common": {
     "ok": "OK",
     "create": "Create",
-    "cancel": "Cancel"
+    "cancel": "Cancel",
+    "save": "Save"
   },
   "monthYearPicker": {
     "title": "Select Month and Year",
