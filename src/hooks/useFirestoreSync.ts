@@ -303,6 +303,32 @@ export function useFirestoreSync(
     const loadData = async () => {
       if (user) {
         setIsInitialLoad(true);
+        // 🔒 FETCH-FIRST: КРИТИЧНО! Блокуємо запис на час завантаження з Firestore
+        // Це запобігає перезапису свіжих даних застарілими з LocalStorage
+        setIsDataLoaded(false);
+        
+        // 🔒 БЕЗПЕКА + СИНХРОНІЗАЦІЯ: Зберігаємо копію localStorage перед очищенням
+        // Потрібно для випадку: користувач імпортував дані → логініться → дані не втрачаються
+        let localStorageBackup: string | null = null;
+        try {
+          localStorageBackup = localStorage.getItem('budgetTrackerData');
+          console.log('🔒 Збережено копію localStorage:', localStorageBackup ? 'Є дані' : 'Порожньо');
+        } catch (error) {
+          console.error('⚠️ Помилка читання localStorage:', error);
+        }
+        
+        // 🔒 БЕЗПЕКА: ОДРАЗУ очищаємо localStorage при вході користувача!
+        // Це вирішує ДВІ проблеми:
+        // 1. Безпека: Ніхто не може побачити дані в LocalStorage без правильного пароля
+        // 2. Синхронізація: Старі дані з LocalStorage не конфліктують з актуальними даними з Firebase
+        // Після успішного завантаження з Firebase, дані будуть збережені в LocalStorage знову
+        try {
+          localStorage.removeItem('budgetTrackerData');
+          console.log('🔒 LocalStorage очищено при вході користувача (безпека + синхронізація)');
+        } catch (error) {
+          console.error('⚠️ Помилка очищення localStorage:', error);
+        }
+        
         try {
           const firestoreData = await loadFromFirestore(user, encryptionPassword);
           
@@ -313,6 +339,13 @@ export function useFirestoreSync(
             // 🔒 ЗАПОБІЖНИК: Встановлюємо прапорець, що в хмарі є зашифровані дані
             setIsRemoteDataEncrypted(true);
             console.warn('🔒 Виявлено зашифровані дані в Firestore. Запис заблоковано до введення пароля.');
+            
+            // 🔒 БЕЗПЕКА: Показуємо порожній бюджет до введення пароля
+            // LocalStorage вже очищено, створюємо чистий стан
+            initializeEmptyBudget();
+            // ВАЖЛИВО: Скидаємо isDataLoaded = false, щоб запобігти запису порожнього бюджету в Firebase
+            setIsDataLoaded(false);
+            
             // Потрібен пароль - показуємо модальне вікно
             // НЕ очищаємо passwordError тут, щоб зберегти попередню помилку, якщо вона була
             setShowPasswordModal(true);
@@ -326,43 +359,41 @@ export function useFirestoreSync(
             setIsDataLoaded(true);
             console.log('✅ Дані завантажені з Firestore. Запис розблоковано.');
           } else {
-            // Новий користувач - перевіряємо чи є дані в localStorage для збереження
-            console.log('📦 Новий користувач - перевірка localStorage');
+            // Новий користувач - перевіряємо чи є дані в localStorage backup для збереження
+            console.log('📦 Новий користувач - перевірка localStorage backup');
             
             // Очищаємо cookies від попереднього користувача
             document.cookie = 'budgetTrackerActiveBudgetId=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
             document.cookie = 'budgetTrackerLanguage=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
             
-            // ВАЖЛИВО: Даємо невелику затримку, щоб дані встигли зберегтися після імпорту
-            // Якщо дані не знайдені відразу, перевіряємо ще раз через 100мс
-            let hasLocalStorageData = localStorage.getItem('budgetTrackerData');
-            if (!hasLocalStorageData) {
-              console.log('📦 Дані не знайдені відразу, чекаємо 100мс...');
-              await new Promise(resolve => setTimeout(resolve, 100));
-              hasLocalStorageData = localStorage.getItem('budgetTrackerData');
-            }
+            // Використовуємо збережену копію localStorage (до очищення)
+            console.log('📦 Перевірка localStorage backup:', localStorageBackup ? 'Є дані' : 'Немає даних');
             
-            console.log('📦 Перевірка localStorage:', hasLocalStorageData ? 'Є дані' : 'Немає даних');
-            
-            // Додаткова діагностика: виводимо вміст localStorage
-            if (hasLocalStorageData) {
+            // Додаткова діагностика: виводимо вміст backup
+            if (localStorageBackup) {
               try {
-                const parsed = JSON.parse(hasLocalStorageData);
-                console.log('📦 Вміст localStorage:', {
+                const parsed = JSON.parse(localStorageBackup);
+                console.log('📦 Вміст localStorage backup:', {
                   hasBudgets: !!parsed.budgets,
                   budgetsCount: parsed.budgets ? Object.keys(parsed.budgets).length : 0,
                   activeBudgetId: parsed.activeBudgetId,
                   budgetKeys: parsed.budgets ? Object.keys(parsed.budgets) : []
                 });
               } catch (e) {
-                console.error('⚠️ Помилка парсингу localStorage:', e);
+                console.error('⚠️ Помилка парсингу localStorage backup:', e);
               }
             }
             
-            if (hasLocalStorageData) {
-              // Є дані в localStorage - спробуємо завантажити їх
-              const localData = loadFromLocalStorage();
-              console.log('📦 Результат loadFromLocalStorage:', localData ? `Знайдено ${Object.keys(localData.budgets || {}).length} бюджетів` : 'null');
+            if (localStorageBackup) {
+              // Є дані в localStorage backup - спробуємо завантажити їх
+              // ВАЖЛИВО: Парсимо вручну, бо loadFromLocalStorage() читає з localStorage, який вже очищений
+              let localData: any = null;
+              try {
+                localData = JSON.parse(localStorageBackup);
+              } catch (e) {
+                console.error('⚠️ Помилка парсингу backup:', e);
+              }
+              console.log('📦 Результат парсингу backup:', localData ? `Знайдено ${Object.keys(localData.budgets || {}).length} бюджетів` : 'null');
               
               if (localData && localData.budgets && Object.keys(localData.budgets).length > 0) {
                 // Є валідні дані в localStorage - зберігаємо їх як "Основний"/"Main" бюджет з id 'default'
@@ -468,10 +499,10 @@ export function useFirestoreSync(
                   }
                 }
               } else {
-                // Є budgetTrackerData, але структура не валідна - спробуємо відновити дані
-                console.log('📦 Дані в localStorage є, але структура не валідна. Спробуємо відновити...');
+                // Є backup дані, але структура не валідна - спробуємо відновити дані
+                console.log('📦 Дані в localStorage backup є, але структура не валідна. Спробуємо відновити...');
                 try {
-                  const parsedData = JSON.parse(hasLocalStorageData);
+                  const parsedData = JSON.parse(localStorageBackup);
                   
                   // Перевіряємо чи є дані в старій структурі (без budgets)
                   // або в budgets, але без валідного активного бюджету
@@ -714,20 +745,13 @@ export function useFirestoreSync(
         if (firestoreData) {
           console.log('🔑 ✅ Дані успішно завантажено з паролем');
           
-          // ПАРОЛЬ ПРАВИЛЬНИЙ: тепер можна встановити пароль, очистити localStorage та закрити модальне вікно
+          // ПАРОЛЬ ПРАВИЛЬНИЙ: тепер можна встановити пароль та закрити модальне вікно
           setPasswordError(undefined); // Очищаємо помилку при успішному вході
           setEncryptionPassword(password);
           setShowPasswordModal(false);
           
-          // ВАЖЛИВО: Очищаємо localStorage перед завантаженням даних з БД,
-          // щоб уникнути конфлікту між локальними даними та даними з БД
-          try {
-            localStorage.removeItem('budgetTrackerData');
-            console.log('🔑 Очищено localStorage перед завантаженням з БД');
-          } catch (error) {
-            console.error('Помилка при очищенні localStorage:', error);
-          }
-          
+          // LocalStorage вже очищено при вході користувача (в loadData)
+          // Тому просто обробляємо дані з Firestore
           processFirestoreData(firestoreData);
           
           // ВАЖЛИВО: Збільшуємо затримку перед встановленням isInitialLoad в false,
@@ -763,6 +787,13 @@ export function useFirestoreSync(
     setShowPasswordModal(false);
     setPasswordError(undefined);
     setIsInitialLoad(false);
+    
+    // 🔒 БЕЗПЕКА: При відміні введення пароля створюємо порожній бюджет
+    // LocalStorage вже очищено при вході, тому створюємо чистий стан
+    console.log('🔒 Відміна введення пароля - створення порожнього бюджету');
+    initializeEmptyBudget();
+    // 🔒 ЗАПОБІЖНИК: Скидаємо прапорець зашифрованих даних, щоб користувач міг працювати з порожнім бюджетом
+    setIsRemoteDataEncrypted(false);
   };
 
   return {
