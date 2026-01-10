@@ -7,6 +7,7 @@ import { Budgets, Day, Transaction, Budget } from '../types';
 import { validateDay, validateTransaction } from '../schemas/budgetSchema';
 import { handleError } from '../utils/errorHandler';
 import { translate } from '../i18n/config';
+import { sanitizeFileNamePart } from '../utils/fileNameSanitizer';
 
 /**
  * Hook для імпорту та експорту бюджету в JSON формат
@@ -79,7 +80,13 @@ export function useBudgetImportExport() {
       const day = String(now.getDate()).padStart(2, '0');
       const hours = String(now.getHours()).padStart(2, '0');
       const minutes = String(now.getMinutes()).padStart(2, '0');
-      const filename = `budget_${year}-${month}-${day}_${hours}-${minutes}.json`;
+      const rawBudgetName =
+        (activeBudget?.name && String(activeBudget.name).trim()) ||
+        // If name is missing, fall back to a friendly default.
+        (activeBudgetId === 'default' ? '1' : activeBudgetId) ||
+        '1';
+      const safeBudgetName = sanitizeFileNamePart(rawBudgetName, '1');
+      const filename = `budget_${safeBudgetName}_${year}-${month}-${day}_${hours}-${minutes}.json`;
 
       const jsonString = JSON.stringify(dataToSave, null, 2);
 
