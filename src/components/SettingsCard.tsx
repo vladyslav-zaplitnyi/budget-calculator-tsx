@@ -1,4 +1,4 @@
-import React, { ChangeEvent, RefObject, useState } from 'react';
+import React, { ChangeEvent, RefObject, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { AVAILABLE_CURRENCIES, getCurrencyName } from '../utils/currencies';
 import { User } from 'firebase/auth';
@@ -144,6 +144,20 @@ const SettingsCard: React.FC<SettingsCardProps> = ({
     }
   });
 
+  // Auto-fetch курси НБУ (зберігається в localStorage)
+  const autoFetchNbuRatesStorageKey = 'settings_exchangeRates_autoFetchNbuRates';
+  const [isAutoFetchNbuRatesEnabled, setIsAutoFetchNbuRatesEnabled] = useState<boolean>(() => {
+    try {
+      if (typeof window === 'undefined') return false;
+      const stored = window.localStorage.getItem(autoFetchNbuRatesStorageKey);
+      if (stored === null) return false;
+      return stored === 'true';
+    } catch {
+      return false;
+    }
+  });
+  const didAutoFetchOnMountRef = useRef(false);
+
   const [showRecurringModal, setShowRecurringModal] = useState(false);
   
   // Синхронізуємо displayCurrencies з selectedCurrencies, коли немає pending зміни
@@ -166,6 +180,18 @@ const SettingsCard: React.FC<SettingsCardProps> = ({
       return next;
     });
   };
+
+  // Якщо auto-fetch увімкнено — на старті сторінки "натискаємо" оновлення курсів НБУ
+  useEffect(() => {
+    if (didAutoFetchOnMountRef.current) return;
+    didAutoFetchOnMountRef.current = true;
+
+    if (!isAutoFetchNbuRatesEnabled) return;
+    if (!handleUpdateNbuRates) return;
+
+    // Не чекаємо результат в UI — handler сам оновить isUpdatingRates/rateUpdateMessage
+    void handleUpdateNbuRates();
+  }, [isAutoFetchNbuRatesEnabled, handleUpdateNbuRates]);
   
   const handleCurrencySelect = (currencyCode: string, index: number) => {
     const previousValue = selectedCurrencies[index];
@@ -398,6 +424,54 @@ const SettingsCard: React.FC<SettingsCardProps> = ({
 
         {isExchangeRatesExpanded && (
           <>
+            {/* Auto fetch toggle */}
+            {handleUpdateNbuRates && (
+              <div className="mb-3 flex items-start justify-between gap-3 rounded-xl border border-indigo-100 bg-indigo-50/40 px-3 py-2">
+                <div className="min-w-0">
+                  <div className="text-xs sm:text-sm font-semibold text-gray-800">
+                    {t('settings.exchangeRates.autoFetch.label')}
+                  </div>
+                  <div className="mt-0.5 text-[10px] sm:text-xs text-gray-600">
+                    {t('settings.exchangeRates.autoFetch.hint')}
+                  </div>
+                </div>
+                <label className="inline-flex items-center cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    className="sr-only"
+                    checked={isAutoFetchNbuRatesEnabled}
+                    onChange={(e) => {
+                      const next = e.target.checked;
+                      setIsAutoFetchNbuRatesEnabled(next);
+                      try {
+                        if (typeof window !== 'undefined') {
+                          window.localStorage.setItem(autoFetchNbuRatesStorageKey, String(next));
+                        }
+                      } catch {
+                        // ignore storage errors
+                      }
+                      // Якщо увімкнули вручну — одразу підвантажимо курси
+                      if (next && handleUpdateNbuRates && !isUpdatingRates) {
+                        void handleUpdateNbuRates();
+                      }
+                    }}
+                  />
+                  <span
+                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                      isAutoFetchNbuRatesEnabled ? 'bg-indigo-600' : 'bg-gray-300'
+                    }`}
+                    aria-hidden="true"
+                  >
+                    <span
+                      className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform ${
+                        isAutoFetchNbuRatesEnabled ? 'translate-x-5' : 'translate-x-1'
+                      }`}
+                    />
+                  </span>
+                </label>
+              </div>
+            )}
+
             <div className="space-y-4">
               {selectedCurrencies.map((currencyCode, index) => {
                 if (currencyCode === baseCurrency) return null; // Не показуємо курс базової валюти до самої себе

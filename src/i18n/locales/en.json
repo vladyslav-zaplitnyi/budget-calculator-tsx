@@ -61,6 +61,10 @@
       "buy": "Buy",
       "sell": "Sell",
       "description": "Exchange rates for each currency pair. Buy - rate for buying currency, Sell - rate for selling currency.",
+      "autoFetch": {
+        "label": "Auto fetch (NBU)",
+        "hint": "When enabled, on page refresh the app automatically triggers \"Update rates from NBU\"."
+      },
       "update": "🔄 Update rates from NBU",
       "updating": "⏳ Updating rates..."
     },
