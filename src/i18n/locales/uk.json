@@ -161,7 +161,9 @@
     "cumulativeLabel": "Накоп: ",
     "dayBalance": "Баланс дня: ",
     "addTransaction": "Додати транзакцію",
-    "converted": "(Конвертовано)"
+    "converted": "(Конвертовано)",
+    "showDetails": "Показати деталі (валюти) 🔽",
+    "hideDetails": "Згорнути деталі 🔼"
   },
   "calendar": {
     "weekdaysShort": ["ПН", "ВТ", "СР", "ЧТ", "ПТ", "СБ", "НД"],

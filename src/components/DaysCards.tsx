@@ -39,6 +39,8 @@ const DaysCards: React.FC<DaysCardsProps> = ({
   budgetMonth
 }) => {
   const { t, i18n: i18nInstance } = useTranslation();
+  
+  // Стан для модальних вікон
   const [modalState, setModalState] = useState<{
     isOpen: boolean;
     dayIndex: number | null;
@@ -48,16 +50,25 @@ const DaysCards: React.FC<DaysCardsProps> = ({
     dayIndex: null,
     transaction: null
   });
+  
   const [showAlertModal, setShowAlertModal] = useState(false);
   const [alertMessage, setAlertMessage] = useState('');
 
+  // НОВИЙ СТАН: Зберігає індекси днів, які розгорнуті (показують валюти)
+  const [expandedDays, setExpandedDays] = useState<Record<number, boolean>>({});
+
   const MAX_TRANSACTIONS = 5;
   
-  // Отримуємо реальну кількість днів у місяці
   const daysInMonth = getDaysInMonth(budgetYear, budgetMonth);
-  
-  // Фільтруємо дні, щоб показати тільки реальні дні місяця
   const visibleDays = days.slice(0, daysInMonth);
+
+  // Функція для перемикання видимості деталей дня
+  const toggleDayDetails = (index: number) => {
+    setExpandedDays(prev => ({
+      ...prev,
+      [index]: !prev[index]
+    }));
+  };
 
   const handleAddTransaction = (dayIndex: number) => {
     const day = days[dayIndex];
@@ -101,16 +112,14 @@ const DaysCards: React.FC<DaysCardsProps> = ({
     const currentTransactions = Array.isArray(day.transactions) ? [...day.transactions] : [];
 
     if (existingTransaction && existingTransaction.id) {
-      // Редагуємо існуючу транзакцію
       const index = currentTransactions.findIndex(t => t.id === existingTransaction.id);
       if (index !== -1) {
         currentTransactions[index] = {
           ...transactionData,
-          id: existingTransaction.id // Зберігаємо оригінальний ID
+          id: existingTransaction.id
         } as Transaction;
       }
     } else {
-      // Додаємо нову транзакцію
       currentTransactions.push({
         ...transactionData,
         id: transactionData.id || generateTransactionId()
@@ -136,6 +145,9 @@ const DaysCards: React.FC<DaysCardsProps> = ({
         const transactions = Array.isArray(day.transactions) ? day.transactions : [];
         const transactionCount = transactions.length;
         const canAddMore = transactionCount < MAX_TRANSACTIONS;
+        
+        // Перевіряємо, чи розгорнутий цей день
+        const isExpanded = expandedDays[index] || false;
 
         return (
           <div key={day.day} className="bg-white rounded-xl shadow-lg p-4 border-2 border-gray-200 hover:border-blue-400 transition-all hover:shadow-xl">
@@ -206,149 +218,163 @@ const DaysCards: React.FC<DaysCardsProps> = ({
               )}
             </div>
 
-            {/* Dynamic currency sections */}
-            {selectedCurrencies.map((currencyCode, currencyIdx) => {
-              const currency = getCurrencyInfo(currencyCode);
-              if (!currency) return null;
-              
-              const dayBalance = calculateDayBalance(day, currencyCode);
-              const startBalance = startBalances[currencyCode] ?? null;
-              const cumulative = calculateCumulativeBalance(index, days, startBalance, currencyCode);
-              const incomeKey = `income${currencyCode}`;
-              const expenseKey = `expense${currencyCode}`;
-              const income = amounts[incomeKey] || 0;
-              const expense = amounts[expenseKey] || 0;
-              
-              const colors = [
-                'from-blue-50 to-blue-100/70 border-blue-200',
-                'from-emerald-50 to-green-100/70 border-emerald-200',
-                'from-amber-50 to-yellow-100/70 border-amber-200'
-              ];
-              const colorClass = colors[currencyIdx % colors.length];
-              const symbol = getCurrencySymbol(currencyCode);
-              
-              return (
-                <div key={currencyCode} className={`bg-gradient-to-br ${colorClass} p-3 rounded-lg mb-2 border shadow-sm`}>
-                  <div className="flex items-center justify-between mb-2">
-                    <h4 className="text-xs font-bold text-gray-700 font-display flex items-center gap-1.5">
-                      <CurrencyFlag currencyCode={currencyCode} size={18} />
-                      <span className="hidden xs:inline">{getCurrencyName(currencyCode, i18nInstance.language === 'uk' ? 'uk' : 'en')}</span>
-                      <span>({currencyCode})</span>
-                    </h4>
-                    <div className="text-xs font-semibold text-gray-900 tabular-nums">
-                      Σ: <span className={`font-bold ${cumulative >= (parseFloat(String(startBalance)) || 0) ? 'text-emerald-600' : 'text-rose-600'}`}>
-                        {symbol}{cumulative.toFixed(2)}
-                      </span>
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-2 gap-2">
-                    <div>
-                      <label className="text-xs text-gray-600 block mb-1 font-medium">
-                        ✅ {t('days.income')}
-                      </label>
-                      <div className="w-full px-2 py-2 text-sm text-right bg-emerald-50 border-2 border-emerald-200 rounded-lg font-semibold text-emerald-700 tabular-nums shadow-sm">
-                        {income > 0 ? income.toFixed(2) : ''}
-                      </div>
-                    </div>
-                    <div>
-                      <label className="text-xs text-gray-600 block mb-1 font-medium">
-                        ❌ {t('days.expenses')}
-                      </label>
-                      <div className="w-full px-2 py-2 text-sm text-right bg-rose-50 border-2 border-rose-200 rounded-lg font-semibold text-rose-700 tabular-nums shadow-sm">
-                        {expense > 0 ? expense.toFixed(2) : ''}
-                      </div>
-                    </div>
-                  </div>
-                  <div className="mt-2 text-center p-2 bg-white/50 rounded-lg">
-                    <span className="text-xs text-gray-600 font-medium block mb-0.5">
-                      {t('days.dayBalance')}
-                    </span>
-                    {dayBalance !== 0 && (
-                      <span className={`text-base font-bold tabular-nums ${dayBalance > 0 ? 'text-emerald-600' : dayBalance < 0 ? 'text-rose-600' : 'text-gray-600'}`}>
-                        {symbol}{dayBalance.toFixed(2)}
-                      </span>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
+            {/* Separator and Toggle Button */}
+            <div className="flex justify-center my-3">
+              <button
+                onClick={() => toggleDayDetails(index)}
+                className="text-xs font-medium text-gray-500 hover:text-indigo-600 transition-colors flex items-center gap-1 bg-gray-50 px-3 py-1.5 rounded-full border border-gray-200 hover:border-indigo-300 shadow-sm"
+              >
+                {isExpanded ? t('days.hideDetails') : t('days.showDetails')}
+              </button>
+            </div>
 
-            {/* Converted to Display Currency Section */}
-            {(() => {
-              const displayInfo = getCurrencyInfo(displayCurrency);
-              const displaySymbol = displayInfo ? displayInfo.symbol : displayCurrency;
-              
-              // Конвертуємо надбавки, витрати та баланси з усіх обраних валют
-              let convertedIncome = 0;
-              let convertedExpense = 0;
-              let convertedDayBalance = 0;
-              let convertedCumulative = 0;
-              
-              selectedCurrencies.forEach(currencyCode => {
-                const incomeKey = `income${currencyCode}`;
-                const expenseKey = `expense${currencyCode}`;
-                const income = amounts[incomeKey] || 0;
-                const expense = amounts[expenseKey] || 0;
-                const dayBalance = calculateDayBalance(day, currencyCode);
-                const startBalance = startBalances[currencyCode] ?? null;
-                const cumulative = calculateCumulativeBalance(index, days, startBalance, currencyCode);
-                
-                convertedIncome += convertCurrency(income, currencyCode, displayCurrency, exchangeRates);
-                convertedExpense += convertCurrency(expense, currencyCode, displayCurrency, exchangeRates);
-                convertedDayBalance += convertCurrency(dayBalance, currencyCode, displayCurrency, exchangeRates);
-                convertedCumulative += convertCurrency(cumulative, currencyCode, displayCurrency, exchangeRates);
-              });
-              
-              return (
-                <div className="bg-gradient-to-br from-indigo-50 to-violet-100/70 p-3 rounded-lg border-2 border-indigo-300 shadow-sm">
-                  <div className="flex items-center justify-between mb-2">
-                    <h4 className="text-xs font-bold text-gray-900 font-display flex items-center gap-1.5">
-                      <CurrencyFlag currencyCode={displayCurrency} size={18} />
-                      <span>{displayCurrency}</span>
-                      <span className="hidden xs:inline text-[10px] font-normal">{t('days.converted')}</span>
-                    </h4>
-                    <div className="text-xs font-semibold text-gray-900 tabular-nums">
-                      {convertedCumulative !== 0 && (
-                        <>
-                          Σ:{' '}
-                          <span className={`font-bold ${convertedCumulative >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
-                            {displaySymbol}{convertedCumulative.toFixed(2)}
+            {/* Currency Details (Collapsible) */}
+            {isExpanded && (
+              <div className="space-y-2 animate-fadeIn">
+                {/* Dynamic currency sections */}
+                {selectedCurrencies.map((currencyCode, currencyIdx) => {
+                  const currency = getCurrencyInfo(currencyCode);
+                  if (!currency) return null;
+                  
+                  const dayBalance = calculateDayBalance(day, currencyCode);
+                  const startBalance = startBalances[currencyCode] ?? null;
+                  const cumulative = calculateCumulativeBalance(index, days, startBalance, currencyCode);
+                  const incomeKey = `income${currencyCode}`;
+                  const expenseKey = `expense${currencyCode}`;
+                  const income = amounts[incomeKey] || 0;
+                  const expense = amounts[expenseKey] || 0;
+                  
+                  const colors = [
+                    'from-blue-50 to-blue-100/70 border-blue-200',
+                    'from-emerald-50 to-green-100/70 border-emerald-200',
+                    'from-amber-50 to-yellow-100/70 border-amber-200'
+                  ];
+                  const colorClass = colors[currencyIdx % colors.length];
+                  const symbol = getCurrencySymbol(currencyCode);
+                  
+                  return (
+                    <div key={currencyCode} className={`bg-gradient-to-br ${colorClass} p-3 rounded-lg border shadow-sm`}>
+                      <div className="flex items-center justify-between mb-2">
+                        <h4 className="text-xs font-bold text-gray-700 font-display flex items-center gap-1.5">
+                          <CurrencyFlag currencyCode={currencyCode} size={18} />
+                          <span className="hidden xs:inline">{getCurrencyName(currencyCode, i18nInstance.language === 'uk' ? 'uk' : 'en')}</span>
+                          <span>({currencyCode})</span>
+                        </h4>
+                        <div className="text-xs font-semibold text-gray-900 tabular-nums">
+                          Σ: <span className={`font-bold ${cumulative >= (parseFloat(String(startBalance)) || 0) ? 'text-emerald-600' : 'text-rose-600'}`}>
+                            {symbol}{cumulative.toFixed(2)}
                           </span>
-                        </>
-                      )}
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-2 gap-2">
-                    <div>
-                      <label className="text-xs text-gray-600 block mb-1 font-medium">
-                        ✅ {t('days.income')}
-                      </label>
-                      <div className="w-full px-2 py-2 text-sm text-right bg-emerald-50 border-2 border-emerald-200 rounded-lg font-semibold text-emerald-700 tabular-nums shadow-sm">
-                        {convertedIncome > 0 ? convertedIncome.toFixed(2) : ''}
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-2 gap-2">
+                        <div>
+                          <label className="text-xs text-gray-600 block mb-1 font-medium">
+                            ✅ {t('days.income')}
+                          </label>
+                          <div className="w-full px-2 py-2 text-sm text-right bg-emerald-50 border-2 border-emerald-200 rounded-lg font-semibold text-emerald-700 tabular-nums shadow-sm">
+                            {income > 0 ? income.toFixed(2) : ''}
+                          </div>
+                        </div>
+                        <div>
+                          <label className="text-xs text-gray-600 block mb-1 font-medium">
+                            ❌ {t('days.expenses')}
+                          </label>
+                          <div className="w-full px-2 py-2 text-sm text-right bg-rose-50 border-2 border-rose-200 rounded-lg font-semibold text-rose-700 tabular-nums shadow-sm">
+                            {expense > 0 ? expense.toFixed(2) : ''}
+                          </div>
+                        </div>
+                      </div>
+                      <div className="mt-2 text-center p-2 bg-white/50 rounded-lg">
+                        <span className="text-xs text-gray-600 font-medium block mb-0.5">
+                          {t('days.dayBalance')}
+                        </span>
+                        {dayBalance !== 0 && (
+                          <span className={`text-base font-bold tabular-nums ${dayBalance > 0 ? 'text-emerald-600' : dayBalance < 0 ? 'text-rose-600' : 'text-gray-600'}`}>
+                            {symbol}{dayBalance.toFixed(2)}
+                          </span>
+                        )}
                       </div>
                     </div>
-                    <div>
-                      <label className="text-xs text-gray-600 block mb-1 font-medium">
-                        ❌ {t('days.expenses')}
-                      </label>
-                      <div className="w-full px-2 py-2 text-sm text-right bg-rose-50 border-2 border-rose-200 rounded-lg font-semibold text-rose-700 tabular-nums shadow-sm">
-                        {convertedExpense > 0 ? convertedExpense.toFixed(2) : ''}
+                  );
+                })}
+
+                {/* Converted to Display Currency Section */}
+                {(() => {
+                  const displayInfo = getCurrencyInfo(displayCurrency);
+                  const displaySymbol = displayInfo ? displayInfo.symbol : displayCurrency;
+                  
+                  let convertedIncome = 0;
+                  let convertedExpense = 0;
+                  let convertedDayBalance = 0;
+                  let convertedCumulative = 0;
+                  
+                  selectedCurrencies.forEach(currencyCode => {
+                    const incomeKey = `income${currencyCode}`;
+                    const expenseKey = `expense${currencyCode}`;
+                    const income = amounts[incomeKey] || 0;
+                    const expense = amounts[expenseKey] || 0;
+                    const dayBalance = calculateDayBalance(day, currencyCode);
+                    const startBalance = startBalances[currencyCode] ?? null;
+                    const cumulative = calculateCumulativeBalance(index, days, startBalance, currencyCode);
+                    
+                    convertedIncome += convertCurrency(income, currencyCode, displayCurrency, exchangeRates);
+                    convertedExpense += convertCurrency(expense, currencyCode, displayCurrency, exchangeRates);
+                    convertedDayBalance += convertCurrency(dayBalance, currencyCode, displayCurrency, exchangeRates);
+                    convertedCumulative += convertCurrency(cumulative, currencyCode, displayCurrency, exchangeRates);
+                  });
+                  
+                  return (
+                    <div className="bg-gradient-to-br from-indigo-50 to-violet-100/70 p-3 rounded-lg border-2 border-indigo-300 shadow-sm">
+                      <div className="flex items-center justify-between mb-2">
+                        <h4 className="text-xs font-bold text-gray-900 font-display flex items-center gap-1.5">
+                          <CurrencyFlag currencyCode={displayCurrency} size={18} />
+                          <span>{displayCurrency}</span>
+                          <span className="hidden xs:inline text-[10px] font-normal">{t('days.converted')}</span>
+                        </h4>
+                        <div className="text-xs font-semibold text-gray-900 tabular-nums">
+                          {convertedCumulative !== 0 && (
+                            <>
+                              Σ:{' '}
+                              <span className={`font-bold ${convertedCumulative >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
+                                {displaySymbol}{convertedCumulative.toFixed(2)}
+                              </span>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-2 gap-2">
+                        <div>
+                          <label className="text-xs text-gray-600 block mb-1 font-medium">
+                            ✅ {t('days.income')}
+                          </label>
+                          <div className="w-full px-2 py-2 text-sm text-right bg-emerald-50 border-2 border-emerald-200 rounded-lg font-semibold text-emerald-700 tabular-nums shadow-sm">
+                            {convertedIncome > 0 ? convertedIncome.toFixed(2) : ''}
+                          </div>
+                        </div>
+                        <div>
+                          <label className="text-xs text-gray-600 block mb-1 font-medium">
+                            ❌ {t('days.expenses')}
+                          </label>
+                          <div className="w-full px-2 py-2 text-sm text-right bg-rose-50 border-2 border-rose-200 rounded-lg font-semibold text-rose-700 tabular-nums shadow-sm">
+                            {convertedExpense > 0 ? convertedExpense.toFixed(2) : ''}
+                          </div>
+                        </div>
+                      </div>
+                      <div className="mt-2 text-center p-2 bg-white/50 rounded-lg">
+                        <span className="text-xs text-gray-600 font-medium block mb-0.5">
+                          {t('days.dayBalance')}
+                        </span>
+                        {convertedDayBalance !== 0 && (
+                          <span className={`text-base font-bold tabular-nums ${convertedDayBalance > 0 ? 'text-emerald-600' : convertedDayBalance < 0 ? 'text-rose-600' : 'text-gray-600'}`}>
+                            {displaySymbol}{convertedDayBalance.toFixed(2)}
+                          </span>
+                        )}
                       </div>
                     </div>
-                  </div>
-                  <div className="mt-2 text-center p-2 bg-white/50 rounded-lg">
-                    <span className="text-xs text-gray-600 font-medium block mb-0.5">
-                      {t('days.dayBalance')}
-                    </span>
-                    {convertedDayBalance !== 0 && (
-                      <span className={`text-base font-bold tabular-nums ${convertedDayBalance > 0 ? 'text-emerald-600' : convertedDayBalance < 0 ? 'text-rose-600' : 'text-gray-600'}`}>
-                        {displaySymbol}{convertedDayBalance.toFixed(2)}
-                      </span>
-                    )}
-                  </div>
-                </div>
-              );
-            })()}
+                  );
+                })()}
+              </div>
+            )}
           </div>
         );
       })}
@@ -380,4 +406,3 @@ const DaysCards: React.FC<DaysCardsProps> = ({
 };
 
 export default DaysCards;
-

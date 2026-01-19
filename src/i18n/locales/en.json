@@ -161,7 +161,9 @@
     "cumulativeLabel": "Cum: ",
     "dayBalance": "Day balance: ",
     "addTransaction": "Add Transaction",
-    "converted": "(Converted)"
+    "converted": "(Converted)",
+    "showDetails": "Show details (currencies) 🔽",
+    "hideDetails": "Hide details 🔼"
   },
   "calendar": {
     "weekdaysShort": ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
