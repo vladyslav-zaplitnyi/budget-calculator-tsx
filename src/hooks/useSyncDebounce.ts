@@ -107,8 +107,19 @@ export function useSyncDebounce({
         return;
       }
       
-      // Використовуємо budgets безпосередньо, оскільки вони вже містять всі необхідні дані
-      saveToFirestore(user, budgets, currentId, false, setSyncStatus, getSyncStatusText, encryptionPassword, setIsEncrypted);
+      // ВАЖЛИВО: Об'єднуємо поточні days зі стану з budgets перед збереженням
+      // Це гарантує, що найсвіжіші дані зберігаються в Firestore
+      const budgetsToSave: Budgets = {
+        ...budgets,
+        [currentId]: {
+          ...currentBudget,
+          days: latestDataRef.current.days || currentBudget.days || [],
+          selectedCurrencies: latestDataRef.current.selectedCurrencies || currentBudget.selectedCurrencies,
+          exchangeRates: latestDataRef.current.exchangeRates || currentBudget.exchangeRates
+        }
+      };
+      
+      saveToFirestore(user, budgetsToSave, currentId, false, setSyncStatus, getSyncStatusText, encryptionPassword, setIsEncrypted);
     }, 2000);
 
     return () => {

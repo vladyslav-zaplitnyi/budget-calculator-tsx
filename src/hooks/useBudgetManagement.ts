@@ -30,7 +30,10 @@ export function useBudgetManagement() {
     encryptionPassword,
     setIsEncrypted,
     setDisplayCurrency,
-    setDisplayCurrencyIndex
+    setDisplayCurrencyIndex,
+    days,
+    displayCurrency,
+    displayCurrencyIndex
   } = context;
 
   // Стан для модальних вікон
@@ -70,8 +73,22 @@ export function useBudgetManagement() {
       newId = `${baseId}-${suffix++}`;
     }
 
+    // ВАЖЛИВО: Спочатку зберігаємо поточний бюджет з усіма даними
+    const oldId = activeBudgetId || 'default';
+    const oldBudget = currentBudgets[oldId];
+    
+    // Зберігаємо поточні дані в старий бюджет перед створенням нового
+    const savedOldBudget = oldBudget ? {
+      ...oldBudget,
+      days: days || oldBudget.days || [],
+      selectedCurrencies: selectedCurrencies,
+      exchangeRates: exchangeRates,
+      displayCurrency: displayCurrency,
+      displayCurrencyIndex: displayCurrencyIndex
+    } : null;
+
     // ВАЖЛИВО: Беремо значення з поточного активного бюджету, а не з окремих станів
-    const currentBudget = budgets?.[activeBudgetId || 'default'];
+    const currentBudget = savedOldBudget || budgets?.[oldId];
     
     // Беремо budgetDate з поточного бюджету або використовуємо поточну дату
     const budgetDate = currentBudget?.budgetDate || {
@@ -103,10 +120,14 @@ export function useBudgetManagement() {
       budgetDate
     };
 
+    // ВАЖЛИВО: Зберігаємо старий бюджет з поточними даними + додаємо новий
     const updatedBudgets = {
       ...currentBudgets,
+      ...(savedOldBudget ? { [oldId]: savedOldBudget } : {}),
       [newId]: newBudget
     };
+
+    console.log('🆕 Створення нового бюджету:', newId, 'збережено старий:', oldId);
 
     setBudgets(updatedBudgets);
     setActiveBudgetId(newId);
@@ -118,13 +139,38 @@ export function useBudgetManagement() {
     }
 
     setDays(newDays);
-  }, [budgets, activeBudgetId, selectedCurrencies, exchangeRates, setBudgets, setActiveBudgetId, setDays]);
+  }, [budgets, activeBudgetId, selectedCurrencies, exchangeRates, days, displayCurrency, displayCurrencyIndex, setBudgets, setActiveBudgetId, setDays]);
 
   const handleBudgetChange = useCallback((event: ChangeEvent<HTMLSelectElement>) => {
     const newId = event.target.value;
 
     const switchBudget = async () => {
       if (!newId) return;
+      
+      // ВАЖЛИВО: Зберігаємо поточний бюджет ПЕРЕД перемиканням на новий
+      const oldId = activeBudgetId || 'default';
+      if (budgets && budgets[oldId] && oldId !== newId) {
+        // Отримуємо поточний стан з контексту
+        const currentDays = days;
+        const currentSelectedCurrencies = selectedCurrencies;
+        const currentExchangeRates = exchangeRates;
+        const currentDisplayCurrency = displayCurrency;
+        const currentDisplayCurrencyIndex = displayCurrencyIndex;
+        
+        console.log('💾 Зберігаємо поточний бюджет перед перемиканням:', oldId, 'днів:', currentDays?.length);
+        
+        setBudgets((prev: Budgets) => ({
+          ...prev,
+          [oldId]: {
+            ...prev[oldId],
+            days: currentDays || [],
+            selectedCurrencies: currentSelectedCurrencies,
+            exchangeRates: currentExchangeRates,
+            displayCurrency: currentDisplayCurrency,
+            displayCurrencyIndex: currentDisplayCurrencyIndex
+          }
+        }));
+      }
 
       let currentBudgets = budgets;
 
@@ -245,7 +291,7 @@ export function useBudgetManagement() {
 
     // Викликаємо асинхронну функцію, але не чекаємо її в самому хендлері
     switchBudget();
-  }, [budgets, user, baseCurrency, encryptionPassword, setActiveBudgetId, setSelectedCurrencies, setExchangeRates, setBudgets, setDays, setDisplayCurrency, setDisplayCurrencyIndex]);
+  }, [budgets, user, baseCurrency, encryptionPassword, setActiveBudgetId, setSelectedCurrencies, setExchangeRates, setBudgets, setDays, setDisplayCurrency, setDisplayCurrencyIndex, activeBudgetId, days, selectedCurrencies, exchangeRates, displayCurrency, displayCurrencyIndex]);
 
   const handleAddBudgetClick = useCallback(() => {
     if (!user) {

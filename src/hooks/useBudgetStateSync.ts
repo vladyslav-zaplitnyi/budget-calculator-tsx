@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { BudgetStateWithSync } from '../contexts/BudgetContext';
 import { Budgets, Budget } from '../types';
 import { DEFAULT_CURRENCIES } from '../utils/currencies';
@@ -24,6 +24,11 @@ export function useBudgetStateSync(
     displayCurrencyIndex,
   } = budgetState;
 
+  // ВАЖЛИВО: Відстежуємо попередній activeBudgetId для запобігання перезапису даних
+  // при перемиканні між бюджетами
+  const prevActiveBudgetIdRef = useRef<string | null>(null);
+  const isBudgetSwitchingRef = useRef<boolean>(false);
+
   // Допоміжна функція для створення бюджету з усіма обов'язковими полями
   const createBudgetWithDefaults = (name?: string): Budget => {
     const now = new Date();
@@ -42,9 +47,43 @@ export function useBudgetStateSync(
     };
   };
 
+  // ВАЖЛИВО: Відстежуємо зміну бюджету для запобігання перезапису даних
+  // Коли activeBudgetId змінюється, встановлюємо прапорець "isBudgetSwitching"
+  // щоб наступні useEffect не перезаписували дані нового бюджету старими даними
+  useEffect(() => {
+    const prevId = prevActiveBudgetIdRef.current;
+    const currentId = activeBudgetId || 'default';
+    
+    if (prevId !== null && prevId !== currentId) {
+      // Бюджет змінився - встановлюємо прапорець
+      console.log('🔄 Виявлено зміну бюджету:', prevId, '->', currentId);
+      isBudgetSwitchingRef.current = true;
+      
+      // Скидаємо прапорець через таймаут, щоб дати час завантажитися новим даним
+      // Використовуємо requestAnimationFrame + setTimeout для надійності
+      const timeoutId = setTimeout(() => {
+        requestAnimationFrame(() => {
+          console.log('✅ Завершено перемикання бюджету, дозволяємо синхронізацію');
+          isBudgetSwitchingRef.current = false;
+        });
+      }, 150);
+      
+      prevActiveBudgetIdRef.current = currentId;
+      return () => clearTimeout(timeoutId);
+    }
+    
+    prevActiveBudgetIdRef.current = currentId;
+  }, [activeBudgetId]);
+
   // Синхронізація початкових балансів у активний бюджет
   useEffect(() => {
     if (isInitialLoad) return;
+    
+    // ВАЖЛИВО: Пропускаємо синхронізацію при перемиканні бюджету
+    if (isBudgetSwitchingRef.current) {
+      console.log('⏸️ Пропускаємо синхронізацію балансів - перемикання бюджету в процесі');
+      return;
+    }
     
     const currentId = activeBudgetId || 'default';
 
@@ -99,6 +138,12 @@ export function useBudgetStateSync(
   useEffect(() => {
     if (isInitialLoad) return;
     
+    // ВАЖЛИВО: Пропускаємо синхронізацію при перемиканні бюджету
+    if (isBudgetSwitchingRef.current) {
+      console.log('⏸️ Пропускаємо синхронізацію курсів - перемикання бюджету в процесі');
+      return;
+    }
+    
     const currentId = activeBudgetId || 'default';
 
     setBudgets((prevBudgets: Budgets) => {
@@ -143,6 +188,13 @@ export function useBudgetStateSync(
   useEffect(() => {
     if (isInitialLoad) return;
     
+    // ВАЖЛИВО: Пропускаємо синхронізацію при перемиканні бюджету
+    // щоб не перезаписати дані нового бюджету старими даними
+    if (isBudgetSwitchingRef.current) {
+      console.log('⏸️ Пропускаємо синхронізацію днів - перемикання бюджету в процесі');
+      return;
+    }
+    
     const currentId = activeBudgetId || 'default';
 
     setBudgets((prevBudgets: Budgets) => {
@@ -183,6 +235,12 @@ export function useBudgetStateSync(
   // Синхронізація displayCurrency та displayCurrencyIndex у активний бюджет
   useEffect(() => {
     if (isInitialLoad) return;
+    
+    // ВАЖЛИВО: Пропускаємо синхронізацію при перемиканні бюджету
+    if (isBudgetSwitchingRef.current) {
+      console.log('⏸️ Пропускаємо синхронізацію displayCurrency - перемикання бюджету в процесі');
+      return;
+    }
     
     const currentId = activeBudgetId || 'default';
 

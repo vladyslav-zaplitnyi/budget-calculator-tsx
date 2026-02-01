@@ -53,6 +53,20 @@ export function useBudgetSync(
     };
   }, [selectedCurrencies, exchangeRates, days]);
 
+  // Допоміжна функція для перевірки наявності транзакцій в днях
+  const hasTransactions = (daysArray: any[] | undefined): boolean => {
+    if (!daysArray || !Array.isArray(daysArray)) return false;
+    return daysArray.some(day => 
+      day.transactions && Array.isArray(day.transactions) && day.transactions.length > 0
+    );
+  };
+
+  // Допоміжна функція для перевірки наявності балансів
+  const hasBalances = (balances: Record<string, number | null> | undefined): boolean => {
+    if (!balances || typeof balances !== 'object') return false;
+    return Object.values(balances).some(v => v !== null && v !== undefined && v !== 0);
+  };
+
   // Автоматичне збереження в localStorage при зміні даних
   // Зберігаємо дані завжди, незалежно від авторизації
   useEffect(() => {
@@ -65,7 +79,7 @@ export function useBudgetSync(
       return;
     }
 
-    // Перевіряємо, чи активний бюджет існує і містить дані
+    // Перевіряємо, чи активний бюджет існує
     const currentId = activeBudgetId || 'default';
     const currentBudget = budgets[currentId];
     if (!currentBudget) {
@@ -73,9 +87,9 @@ export function useBudgetSync(
       return;
     }
 
-    // ВАЖЛИВО: Перевіряємо, чи в localStorage вже є валідні дані
-    // Якщо є, і поточний бюджет порожній (немає днів, балансів), не перезаписуємо
-    // Це запобігає втраті даних після імпорту
+    // ВАЖЛИВО: Перевіряємо, чи в localStorage вже є валідні дані для ІМПОРТОВАНИХ бюджетів
+    // Перевіряємо тільки наявність ТРАНЗАКЦІЙ, а не просто кількість днів
+    // Це запобігає втраті даних після імпорту, але дозволяє зберігати нові бюджети
     if (!user) {
       try {
         const existingData = localStorage.getItem('budgetTrackerData');
@@ -83,14 +97,14 @@ export function useBudgetSync(
           const parsed = JSON.parse(existingData);
           if (parsed.budgets && parsed.budgets[currentId]) {
             const existingBudget = parsed.budgets[currentId];
-            // Якщо існуючий бюджет має дані, а поточний порожній - не перезаписуємо
-            const existingHasData = (existingBudget.days && existingBudget.days.length > 0) ||
-                                   (existingBudget.startBalances && Object.keys(existingBudget.startBalances).length > 0);
-            const currentHasData = (currentBudget.days && currentBudget.days.length > 0) ||
-                                  (currentBudget.startBalances && Object.keys(currentBudget.startBalances).length > 0);
             
-            if (existingHasData && !currentHasData) {
-              console.log('⚠️ useBudgetSync: існуючі дані в localStorage, поточний бюджет порожній - пропускаємо збереження');
+            // Перевіряємо наявність ТРАНЗАКЦІЙ (не просто днів) або балансів
+            const existingHasRealData = hasTransactions(existingBudget.days) || hasBalances(existingBudget.startBalances);
+            const currentHasRealData = hasTransactions(currentBudget.days) || hasBalances(currentBudget.startBalances);
+            
+            // Блокуємо тільки якщо існуючий має реальні дані, а поточний - порожній
+            if (existingHasRealData && !currentHasRealData) {
+              console.log('⚠️ useBudgetSync: існуючі транзакції в localStorage, поточний бюджет порожній - пропускаємо збереження');
               return;
             }
           }
@@ -102,9 +116,20 @@ export function useBudgetSync(
     }
 
     // Зберігаємо дані в localStorage завжди при зміні
-    // ВАЖЛИВО: Всі баланси, курси, дні та вибрані валюти зберігаються
-    // всередині об'єкта `budgets` (через useBudgetStateSync).
-    saveToLocalStorage(budgets, activeBudgetId);
+    // ВАЖЛИВО: Об'єднуємо поточні days зі стану з budgets перед збереженням
+    // Це гарантує, що найсвіжіші дані зберігаються, навіть якщо useBudgetStateSync ще не синхронізував
+    const budgetsToSave: Budgets = {
+      ...budgets,
+      [currentId]: {
+        ...currentBudget,
+        days: days || currentBudget.days || [],
+        selectedCurrencies: selectedCurrencies || currentBudget.selectedCurrencies,
+        exchangeRates: exchangeRates || currentBudget.exchangeRates
+      }
+    };
+    
+    console.log('💾 Зберігаємо в localStorage:', currentId, 'транзакцій:', hasTransactions(budgetsToSave[currentId].days));
+    saveToLocalStorage(budgetsToSave, activeBudgetId);
     
     // Оновлюємо статус синхронізації
     // Якщо користувач не авторизований, показуємо тільки локальний статус
