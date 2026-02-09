@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { translate } from '../i18n/config';
 import {
@@ -58,6 +58,46 @@ const DaysCards: React.FC<DaysCardsProps> = ({
   const [expandedDays, setExpandedDays] = useState<Record<number, boolean>>({});
 
   const MAX_TRANSACTIONS = 5;
+  
+  // Визначаємо сьогоднішній день для підсвічування
+  const now = new Date();
+  const isCurrentMonth = now.getFullYear() === budgetYear && now.getMonth() === budgetMonth;
+  const todayDay = isCurrentMonth ? now.getDate() : -1;
+  
+  // Ref для скролу до сьогоднішнього дня
+  const todayCardRef = useRef<HTMLDivElement>(null);
+  const hasScrolledRef = useRef(false);
+  
+  // Кнопка "Перейти до сьогодні"
+  const [showScrollButton, setShowScrollButton] = useState(false);
+  
+  // Авто-скрол до сьогоднішнього дня при першому рендері
+  useEffect(() => {
+    if (todayDay > 0 && todayCardRef.current && !hasScrolledRef.current) {
+      hasScrolledRef.current = true;
+      // Невеличка затримка, щоб DOM встиг відрендеритися
+      setTimeout(() => {
+        todayCardRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }, 300);
+    }
+  }, [todayDay]);
+  
+  // Показуємо кнопку "Перейти до сьогодні" якщо сьогоднішній день не видимий
+  useEffect(() => {
+    if (todayDay <= 0 || !todayCardRef.current) return;
+    
+    const observer = new IntersectionObserver(
+      ([entry]) => setShowScrollButton(!entry.isIntersecting),
+      { threshold: 0.1 }
+    );
+    
+    observer.observe(todayCardRef.current);
+    return () => observer.disconnect();
+  }, [todayDay]);
+  
+  const scrollToToday = useCallback(() => {
+    todayCardRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }, []);
   
   const daysInMonth = getDaysInMonth(budgetYear, budgetMonth);
   const visibleDays = days.slice(0, daysInMonth);
@@ -131,7 +171,19 @@ const DaysCards: React.FC<DaysCardsProps> = ({
   };
 
   return (
-    <div className="block md:hidden space-y-3 mb-4">
+    <div className="block md:hidden space-y-3 mb-4 relative">
+      {/* Кнопка "Перейти до сьогодні" */}
+      {showScrollButton && todayDay > 0 && (
+        <button
+          onClick={scrollToToday}
+          className="fixed bottom-20 right-4 z-40 bg-gradient-to-r from-indigo-600 to-violet-600 text-white px-4 py-2.5 rounded-full shadow-xl font-semibold text-sm flex items-center gap-2 hover:shadow-2xl hover:scale-105 transition-all active:scale-95 border-2 border-white/30"
+          aria-label={t('days.scrollToToday')}
+        >
+          <span className="text-base">📍</span>
+          {t('days.scrollToToday')}
+        </button>
+      )}
+      
       {visibleDays.map((day, index) => {
         if (!day) return null;
         const amounts = calculateDayAmountsFromTransactions(day, selectedCurrencies);
@@ -148,18 +200,42 @@ const DaysCards: React.FC<DaysCardsProps> = ({
         
         // Перевіряємо, чи розгорнутий цей день
         const isExpanded = expandedDays[index] || false;
+        const isToday = day.day === todayDay;
 
         return (
-          <div key={day.day} className="bg-white rounded-xl shadow-lg p-4 border-2 border-gray-200 hover:border-blue-400 transition-all hover:shadow-xl">
+          <div 
+            key={day.day} 
+            ref={isToday ? todayCardRef : undefined}
+            className={`bg-white rounded-xl shadow-lg p-4 border-2 transition-all hover:shadow-xl ${
+              isToday 
+                ? 'today-card border-indigo-400 ring-2 ring-indigo-200' 
+                : 'border-gray-200 hover:border-blue-400'
+            }`}
+          >
             {/* Day Header */}
             <div className="flex items-center justify-between mb-3 pb-3 border-b-2 border-gray-200">
               <div className="flex items-center gap-2">
-                <span className="inline-block bg-indigo-600 !text-white font-bold text-base sm:text-lg rounded-lg px-3 py-1.5 font-display select-none" style={{ border: '3px solid #4f46e5', boxShadow: '0 2px 4px rgba(79, 70, 229, 0.3)' }}>
+                <span 
+                  className={`inline-block !text-white font-bold text-base sm:text-lg rounded-lg px-3 py-1.5 font-display select-none ${
+                    isToday ? 'bg-gradient-to-r from-violet-600 to-indigo-600 today-badge' : 'bg-indigo-600'
+                  }`}
+                  style={{ 
+                    border: isToday ? '3px solid #7c3aed' : '3px solid #4f46e5', 
+                    boxShadow: isToday ? '0 2px 8px rgba(124, 58, 237, 0.5)' : '0 2px 4px rgba(79, 70, 229, 0.3)' 
+                  }}
+                >
                   {t('days.dayNumber')} <span className='samsung-white-text'>{day.day}</span>
                 </span>
-                <span className="text-sm font-bold text-gray-500 uppercase bg-gray-100 px-2 py-1 rounded-md">
-                  {capitalizeFirstLetter(weekday)}
-                </span>
+                <div className="flex flex-col">
+                  <span className={`text-sm font-bold uppercase ${isToday ? 'text-indigo-600' : 'text-gray-500'} bg-gray-100 px-2 py-1 rounded-md`}>
+                    {capitalizeFirstLetter(weekday)}
+                  </span>
+                  {isToday && (
+                    <span className="text-[10px] font-bold text-indigo-600 mt-0.5 px-2">
+                      ● {t('days.today')}
+                    </span>
+                  )}
+                </div>
               </div>
               <div className="text-xs font-semibold text-gray-500 font-display">
                 {t('days.cumulative')}

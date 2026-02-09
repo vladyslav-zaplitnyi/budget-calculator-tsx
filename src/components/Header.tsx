@@ -135,16 +135,19 @@ const Header: React.FC<HeaderProps> = ({
   };
 
   return (
-    <div className="bg-gradient-to-r from-indigo-600 via-blue-600 to-indigo-700 rounded-2xl shadow-2xl p-4 sm:p-6 md:p-8 mb-4 sm:mb-6 text-white">
+    <div className="bg-gradient-to-r from-indigo-600 via-blue-600 to-indigo-700 rounded-2xl shadow-2xl p-4 sm:p-6 md:p-8 mb-4 sm:mb-6 text-white relative overflow-hidden">
+      {/* Subtle animated gradient overlay */}
+      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/[0.03] to-transparent pointer-events-none" style={{ backgroundSize: '200% 100%', animation: 'shimmer 4s ease-in-out infinite' }} />
+      
       {/* Десктоп / планшет: заголовок зліва, панель дій справа */}
-      <div className="hidden md:flex flex-col lg:flex-row items-center justify-between gap-4 lg:gap-6 mb-3">
+      <div className="hidden md:flex flex-col lg:flex-row items-center justify-between gap-4 lg:gap-6 mb-3 relative z-10">
         {/* Брендинг + заголовок */}
         <div className="flex flex-col gap-1 w-full lg:w-auto text-center lg:text-left">
           <span className="inline-flex items-center justify-center lg:justify-start text-[11px] uppercase tracking-[0.18em] text-indigo-100/90">
             <span className="mr-1">💰</span>
             {t('header.subtitle')}
           </span>
-          <h1 className="text-2xl lg:text-3xl xl:text-4xl font-extrabold leading-tight samsung-white-text">
+          <h1 className="text-2xl lg:text-3xl xl:text-4xl font-extrabold leading-tight samsung-white-text shimmer-text">
             {t('header.title')}
           </h1>
           <p className="text-center lg:text-left text-indigo-100 text-sm sm:text-base mt-1 samsung-white-text">
@@ -289,12 +292,12 @@ const Header: React.FC<HeaderProps> = ({
       </div>
 
       {/* Мобільні екрани: заголовок і панель дій в один компактний блок */}
-      <div className="flex md:hidden flex-col gap-3 mb-3">
+      <div className="flex md:hidden flex-col gap-3 mb-3 relative z-10">
         <div className="flex flex-col items-center text-center gap-1">
           <span className="text-[11px] uppercase tracking-[0.18em] text-indigo-100/90">
             {t('header.subtitle')}
           </span>
-          <h1 className="text-2xl sm:text-3xl font-extrabold leading-tight samsung-white-text">
+          <h1 className="text-2xl sm:text-3xl font-extrabold leading-tight samsung-white-text shimmer-text">
             {t('header.title')}
           </h1>
           <p className="text-center text-indigo-100 text-sm sm:text-base mt-1 samsung-white-text">

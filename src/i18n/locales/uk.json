@@ -126,7 +126,14 @@
     "title": "Поточний стан бюджету",
     "balance": "Баланс",
     "totalValue": "Загальна вартість",
-    "selectDisplayCurrency": "Обрати валюту відображення"
+    "selectDisplayCurrency": "Обрати валюту відображення",
+    "budgetHealth": "Здоров'я бюджету",
+    "spending": "Витрачено",
+    "remaining": "Залишок",
+    "overBudget": "Перевитрата",
+    "trendUp": "Бюджет зростає",
+    "trendDown": "Бюджет зменшується",
+    "trendStable": "Бюджет стабільний"
   },
   "bulkTransactions": {
     "button": "Додати транзакції",
@@ -167,7 +174,9 @@
     "addTransaction": "Додати транзакцію",
     "converted": "(Конвертовано)",
     "showDetails": "Показати деталі (валюти) 🔽",
-    "hideDetails": "Згорнути деталі 🔼"
+    "hideDetails": "Згорнути деталі 🔼",
+    "today": "Сьогодні",
+    "scrollToToday": "Перейти до сьогодні"
   },
   "calendar": {
     "weekdaysShort": ["ПН", "ВТ", "СР", "ЧТ", "ПТ", "СБ", "НД"],
@@ -194,7 +203,15 @@
     "difference": "Різниця",
     "totalDifference": "Загальна різниця",
     "incomeMinusExpenses": "надбавки - витрати",
-    "incomeMinusExpensesConverted": "надбавки - витрати (конвертовано)"
+    "incomeMinusExpensesConverted": "надбавки - витрати (конвертовано)",
+    "insights": "Інсайти",
+    "daysWithTransactions": "Днів з транзакціями",
+    "avgDailyExpense": "Середні витрати/день",
+    "avgDailyIncome": "Середній дохід/день",
+    "topExpense": "Найбільша витрата",
+    "topIncome": "Найбільший дохід",
+    "ofMonth": "з {{total}}",
+    "noTransactions": "Немає транзакцій"
   },
   "footer": {
     "copyright": "© 2026 Budget Tracker. Всі права захищено.",

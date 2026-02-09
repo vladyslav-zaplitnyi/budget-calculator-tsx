@@ -30,6 +30,12 @@ module.exports = {
         'fade-in': 'fadeIn 0.3s ease-in-out',
         'slide-up': 'slideUp 0.3s ease-out',
         'scale-in': 'scaleIn 0.2s ease-out',
+        'shimmer': 'shimmer 3s ease-in-out infinite',
+        'pulse-glow': 'pulseGlow 2s ease-in-out infinite',
+        'bar-grow': 'barGrow 0.8s ease-out forwards',
+        'count-up': 'countUp 0.6s ease-out',
+        'today-pulse': 'todayPulse 2s ease-in-out infinite',
+        'gradient-x': 'gradientX 3s ease infinite',
       },
       keyframes: {
         fadeIn: {
@@ -43,6 +49,30 @@ module.exports = {
         scaleIn: {
           '0%': { transform: 'scale(0.95)', opacity: '0' },
           '100%': { transform: 'scale(1)', opacity: '1' },
+        },
+        shimmer: {
+          '0%, 100%': { backgroundPosition: '200% 0' },
+          '50%': { backgroundPosition: '-200% 0' },
+        },
+        pulseGlow: {
+          '0%, 100%': { boxShadow: '0 0 5px rgba(99, 102, 241, 0.3)' },
+          '50%': { boxShadow: '0 0 20px rgba(99, 102, 241, 0.6)' },
+        },
+        barGrow: {
+          '0%': { width: '0%' },
+          '100%': { width: 'var(--bar-width, 0%)' },
+        },
+        countUp: {
+          '0%': { transform: 'translateY(10px)', opacity: '0' },
+          '100%': { transform: 'translateY(0)', opacity: '1' },
+        },
+        todayPulse: {
+          '0%, 100%': { boxShadow: '0 0 0 0 rgba(99, 102, 241, 0.4)' },
+          '50%': { boxShadow: '0 0 0 8px rgba(99, 102, 241, 0)' },
+        },
+        gradientX: {
+          '0%, 100%': { backgroundPosition: '0% 50%' },
+          '50%': { backgroundPosition: '100% 50%' },
         },
       },
       spacing: {

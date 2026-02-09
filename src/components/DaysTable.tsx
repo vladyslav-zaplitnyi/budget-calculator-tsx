@@ -240,12 +240,12 @@ const DaysTable: React.FC<DaysTableProps> = ({
                   <td className="px-3 py-3 font-bold text-gray-900 font-display text-sm whitespace-nowrap text-center">
                     <div className="flex flex-col items-center">
                       <span
-                        className="inline-block py-1 px-2.5 rounded-lg bg-indigo-600 !text-white select-none"
+                        className="inline-block py-1 px-2.5 rounded-lg !text-white select-none bg-indigo-600"
                         style={{ border: '2px solid #4f46e5', boxShadow: '0 1px 3px rgba(79, 70, 229, 0.3)' }}
                       >
                         {day.day}
                       </span>
-                      <span className="text-[14px] uppercase text-gray-500 mt-1">
+                      <span className="text-[14px] uppercase mt-1 text-gray-500">
                         {capitalizeFirstLetter(weekday)}
                       </span>
                     </div>

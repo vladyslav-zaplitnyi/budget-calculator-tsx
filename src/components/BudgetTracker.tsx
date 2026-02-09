@@ -309,6 +309,9 @@ export default function BudgetTracker() {
                 selectedCurrencies={selectedCurrencies}
                 displayCurrency={displayCurrency}
                 exchangeRates={exchangeRates}
+                days={days}
+                budgetYear={budgetDate.year}
+                budgetMonth={budgetDate.month}
               />
             </>
           )}

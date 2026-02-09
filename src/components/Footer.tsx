@@ -15,7 +15,10 @@ const Footer: React.FC<FooterProps> = ({ language = 'uk' }) => {
   const { t } = useTranslation();
   
   return (
-    <footer className="mt-6 bg-gradient-to-r from-white/80 via-indigo-50/70 to-white/80 backdrop-blur-sm border-t border-indigo-200/50 shadow-sm">
+    <footer className="mt-6 bg-gradient-to-r from-white/80 via-indigo-50/70 to-white/80 backdrop-blur-sm border-t border-indigo-200/50 shadow-sm relative overflow-hidden">
+      {/* Subtle top border gradient */}
+      <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-indigo-500 via-violet-500 to-purple-500 animate-gradient-x" style={{ backgroundSize: '200% 100%' }} />
+      
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-5">
         <div className="flex flex-col sm:flex-row items-center justify-between gap-3 sm:gap-4">
           

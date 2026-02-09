@@ -410,6 +410,75 @@ td {
   /* Залишаємо світлу тему, але підготовка до dark mode */
 }
 
+/* ========== TODAY HIGHLIGHT ========== */
+
+/* Підсвічення сьогоднішньої картки */
+.today-card {
+  border-color: #6366f1 !important;
+  box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2), 0 10px 25px -5px rgba(99, 102, 241, 0.15) !important;
+}
+
+/* ========== PROGRESS BAR ========== */
+.budget-progress-bar {
+  background: linear-gradient(90deg, #10b981, #059669);
+  transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+  border-radius: 9999px;
+}
+
+.budget-progress-bar.over-budget {
+  background: linear-gradient(90deg, #f43f5e, #e11d48);
+}
+
+/* ========== STAT BAR CHART ========== */
+.stat-bar {
+  transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+  min-width: 2px;
+}
+
+/* ========== TREND ARROW ========== */
+.trend-arrow-up {
+  color: #10b981;
+}
+
+.trend-arrow-down {
+  color: #f43f5e;
+}
+
+/* ========== SHIMMER TEXT ========== */
+.shimmer-text {
+  background: linear-gradient(
+    120deg,
+    rgba(255,255,255,0.8) 0%,
+    rgba(255,255,255,1) 40%,
+    rgba(255,255,255,0.8) 60%,
+    rgba(255,255,255,1) 100%
+  );
+  background-size: 200% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  animation: shimmer 3s ease-in-out infinite;
+}
+
+/* ========== INSIGHT CARD ========== */
+.insight-card {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.insight-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px -5px rgba(0, 0, 0, 0.1);
+}
+
+/* ========== TODAY BADGE ========== */
+@keyframes todayBadgePulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+}
+
+.today-badge {
+  animation: todayBadgePulse 2s ease-in-out infinite;
+}
+
 /* ========== SAMSUNG/ANDROID FIX ========== */
 
 /* Mix-blend-mode */

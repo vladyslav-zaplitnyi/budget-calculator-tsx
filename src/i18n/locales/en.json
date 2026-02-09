@@ -126,7 +126,14 @@
     "title": "Current budget status",
     "balance": "balance",
     "totalValue": "Total value",
-    "selectDisplayCurrency": "Select display currency"
+    "selectDisplayCurrency": "Select display currency",
+    "budgetHealth": "Budget health",
+    "spending": "Spent",
+    "remaining": "Remaining",
+    "overBudget": "Over budget",
+    "trendUp": "Budget growing",
+    "trendDown": "Budget declining",
+    "trendStable": "Budget stable"
   },
   "bulkTransactions": {
     "button": "Add transactions",
@@ -167,7 +174,9 @@
     "addTransaction": "Add Transaction",
     "converted": "(Converted)",
     "showDetails": "Show details (currencies) 🔽",
-    "hideDetails": "Hide details 🔼"
+    "hideDetails": "Hide details 🔼",
+    "today": "Today",
+    "scrollToToday": "Scroll to today"
   },
   "calendar": {
     "weekdaysShort": ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
@@ -194,7 +203,15 @@
     "difference": "Difference",
     "totalDifference": "Total difference",
     "incomeMinusExpenses": "income - expenses",
-    "incomeMinusExpensesConverted": "income - expenses (converted)"
+    "incomeMinusExpensesConverted": "income - expenses (converted)",
+    "insights": "Insights",
+    "daysWithTransactions": "Days with transactions",
+    "avgDailyExpense": "Avg expense/day",
+    "avgDailyIncome": "Avg income/day",
+    "topExpense": "Largest expense",
+    "topIncome": "Largest income",
+    "ofMonth": "of {{total}}",
+    "noTransactions": "No transactions"
   },
   "footer": {
     "copyright": "© 2026 Budget Tracker. All rights reserved.",
