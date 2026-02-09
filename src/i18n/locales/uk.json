@@ -210,7 +210,25 @@
     "spent": "Витрачено",
     "earned": "Зароблено",
     "topExpenses": "Топ-5 найбільших витрат",
-    "dayLabel": "День"
+    "dayLabel": "День",
+    "categoryBreakdown": "Витрати за категоріями",
+    "categoryOther": "Інше",
+    "categoryNoDescription": "Без опису",
+    "categoryTransactions": "транз.",
+    "weeklyBreakdown": "Тижневий розподіл витрат",
+    "week": "Тиждень",
+    "weekShort": "Тиж",
+    "weeklyAvg": "Сер. за тиждень",
+    "weeklyTotal": "Загалом",
+    "savingsStreak": "Серія ощадних днів",
+    "streakDays": "днів поспіль",
+    "streakBelowAvg": "витрати нижче середнього",
+    "streakRecord": "Рекорд",
+    "streakCurrent": "Поточна серія",
+    "streakBestRecord": "Найкраща серія",
+    "streakNoData": "Додайте транзакції, щоб побачити серію",
+    "streakKeepGoing": "Продовжуйте в тому ж дусі! 💪",
+    "streakNewRecord": "Новий рекорд! 🎉"
   },
   "footer": {
     "copyright": "© 2026 Budget Tracker. Всі права захищено.",
@@ -297,7 +315,9 @@
     "ok": "OK",
     "create": "Створити",
     "cancel": "Скасувати",
-    "save": "Зберегти"
+    "save": "Зберегти",
+    "expand": "Розгорнути",
+    "collapse": "Згорнути"
   },
   "monthYearPicker": {
     "title": "Обрати місяць і рік",

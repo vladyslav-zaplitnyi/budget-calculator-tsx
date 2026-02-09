@@ -210,7 +210,25 @@
     "spent": "Spent",
     "earned": "Earned",
     "topExpenses": "Top 5 largest expenses",
-    "dayLabel": "Day"
+    "dayLabel": "Day",
+    "categoryBreakdown": "Spending by Category",
+    "categoryOther": "Other",
+    "categoryNoDescription": "No description",
+    "categoryTransactions": "trans.",
+    "weeklyBreakdown": "Weekly Spending Breakdown",
+    "week": "Week",
+    "weekShort": "Wk",
+    "weeklyAvg": "Avg per week",
+    "weeklyTotal": "Total",
+    "savingsStreak": "Savings Streak",
+    "streakDays": "days in a row",
+    "streakBelowAvg": "spending below average",
+    "streakRecord": "Record",
+    "streakCurrent": "Current streak",
+    "streakBestRecord": "Best streak",
+    "streakNoData": "Add transactions to see your streak",
+    "streakKeepGoing": "Keep it up! 💪",
+    "streakNewRecord": "New record! 🎉"
   },
   "footer": {
     "copyright": "© 2026 Budget Tracker. All rights reserved.",
@@ -297,7 +315,9 @@
     "ok": "OK",
     "create": "Create",
     "cancel": "Cancel",
-    "save": "Save"
+    "save": "Save",
+    "expand": "Expand",
+    "collapse": "Collapse"
   },
   "monthYearPicker": {
     "title": "Select Month and Year",
