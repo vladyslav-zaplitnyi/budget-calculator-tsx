@@ -127,7 +127,7 @@ export function useSyncDebounce({
         clearTimeout(saveTimeoutRef.current);
       }
     };
-  }, [budgets, activeBudgetId, user, isInitialLoad, authLoading, setSyncStatus, getSyncStatusText, encryptionPassword, setIsEncrypted, isRemoteDataEncrypted, isDataLoaded]);
+  }, [budgets, activeBudgetId, user, isInitialLoad, authLoading, latestDataRef, setSyncStatus, getSyncStatusText, encryptionPassword, setIsEncrypted, isRemoteDataEncrypted, isDataLoaded]);
 
   return saveTimeoutRef;
 }

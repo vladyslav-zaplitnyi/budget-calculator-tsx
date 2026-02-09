@@ -196,6 +196,22 @@
     "incomeMinusExpenses": "надбавки - витрати",
     "incomeMinusExpensesConverted": "надбавки - витрати (конвертовано)"
   },
+  "analytics": {
+    "title": "Аналітика та інсайти",
+    "avgDailyExpense": "Сер. щоденна витрата",
+    "perDay": "на день",
+    "projectedBalance": "Прогноз балансу",
+    "endOfMonth": "прогноз на кінець місяця",
+    "noSpendDays": "Дні без витрат",
+    "daysWithoutExpenses": "днів без витрат",
+    "savingsRate": "Рівень заощаджень",
+    "ofIncome": "від доходу збережено",
+    "spendingVsIncome": "Витрати vs Дохід",
+    "spent": "Витрачено",
+    "earned": "Зароблено",
+    "topExpenses": "Топ-5 найбільших витрат",
+    "dayLabel": "День"
+  },
   "footer": {
     "copyright": "© 2026 Budget Tracker. Всі права захищено.",
     "cookie": "🍪 На печиво",

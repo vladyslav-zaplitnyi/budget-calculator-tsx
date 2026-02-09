@@ -6,6 +6,7 @@ import BudgetStatus from './BudgetStatus';
 import DaysTable from './DaysTable';
 import DaysCards from './DaysCards';
 import Statistics from './Statistics';
+import Analytics from './Analytics';
 import AlertModal from './AlertModal';
 import PromptModal from './PromptModal';
 import ConfirmModal from './ConfirmModal';
@@ -309,6 +310,16 @@ export default function BudgetTracker() {
                 selectedCurrencies={selectedCurrencies}
                 displayCurrency={displayCurrency}
                 exchangeRates={exchangeRates}
+              />
+
+              <Analytics
+                days={days}
+                selectedCurrencies={selectedCurrencies}
+                displayCurrency={displayCurrency}
+                exchangeRates={exchangeRates}
+                startBalances={startBalances}
+                budgetYear={budgetDate.year}
+                budgetMonth={budgetDate.month}
               />
             </>
           )}

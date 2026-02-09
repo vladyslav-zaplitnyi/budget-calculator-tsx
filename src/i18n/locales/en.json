@@ -196,6 +196,22 @@
     "incomeMinusExpenses": "income - expenses",
     "incomeMinusExpensesConverted": "income - expenses (converted)"
   },
+  "analytics": {
+    "title": "Analytics & Insights",
+    "avgDailyExpense": "Avg. daily expense",
+    "perDay": "per day",
+    "projectedBalance": "Projected balance",
+    "endOfMonth": "end of month forecast",
+    "noSpendDays": "No-spend days",
+    "daysWithoutExpenses": "days without expenses",
+    "savingsRate": "Savings rate",
+    "ofIncome": "of income saved",
+    "spendingVsIncome": "Spending vs Income",
+    "spent": "Spent",
+    "earned": "Earned",
+    "topExpenses": "Top 5 largest expenses",
+    "dayLabel": "Day"
+  },
   "footer": {
     "copyright": "© 2026 Budget Tracker. All rights reserved.",
     "cookie": "🍪 Buy me a cookie",
