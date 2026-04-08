@@ -227,10 +227,10 @@ const Analytics: React.FC<AnalyticsProps> = ({
           const dayData = visibleDays[wd];
           if (!dayData) continue;
           const amounts = calculateDayAmountsFromTransactions(dayData, selectedCurrencies);
-          selectedCurrencies.forEach((code) => {
+          for (const code of selectedCurrencies) {
             weekExpense += convertCurrency(amounts[`expense${code}`] || 0, code, displayCurrency, exchangeRates);
             weekIncome += convertCurrency(amounts[`income${code}`] || 0, code, displayCurrency, exchangeRates);
-          });
+          }
         }
         weeks.push({
           weekNumber: weekNum,

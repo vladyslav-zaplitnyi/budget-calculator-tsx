@@ -4,6 +4,16 @@ import { BASE_CURRENCY } from './currencies';
 
 // Calculation functions for budget tracker
 
+/**
+ * Sanitize raw user input so that "2,3" → "2.3", "15 000" → "15000", etc.
+ * Returns a clean string safe for parseFloat().
+ */
+export const sanitizeNumberInput = (raw: string): string => {
+  let s = raw.replace(/\s/g, '');
+  s = s.replace(',', '.');
+  return s;
+};
+
 // Функція для форматування чисел з роздільниками тисяч та фіксованою кількістю десяткових знаків
 export const formatNumber = (value: number, decimals: number = 2): string => {
   if (isNaN(value) || !isFinite(value)) {

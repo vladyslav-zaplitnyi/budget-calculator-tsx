@@ -2,6 +2,7 @@ import React, { useState, useEffect, FormEvent, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { translate } from '../i18n/config';
 import { AVAILABLE_CURRENCIES, getCurrencyName } from '../utils/currencies';
+import { sanitizeNumberInput } from '../utils/calculations';
 import { Transaction } from '../types';
 import AlertModal from './AlertModal';
 import { 
@@ -146,7 +147,7 @@ const TransactionModal: React.FC<TransactionModalProps> = ({
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
     
-    const numAmount = parseFloat(amount);
+    const numAmount = parseFloat(sanitizeNumberInput(amount));
     if (isNaN(numAmount) || numAmount <= 0) {
       setAlertMessage(t('transaction.amountError'));
       setShowAlertModal(true);
@@ -238,9 +239,8 @@ const TransactionModal: React.FC<TransactionModalProps> = ({
               {t('transaction.amount')}
             </label>
             <input
-              type="number"
-              step="0.01"
-              min="0.01"
+              type="text"
+              inputMode="decimal"
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
               placeholder="0.00"

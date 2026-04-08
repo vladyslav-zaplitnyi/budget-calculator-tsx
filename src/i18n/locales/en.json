@@ -126,7 +126,13 @@
     "title": "Current budget status",
     "balance": "balance",
     "totalValue": "Total value",
-    "selectDisplayCurrency": "Select display currency"
+    "selectDisplayCurrency": "Select display currency",
+    "selectDay": "Balance on day",
+    "balanceOnDay": "Balance on day {{day}}",
+    "endOfMonth": "End of month balance",
+    "criticalDays": "Critical days (lowest balance)",
+    "criticalDaysHint": "Days when your balance is projected to be at its lowest point.",
+    "dayLabel": "Day"
   },
   "bulkTransactions": {
     "button": "Add transactions",

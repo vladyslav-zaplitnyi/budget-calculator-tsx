@@ -126,7 +126,13 @@
     "title": "Поточний стан бюджету",
     "balance": "Баланс",
     "totalValue": "Загальна вартість",
-    "selectDisplayCurrency": "Обрати валюту відображення"
+    "selectDisplayCurrency": "Обрати валюту відображення",
+    "selectDay": "Баланс на день",
+    "balanceOnDay": "Баланс на {{day}} день",
+    "endOfMonth": "Баланс на кінець місяця",
+    "criticalDays": "Критичні дні (найменший баланс)",
+    "criticalDaysHint": "Дні, коли ваш баланс буде на найнижчому рівні.",
+    "dayLabel": "День"
   },
   "bulkTransactions": {
     "button": "Додати транзакції",

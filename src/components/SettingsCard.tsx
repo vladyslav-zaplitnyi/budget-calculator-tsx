@@ -1,10 +1,11 @@
-import React, { ChangeEvent, RefObject, useEffect, useRef, useState } from 'react';
+import React, { ChangeEvent, RefObject, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { AVAILABLE_CURRENCIES, getCurrencyName } from '../utils/currencies';
 import { User } from 'firebase/auth';
 import { Budgets, ExchangeRates, Day } from '../types';
 import { isExchangeRatePair, getBuyRate } from '../utils/typeGuards';
 import { roundToDecimals } from '../utils/rounding';
+import { sanitizeNumberInput } from '../utils/calculations';
 import ConfirmModal from './ConfirmModal';
 import CurrencyFlag from './CurrencyFlag';
 import BulkTransactionModal from './BulkTransactionModal';
@@ -156,8 +157,6 @@ const SettingsCard: React.FC<SettingsCardProps> = ({
       return false;
     }
   });
-  const didAutoFetchOnMountRef = useRef(false);
-
   const [showRecurringModal, setShowRecurringModal] = useState(false);
   
   // Синхронізуємо displayCurrencies з selectedCurrencies, коли немає pending зміни
@@ -181,17 +180,42 @@ const SettingsCard: React.FC<SettingsCardProps> = ({
     });
   };
 
-  // Якщо auto-fetch увімкнено — на старті сторінки "натискаємо" оновлення курсів НБУ
-  useEffect(() => {
-    if (didAutoFetchOnMountRef.current) return;
-    didAutoFetchOnMountRef.current = true;
+  const needsNbuFetch = React.useCallback((): boolean => {
+    try {
+      const cached = localStorage.getItem('nbu_rates_cache');
+      if (!cached) return true;
+      const data = JSON.parse(cached);
+      const today = new Date();
+      const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+      return data.date !== todayStr;
+    } catch {
+      return true;
+    }
+  }, []);
 
+  // Auto-fetch on mount: fetch only when today's rates are missing
+  useEffect(() => {
+    if (!isAutoFetchNbuRatesEnabled) return;
+    if (!handleUpdateNbuRates) return;
+    if (!needsNbuFetch()) return;
+
+    void handleUpdateNbuRates();
+  }, [isAutoFetchNbuRatesEnabled, handleUpdateNbuRates, needsNbuFetch]);
+
+  // Re-check when tab becomes visible (e.g. next day)
+  useEffect(() => {
     if (!isAutoFetchNbuRatesEnabled) return;
     if (!handleUpdateNbuRates) return;
 
-    // Не чекаємо результат в UI — handler сам оновить isUpdatingRates/rateUpdateMessage
-    void handleUpdateNbuRates();
-  }, [isAutoFetchNbuRatesEnabled, handleUpdateNbuRates]);
+    const onVisible = () => {
+      if (document.visibilityState !== 'visible') return;
+      if (!needsNbuFetch()) return;
+      void handleUpdateNbuRates();
+    };
+
+    document.addEventListener('visibilitychange', onVisible);
+    return () => document.removeEventListener('visibilitychange', onVisible);
+  }, [isAutoFetchNbuRatesEnabled, handleUpdateNbuRates, needsNbuFetch]);
   
   const handleCurrencySelect = (currencyCode: string, index: number) => {
     const previousValue = selectedCurrencies[index];
@@ -389,16 +413,15 @@ const SettingsCard: React.FC<SettingsCardProps> = ({
                   <CurrencyFlag currencyCode={currencyCode} size={16} className="mr-1" /> {t('settings.balances.startingBudget')} ({currencyCode})
                 </label>
                 <input
-                  type="number"
-                  step="0.01"
+                  type="text"
+                  inputMode="decimal"
                   value={currentBalance ?? ''}
                   onChange={(e) => {
-                    const inputValue = e.target.value;
                     if (handleStartBalanceChange) {
-                      handleStartBalanceChange(currencyCode, inputValue);
+                      handleStartBalanceChange(currencyCode, e.target.value);
                     }
                   }}
-                  placeholder="0"
+                  placeholder="0.00"
                   className="w-full px-3 sm:px-4 py-2 sm:py-3 text-base sm:text-lg font-semibold border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 transition-all"
                 />
               </div>
@@ -537,7 +560,7 @@ const SettingsCard: React.FC<SettingsCardProps> = ({
                           placeholder="0"
                           value={buyRate === 0 ? '' : buyRate}
                           onChange={(e) => {
-                            const newRate = parseFloat(e.target.value) || 0;
+                            const newRate = parseFloat(sanitizeNumberInput(e.target.value)) || 0;
                             if (handleExchangeRateChange) {
                               handleExchangeRateChange(pairKey, 'buy', newRate);
                             }
@@ -556,7 +579,7 @@ const SettingsCard: React.FC<SettingsCardProps> = ({
                           placeholder="0"
                           value={sellRate === 0 ? '' : sellRate}
                           onChange={(e) => {
-                            const newRate = parseFloat(e.target.value) || 0;
+                            const newRate = parseFloat(sanitizeNumberInput(e.target.value)) || 0;
                             if (handleExchangeRateChange) {
                               handleExchangeRateChange(pairKey, 'sell', newRate);
                             }

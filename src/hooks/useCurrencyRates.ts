@@ -1,4 +1,4 @@
-import { useCallback } from 'react';
+import { useCallback, useMemo } from 'react';
 import { useNbuRates } from './useNbuRates';
 import { BudgetStateWithSync } from '../contexts/BudgetContext';
 import { ExchangeRates } from '../types';
@@ -16,7 +16,6 @@ export function useCurrencyRates(budgetState: BudgetStateWithSync) {
     setIsUpdatingRates
   } = budgetState;
 
-  // Оновлення курсів валют з API НБУ
   const handleUpdateNbuRates = useCallback(async () => {
     setIsUpdatingRates(true);
     setRateUpdateMessage('');
@@ -83,8 +82,6 @@ export function useCurrencyRates(budgetState: BudgetStateWithSync) {
     }
   }, [selectedCurrencies, baseCurrency, fetchRatesForCurrencies, setExchangeRates, setRateUpdateMessage, setIsUpdatingRates]);
 
-  return {
-    handleUpdateNbuRates
-  };
+  return useMemo(() => ({ handleUpdateNbuRates }), [handleUpdateNbuRates]);
 }
 

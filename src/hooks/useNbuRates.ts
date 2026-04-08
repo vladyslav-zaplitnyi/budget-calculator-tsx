@@ -1,3 +1,4 @@
+import { useCallback, useMemo } from 'react';
 import { handleError } from '../utils/errorHandler';
 
 /**
@@ -13,6 +14,11 @@ interface NbuRatesCache {
   date: string; // Дата в форматі YYYY-MM-DD
   timestamp: number; // Timestamp для точної перевірки
   rates: Record<string, number>; // Курси валют
+}
+
+interface NbuRateItem {
+  cc: string;
+  rate: number;
 }
 
 /**
@@ -32,10 +38,7 @@ const isCacheValid = (cache: NbuRatesCache | null): boolean => {
   const today = getTodayDateString();
   const now = Date.now();
   
-  // Перевіряємо, чи дата сьогоднішня
   if (cache.date !== today) return false;
-  
-  // Додаткова перевірка: чи не минуло більше 24 годин
   if (now - cache.timestamp > NBU_CACHE_TTL_MS) return false;
   
   return true;
@@ -83,26 +86,16 @@ const saveRatesToCache = (rates: Record<string, number>): void => {
  * Хук для завантаження курсів валют з API Національного банку України
  */
 export function useNbuRates() {
-  /**
-   * Завантажує актуальні курси для вказаних валют з API НБУ
-   * Використовує кешування: якщо курси вже завантажені сьогодні, повертає з кешу
-   * @param {string[]} currencyCodes - Масив кодів валют (наприклад, ['USD', 'EUR', 'PLN', 'RON', 'CZK'])
-   * @returns {Promise<Object>} Об'єкт з курсами валют { USD: 41.5, EUR: 45.0, ... }
-   * @throws {Error} Помилка при завантаженні або обробці даних
-   */
-  const fetchRatesForCurrencies = async (currencyCodes: string[] = []): Promise<Record<string, number>> => {
-    // Перевіряємо кеш перед запитом до API
+  const fetchRatesForCurrencies = useCallback(async (currencyCodes: string[] = []): Promise<Record<string, number>> => {
     const cached = loadRatesFromCache();
     
     if (cached) {
-      // Перевіряємо, чи всі потрібні валюти є в кеші
       const allCurrenciesInCache = currencyCodes.every(code => {
-        if (code === 'UAH') return true; // UAH завжди доступна
+        if (code === 'UAH') return true;
         return cached.rates[code] !== undefined;
       });
       
       if (allCurrenciesInCache) {
-        // Фільтруємо тільки потрібні валюти з кешу
         const filteredRates: Record<string, number> = {};
         currencyCodes.forEach(code => {
           if (code === 'UAH') {
@@ -117,7 +110,6 @@ export function useNbuRates() {
       }
     }
     
-    // Якщо кешу немає або в ньому немає всіх потрібних валют - робимо запит до API
     try {
       const response = await fetch('https://bank.gov.ua/NBUStatService/v1/statdirectory/exchange?json');
       
@@ -131,44 +123,29 @@ export function useNbuRates() {
         throw new Error('Invalid response format from NBU API');
       }
 
-      // Створюємо об'єкт для зберігання курсів
       const rates: Record<string, number> = {};
       const missingCurrencies: string[] = [];
 
-      // Для кожної валюти знаходимо курс в API
       currencyCodes.forEach(currencyCode => {
-        // UAH завжди має курс 1 (базова валюта)
         if (currencyCode === 'UAH') {
           rates['UAH'] = 1;
           return;
         }
 
-        interface NbuRateItem {
-          cc: string;
-          rate: number;
-        }
         const rateData = data.find((item: NbuRateItem) => item.cc === currencyCode);
         
         if (rateData) {
-          // Округлюємо до 2 знаків після коми
           rates[currencyCode] = Math.round(rateData.rate * 100) / 100;
         } else {
           missingCurrencies.push(currencyCode);
         }
       });
 
-      // Якщо є валюты, які не знайдені в API, виводимо попередження
       if (missingCurrencies.length > 0) {
         console.warn('Деякі валюти не знайдені в API НБУ:', missingCurrencies);
       }
 
-      // Зберігаємо всі отримані курси в кеш (не тільки запитувані)
-      // Це дозволить використовувати кеш для інших валют теж
       const allRates: Record<string, number> = { UAH: 1 };
-      interface NbuRateItem {
-        cc: string;
-        rate: number;
-      }
       data.forEach((item: NbuRateItem) => {
         if (item.cc && item.rate !== undefined) {
           allRates[item.cc] = Math.round(item.rate * 100) / 100;
@@ -185,7 +162,6 @@ export function useNbuRates() {
         { context: 'useNbuRates', action: 'fetchRatesForCurrencies', currencyCodes }
       );
       
-      // Якщо помилка, але є кеш (навіть застарілий) - повертаємо його
       if (cached) {
         console.warn('⚠️ Використано застарілий кеш через помилку API');
         const filteredRates: Record<string, number> = {};
@@ -201,8 +177,8 @@ export function useNbuRates() {
       
       throw error;
     }
-  };
+  }, []);
 
-  return { fetchRatesForCurrencies };
+  return useMemo(() => ({ fetchRatesForCurrencies }), [fetchRatesForCurrencies]);
 }
 

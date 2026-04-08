@@ -5,7 +5,7 @@ import { validateSelectedCurrencies, DEFAULT_CURRENCIES } from '../utils/currenc
 import { Budgets, ExchangeRates } from '../types';
 import { isExchangeRatePair } from '../utils/typeGuards';
 import { saveToFirestore, saveToLocalStorage } from '../utils/storageHelpers';
-import { calculateFinalBalances, calculateTotals } from '../utils/calculations';
+import { calculateFinalBalances, calculateTotals, sanitizeNumberInput } from '../utils/calculations';
 import { translate } from '../i18n/config';
 
 /**
@@ -343,7 +343,7 @@ export function useBudgetSettings() {
   const handleStartBalanceChange = useCallback((currencyCode: string, value: string) => {
     let numValue: number | null = null;
     if (value !== '' && value !== null && value !== undefined) {
-      const parsed = parseFloat(value);
+      const parsed = parseFloat(sanitizeNumberInput(value));
       if (!isNaN(parsed)) {
         numValue = parsed;
       }

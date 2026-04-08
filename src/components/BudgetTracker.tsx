@@ -278,6 +278,9 @@ export default function BudgetTracker() {
                 setDisplayCurrency={setDisplayCurrency}
                 setDisplayCurrencyIndex={setDisplayCurrencyIndex}
                 totalInDisplayCurrency={totalInDisplayCurrency}
+                days={days}
+                budgetYear={budgetDate.year}
+                budgetMonth={budgetDate.month}
               />
 
               <DaysTable

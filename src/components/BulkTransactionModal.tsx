@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
 import { translate } from '../i18n/config';
 import { AVAILABLE_CURRENCIES, getCurrencyName } from '../utils/currencies';
+import { sanitizeNumberInput } from '../utils/calculations';
 import { Day, Transaction } from '../types';
 import { generateTransactionId } from '../utils/dayHelpers';
 import AlertModal from './AlertModal';
@@ -118,7 +119,7 @@ const BulkTransactionModal: React.FC<BulkTransactionModalProps> = ({
   const handleSaveBulk = (e: FormEvent) => {
     e.preventDefault();
 
-    const numAmount = parseFloat(amount);
+    const numAmount = parseFloat(sanitizeNumberInput(amount));
     if (isNaN(numAmount) || numAmount <= 0) {
       setAlertMessage(t('transaction.amountError'));
       setShowAlertModal(true);
@@ -233,9 +234,8 @@ const BulkTransactionModal: React.FC<BulkTransactionModalProps> = ({
               {t('transaction.amount')}
             </label>
             <input
-              type="number"
-              step="0.01"
-              min="0.01"
+              type="text"
+              inputMode="decimal"
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
               placeholder="0.00"
