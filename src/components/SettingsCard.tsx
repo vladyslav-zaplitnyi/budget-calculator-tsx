@@ -103,6 +103,14 @@ const SettingsCard: React.FC<SettingsCardProps> = ({
   budgetMonth
 }) => {
   const { t, i18n: i18nInstance } = useTranslation();
+
+  /** Raw string while editing — avoids collapsing "3." / "3," to a number before the user finishes typing. */
+  const [startBalanceFocusCode, setStartBalanceFocusCode] = useState<string | null>(null);
+  const [startBalanceDraftByCode, setStartBalanceDraftByCode] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    setStartBalanceFocusCode(null);
+  }, [activeBudgetId]);
   
   // Ensure budgets is always an object to prevent runtime errors
   const safeBudgets = budgets || {};
@@ -399,6 +407,12 @@ const SettingsCard: React.FC<SettingsCardProps> = ({
             // Отримуємо поточний баланс для валюти з бюджету
             const activeBudget = safeBudgets && safeBudgets[activeBudgetId || 'default'];
             const currentBalance = activeBudget?.startBalances?.[currencyCode] ?? null;
+            const startBalanceDisplayValue =
+              startBalanceFocusCode === currencyCode
+                ? (startBalanceDraftByCode[currencyCode] ?? '')
+                : currentBalance === null || currentBalance === undefined
+                  ? ''
+                  : String(currentBalance);
             
             const colors = [
               'from-blue-50 to-blue-100/70 border-blue-200 hover:border-blue-300',
@@ -415,11 +429,24 @@ const SettingsCard: React.FC<SettingsCardProps> = ({
                 <input
                   type="text"
                   inputMode="decimal"
-                  value={currentBalance ?? ''}
+                  value={startBalanceDisplayValue}
+                  onFocus={() => {
+                    setStartBalanceFocusCode(currencyCode);
+                    setStartBalanceDraftByCode((prev) => ({
+                      ...prev,
+                      [currencyCode]:
+                        currentBalance === null || currentBalance === undefined
+                          ? ''
+                          : String(currentBalance)
+                    }));
+                  }}
+                  onBlur={() => {
+                    setStartBalanceFocusCode((prev) => (prev === currencyCode ? null : prev));
+                  }}
                   onChange={(e) => {
-                    if (handleStartBalanceChange) {
-                      handleStartBalanceChange(currencyCode, e.target.value);
-                    }
+                    const v = e.target.value;
+                    setStartBalanceDraftByCode((prev) => ({ ...prev, [currencyCode]: v }));
+                    handleStartBalanceChange?.(currencyCode, v);
                   }}
                   placeholder="0.00"
                   className="w-full px-3 sm:px-4 py-2 sm:py-3 text-base sm:text-lg font-semibold border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 transition-all"
