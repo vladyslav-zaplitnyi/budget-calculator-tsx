@@ -254,7 +254,11 @@ export function useBudgetManagement() {
       // 3) Завантажуємо початкові баланси з startBalances (вже в бюджеті)
       
       // 4) Завантажуємо дні - обов'язково нормалізуємо масив
-      const normalizedDays = normalizeDaysArray(budget.days || []);
+      const normalizedDays = normalizeDaysArray(
+        budget.days || [],
+        budget.budgetDate?.year,
+        budget.budgetDate?.month
+      );
       console.log('📅 Завантажено днів:', normalizedDays.length, 'з бюджету', newId);
       setDays(normalizedDays);
       
@@ -389,7 +393,11 @@ export function useBudgetManagement() {
         setExchangeRates({});
       }
       
-      setDays(normalizeDaysArray(defaultBudget.days || []));
+      setDays(normalizeDaysArray(
+        defaultBudget.days || [],
+        defaultBudget.budgetDate?.year,
+        defaultBudget.budgetDate?.month
+      ));
     }
 
     // КРОК 4: Синхронізуємо з Firestore НЕГАЙНО (await, щоб завершити перед будь-якими іншими операціями)

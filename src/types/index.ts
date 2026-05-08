@@ -71,5 +71,6 @@ export interface LoadedUserData extends UserData {
   days?: Day[];
   selectedCurrencies?: string[];
   exchangeRates?: ExchangeRates;
+  budgetDate?: Budget['budgetDate'];
 }
 

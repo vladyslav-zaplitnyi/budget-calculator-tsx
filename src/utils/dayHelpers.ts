@@ -28,28 +28,44 @@ export const createEmptyMonthDays = (year?: number, month?: number): Day[] => {
 };
 
 // Приводить масив днів з бекенду/LocalStorage до очікуваного формату
-export const normalizeDaysArray = (sourceDays: unknown[]): Day[] => {
-  if (sourceDays && Array.isArray(sourceDays) && sourceDays.length === 31) {
-    return sourceDays.map((day, index) => {
-      // Якщо day є null або undefined, створюємо порожній день
-      if (!day || typeof day !== 'object') {
-        return {
-          day: index + 1,
-          transactions: [],
-          description: ''
-        };
-      }
-      
-      const dayObj = day as Day;
-      
-      // Повертаємо день з валідними транзакціями
-      return {
-        day: dayObj.day || index + 1,
-        transactions: Array.isArray(dayObj.transactions) ? dayObj.transactions : [],
-        description: dayObj.description || ''
-      };
-    });
+export const normalizeDaysArray = (
+  sourceDays: unknown[] | undefined,
+  year?: number,
+  month?: number
+): Day[] => {
+  const emptyDays = createEmptyMonthDays(year, month);
+
+  if (!Array.isArray(sourceDays) || sourceDays.length === 0) {
+    return emptyDays;
   }
-  return createEmptyMonthDays();
+
+  const normalizedDays = sourceDays.map((day, index) => {
+    // Якщо day є null або undefined, створюємо порожній день
+    if (!day || typeof day !== 'object') {
+      return {
+        day: index + 1,
+        transactions: [],
+        description: ''
+      };
+    }
+    
+    const dayObj = day as Day;
+    
+    // Повертаємо день з валідними транзакціями
+    return {
+      day: dayObj.day || index + 1,
+      transactions: Array.isArray(dayObj.transactions) ? dayObj.transactions : [],
+      description: dayObj.description || ''
+    };
+  });
+
+  if (normalizedDays.length >= emptyDays.length) {
+    return normalizedDays;
+  }
+
+  return [
+    ...normalizedDays,
+    ...emptyDays.slice(normalizedDays.length)
+  ];
 };
 

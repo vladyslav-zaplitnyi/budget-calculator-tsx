@@ -115,7 +115,11 @@ export function useBudgetState(): BudgetStateInterface {
   const [currencyState, currencyDispatch] = useReducer(currencyReducer, currencyInitialState);
   const [budgetState, budgetDispatch] = useReducer(budgetReducer, createBudgetInitialState({
     ...loadedData,
-    days: normalizeDaysArray(loadedData?.days || [])
+    days: normalizeDaysArray(
+      loadedData?.days || [],
+      loadedData?.budgetDate?.year,
+      loadedData?.budgetDate?.month
+    )
   }));
   const [displayState, displayDispatch] = useReducer(displayReducer, createDisplayInitialState(loadedData));
   const [messageState, messageDispatch] = useReducer(messageReducer, createMessageInitialState());
@@ -144,117 +148,21 @@ export function useBudgetState(): BudgetStateInterface {
   }, []);
 
   const setExchangeRates = useCallback((ratesOrUpdater: ExchangeRates | ((prev: ExchangeRates) => ExchangeRates)) => {
-    // Note: dispatch expects payload as ExchangeRates, but for updater pattern we need to handle it.
-    // However, the original reducer takes just payload. 
-    // The original JS code used callback: setExchangeRates(prevRates => ...)
-    // But reducer dispatch usually takes object.
-    // Wait, the original JS code:
-    /*
-      const setExchangeRates = useCallback((rates) => {
-        currencyDispatch({ type: currencyActions.SET_EXCHANGE_RATES, payload: rates });
-      }, []);
-    */
-    // The JS `useCurrencyRates` used: `setExchangeRates(prevRates => { ... })`
-    // This implies `rates` argument in `setExchangeRates` callback can be a function.
-    // But `currencyDispatch` expects payload. 
-    // Standard useReducer dispatch doesn't support function updater for state unless the reducer handles it or we wrap it.
-    // But here `setExchangeRates` is a wrapper.
-    // If I pass a function to `setExchangeRates`, it passes that function as payload to `currencyDispatch`.
-    // The reducer: `exchangeRates: action.payload`. If payload is function, `exchangeRates` becomes a function.
-    // That would be a bug if the state is expected to be object.
-    // Let's check `currencyReducer`.
-    /*
-    case currencyActions.SET_EXCHANGE_RATES:
-      return {
-        ...state,
-        exchangeRates: action.payload
-      };
-    */
-    // Yes, it just sets it. So `exchangeRates` in state would be a function.
-    // But `useCurrencyRates.js` does:
-    /*
-    setExchangeRates(prevRates => {
-        const updatedRates = { ...prevRates };
-        ...
-        return updatedRates;
-      });
-    */
-    // This means the `exchangeRates` in state MUST be capable of being a function? No, React state updates support function.
-    // BUT `currencyDispatch` is from `useReducer`. `dispatch` in `useReducer` takes an action object.
-    // If I pass a function as payload, the payload IS the function.
-    // If `useCurrencyRates` passes a function, then `action.payload` is that function.
-    // The reducer sets `state.exchangeRates` to that function.
-    // Then `useBudgetState` reads `currencyState.exchangeRates`.
-    // If it's a function, it breaks things that expect an object.
-    
-    // HOWEVER, maybe the original code was relying on `useState` behavior where `setState(prev => ...)` works?
-    // In `useBudgetState.js`:
-    /*
-    const [currencyState, currencyDispatch] = useReducer(currencyReducer, currencyInitialState);
-    ...
-    const setExchangeRates = useCallback((rates) => {
-        currencyDispatch({ type: currencyActions.SET_EXCHANGE_RATES, payload: rates });
-      }, []);
-    */
-    // The original code uses `useReducer`.
-    // So `setExchangeRates(fn)` -> dispatch({ payload: fn }) -> state.exchangeRates = fn.
-    // Then in `useCurrencyRates.js`: `setExchangeRates(prevRates => ...)`
-    // This seems to imply a bug in the original code or I am missing something about `useReducer` or how `action.payload` is handled.
-    // UNLESS `currencyReducer` handles functional payload? No, it doesn't look like it.
-    
-    // Ah, wait. `useBudgetState.js` was a refactor. Maybe `useCurrencyRates` was written for `useState` and not updated for `useReducer`?
-    // The user says "src_old і там знаходяться файли з мого повністю робочого React js сайта". So it works.
-    // Maybe `budgetTracker.refactored.js` uses `useBudgetState`?
-    // Let's assume I need to support functional update for `setExchangeRates`.
-    // I should modify the wrapper to handle it.
-    
-    // I need access to current `exchangeRates` to support functional update.
-    // I can use a ref for currencyState or just use the current `currencyState` from closure (but that adds dependency).
-    // Or I can modify the reducer to handle function payload.
-    // Modifying reducer is cleaner.
-    
-    // Let's update `currencyReducer.ts` later to support functional payload for `SET_EXCHANGE_RATES`?
-    // Or just handle it here in the wrapper.
-    // I'll handle it in the wrapper using a ref for `currencyState` similar to `budgetStateRef`.
-    
-    // But I don't have `currencyStateRef`. I'll create it.
-    
-    if (typeof ratesOrUpdater === 'function') {
-       const newRates = ratesOrUpdater(currencyStateRef.current.exchangeRates);
-       currencyDispatch({ type: currencyActions.SET_EXCHANGE_RATES, payload: newRates });
-    } else {
-       currencyDispatch({ type: currencyActions.SET_EXCHANGE_RATES, payload: ratesOrUpdater });
-    }
-  }, []); // I need currencyStateRef in dependency? Refs are stable.
+    currencyDispatch({ type: currencyActions.SET_EXCHANGE_RATES, payload: ratesOrUpdater });
+  }, []);
 
 
   const setActiveBudgetId = useCallback((id: string) => {
     budgetDispatch({ type: budgetActions.SET_ACTIVE_BUDGET_ID, payload: id });
   }, []);
 
-  // Використовуємо функціональне оновлення для setBudgets та setDays
-  // щоб уникнути залежностей від стану в useCallback
-  // Використовуємо ref для доступу до поточного стану
+  // Функціональні оновлення виконує reducer, щоб послідовні dispatch не втрачали дані.
   const setBudgets = useCallback((budgetsOrUpdater: Budgets | ((prev: Budgets) => Budgets)) => {
-    if (typeof budgetsOrUpdater === 'function') {
-      budgetDispatch({ 
-        type: budgetActions.SET_BUDGETS, 
-        payload: budgetsOrUpdater(budgetStateRef.current.budgets) 
-      });
-    } else {
-      budgetDispatch({ type: budgetActions.SET_BUDGETS, payload: budgetsOrUpdater });
-    }
+    budgetDispatch({ type: budgetActions.SET_BUDGETS, payload: budgetsOrUpdater });
   }, []);
 
   const setDays = useCallback((daysOrUpdater: Day[] | ((prev: Day[]) => Day[])) => {
-    if (typeof daysOrUpdater === 'function') {
-      budgetDispatch({ 
-        type: budgetActions.SET_DAYS, 
-        payload: daysOrUpdater(budgetStateRef.current.days) 
-      });
-    } else {
-      budgetDispatch({ type: budgetActions.SET_DAYS, payload: daysOrUpdater });
-    }
+    budgetDispatch({ type: budgetActions.SET_DAYS, payload: daysOrUpdater });
   }, []);
 
   const setDisplayCurrency = useCallback((currency: string) => {
@@ -373,12 +281,6 @@ export function useBudgetState(): BudgetStateInterface {
     currencyDispatch
   ]);
   
-  // Need currencyStateRef for setExchangeRates functional update
-  const currencyStateRef = useRef(currencyState);
-  useEffect(() => {
-    currencyStateRef.current = currencyState;
-  }, [currencyState]);
-
   // 🛡️ Страховка ініціалізації днів для "холодного старту" в інкогніто
   // Якщо завантаження завершено, але днів немає (0) — це баг першого запуску.
   // Генеруємо дефолтну структуру місяця (1-31).

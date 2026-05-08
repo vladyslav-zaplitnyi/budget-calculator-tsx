@@ -313,7 +313,7 @@ export function useBudgetImportExport() {
         }
       }
 
-      normalizedDays = normalizeDaysArray(newDays);
+      normalizedDays = normalizeDaysArray(newDays, budgetDate.year, budgetDate.month);
     }
 
     // ВАЖЛИВО: Спочатку оновлюємо бюджет з правильними startBalances,

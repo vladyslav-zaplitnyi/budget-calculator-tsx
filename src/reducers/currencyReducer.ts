@@ -28,7 +28,7 @@ export interface CurrencyState {
 
 export type CurrencyAction =
   | { type: typeof currencyActions.SET_SELECTED_CURRENCIES; payload: string[] }
-  | { type: typeof currencyActions.SET_EXCHANGE_RATES; payload: ExchangeRates }
+  | { type: typeof currencyActions.SET_EXCHANGE_RATES; payload: ExchangeRates | ((prev: ExchangeRates) => ExchangeRates) }
   | { type: typeof currencyActions.SET_START_BALANCE; payload: { currencyCode: string; value: number | null } }
   | { type: typeof currencyActions.UPDATE_EXCHANGE_RATE; payload: ExchangeRates }
   | { type: typeof currencyActions.RESET_BALANCES }
@@ -51,11 +51,15 @@ export function currencyReducer(state: CurrencyState, action: CurrencyAction): C
         selectedCurrencies: action.payload
       };
     
-    case currencyActions.SET_EXCHANGE_RATES:
+    case currencyActions.SET_EXCHANGE_RATES: {
+      const nextExchangeRates = typeof action.payload === 'function'
+        ? action.payload(state.exchangeRates)
+        : action.payload;
       return {
         ...state,
-        exchangeRates: action.payload
+        exchangeRates: nextExchangeRates
       };
+    }
     
     case currencyActions.SET_START_BALANCE:
       return {

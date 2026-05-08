@@ -19,11 +19,11 @@ export interface BudgetState {
 
 export type BudgetAction =
   | { type: typeof budgetActions.SET_ACTIVE_BUDGET_ID; payload: string }
-  | { type: typeof budgetActions.SET_BUDGETS; payload: Budgets }
+  | { type: typeof budgetActions.SET_BUDGETS; payload: Budgets | ((prev: Budgets) => Budgets) }
   | { type: typeof budgetActions.UPDATE_BUDGET; payload: { id: string; data: Partial<Budget> } }
   | { type: typeof budgetActions.ADD_BUDGET; payload: { id: string; budget: Budget } }
   | { type: typeof budgetActions.DELETE_BUDGET; payload: { budgetId: string; newActiveId?: string } }
-  | { type: typeof budgetActions.SET_DAYS; payload: Day[] }
+  | { type: typeof budgetActions.SET_DAYS; payload: Day[] | ((prev: Day[]) => Day[]) }
   | { type: typeof budgetActions.UPDATE_DAY; payload: { index: number; field: string; value: any } }
   | { type: typeof budgetActions.RESET_DAYS; payload: Day[] | undefined };
 
@@ -41,11 +41,15 @@ export function budgetReducer(state: BudgetState, action: BudgetAction): BudgetS
         activeBudgetId: action.payload
       };
     
-    case budgetActions.SET_BUDGETS:
+    case budgetActions.SET_BUDGETS: {
+      const nextBudgets = typeof action.payload === 'function'
+        ? action.payload(state.budgets)
+        : action.payload;
       return {
         ...state,
-        budgets: action.payload
+        budgets: nextBudgets
       };
+    }
     
     case budgetActions.UPDATE_BUDGET:
       return {
@@ -78,11 +82,15 @@ export function budgetReducer(state: BudgetState, action: BudgetAction): BudgetS
       };
     }
     
-    case budgetActions.SET_DAYS:
+    case budgetActions.SET_DAYS: {
+      const nextDays = typeof action.payload === 'function'
+        ? action.payload(state.days)
+        : action.payload;
       return {
         ...state,
-        days: action.payload
+        days: nextDays
       };
+    }
     
     case budgetActions.UPDATE_DAY: {
       const newDays = [...state.days];

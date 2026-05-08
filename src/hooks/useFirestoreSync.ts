@@ -142,7 +142,11 @@ export function useFirestoreSync(
       return result;
     });
     
-    setDays(normalizeDaysArray(budget.days || []));
+    setDays(normalizeDaysArray(
+      budget.days || [],
+      budget.budgetDate?.year,
+      budget.budgetDate?.month
+    ));
   };
 
   // Допоміжна функція для ініціалізації порожнього бюджету
@@ -220,10 +224,12 @@ export function useFirestoreSync(
       setExchangeRates({});
     }
     
-    if (firestoreData.days && Array.isArray(firestoreData.days) && firestoreData.days.length === 31) {
-      setDays(normalizeDaysArray(firestoreData.days));
-    } else if (firestoreData.days) {
-      setDays(normalizeDaysArray(firestoreData.days));
+    if (firestoreData.days) {
+      setDays(normalizeDaysArray(
+        firestoreData.days,
+        firestoreData.budgetDate?.year,
+        firestoreData.budgetDate?.month
+      ));
     }
 
     // Обробляємо бюджети
@@ -534,7 +540,13 @@ export function useFirestoreSync(
                       startBalances: recoveredData.startBalances || {},
                       selectedCurrencies: validateSelectedCurrencies(recoveredData.selectedCurrencies || DEFAULT_CURRENCIES),
                       exchangeRates: recoveredData.exchangeRates || {},
-                      days: recoveredData.days ? normalizeDaysArray(recoveredData.days) : [],
+                      days: recoveredData.days
+                        ? normalizeDaysArray(
+                            recoveredData.days,
+                            recoveredData.budgetDate?.year,
+                            recoveredData.budgetDate?.month
+                          )
+                        : [],
                       displayCurrency: recoveredData.displayCurrency || 'RON',
                       displayCurrencyIndex: recoveredData.displayCurrencyIndex ?? 0
                     };
@@ -660,7 +672,11 @@ export function useFirestoreSync(
               }
               
               if (activeBudget.days) {
-                setDays(normalizeDaysArray(activeBudget.days));
+                setDays(normalizeDaysArray(
+                  activeBudget.days,
+                  activeBudget.budgetDate?.year,
+                  activeBudget.budgetDate?.month
+                ));
               }
               
               // Встановлюємо displayCurrency та displayCurrencyIndex з бюджету
@@ -693,7 +709,11 @@ export function useFirestoreSync(
             }
             
             if (localData.days) {
-              setDays(normalizeDaysArray(localData.days));
+              setDays(normalizeDaysArray(
+                localData.days,
+                localData.budgetDate?.year,
+                localData.budgetDate?.month
+              ));
             }
           }
         }

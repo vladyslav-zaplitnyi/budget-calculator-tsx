@@ -110,7 +110,8 @@ export const loadFromLocalStorage = (): LoadedUserData | null => {
           activeBudgetId: activeId, // Гарантуємо правильний activeBudgetId
           days: activeBudget.days || [],
           selectedCurrencies: activeBudget.selectedCurrencies || ['UAH', 'USD', 'EUR'],
-          exchangeRates: activeBudget.exchangeRates || {}
+          exchangeRates: activeBudget.exchangeRates || {},
+          budgetDate: activeBudget.budgetDate
         };
       }
     }
@@ -357,7 +358,8 @@ export const loadFromFirestore = async (
             isEncrypted: true,
             days: activeBudget?.days || [],
             selectedCurrencies: activeBudget?.selectedCurrencies || ['UAH', 'USD', 'EUR'],
-            exchangeRates: activeBudget?.exchangeRates || {}
+            exchangeRates: activeBudget?.exchangeRates || {},
+            budgetDate: activeBudget?.budgetDate
           };
 
           return result;
@@ -422,7 +424,8 @@ export const loadFromFirestore = async (
           updatedAt: convertTimestampToString(rawData.updatedAt),
           days: activeBudget?.days || [],
           selectedCurrencies: activeBudget?.selectedCurrencies || ['UAH', 'USD', 'EUR'],
-          exchangeRates: activeBudget?.exchangeRates || {}
+          exchangeRates: activeBudget?.exchangeRates || {},
+          budgetDate: activeBudget?.budgetDate
         };
       }
     } else {
