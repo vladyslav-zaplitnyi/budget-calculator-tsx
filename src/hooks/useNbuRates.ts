@@ -5,14 +5,13 @@ import { handleError } from '../utils/errorHandler';
  * Константи для кешування курсів НБУ
  */
 const NBU_CACHE_KEY = 'nbu_rates_cache';
-const NBU_CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24 години в мілісекундах
 
 /**
  * Інтерфейс для структури кешу
  */
 interface NbuRatesCache {
   date: string; // Дата в форматі YYYY-MM-DD
-  timestamp: number; // Timestamp для точної перевірки
+  timestamp?: number; // Залишено для сумісності зі старим кешем
   rates: Record<string, number>; // Курси валют
 }
 
@@ -26,34 +25,32 @@ interface NbuRateItem {
  */
 const getTodayDateString = (): string => {
   const today = new Date();
-  return today.toISOString().split('T')[0];
+  const year = today.getFullYear();
+  const month = String(today.getMonth() + 1).padStart(2, '0');
+  const day = String(today.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
 };
 
 /**
- * Перевіряє, чи кеш актуальний (дата сьогоднішня)
+ * Перевіряє, чи кеш актуальний для поточного локального календарного дня.
  */
 const isCacheValid = (cache: NbuRatesCache | null): boolean => {
   if (!cache) return false;
   
   const today = getTodayDateString();
-  const now = Date.now();
-  
-  if (cache.date !== today) return false;
-  if (now - cache.timestamp > NBU_CACHE_TTL_MS) return false;
-  
-  return true;
+  return cache.date === today;
 };
 
 /**
  * Завантажує курси з кешу
  */
-const loadRatesFromCache = (): NbuRatesCache | null => {
+const loadRatesFromCache = (allowStale = false): NbuRatesCache | null => {
   try {
     const cached = localStorage.getItem(NBU_CACHE_KEY);
     if (!cached) return null;
     
     const cache: NbuRatesCache = JSON.parse(cached);
-    return isCacheValid(cache) ? cache : null;
+    return allowStale || isCacheValid(cache) ? cache : null;
   } catch (error) {
     handleError(
       error instanceof Error ? error : new Error(String(error)),
@@ -88,6 +85,7 @@ const saveRatesToCache = (rates: Record<string, number>): void => {
 export function useNbuRates() {
   const fetchRatesForCurrencies = useCallback(async (currencyCodes: string[] = []): Promise<Record<string, number>> => {
     const cached = loadRatesFromCache();
+    const staleCached = cached || loadRatesFromCache(true);
     
     if (cached) {
       const allCurrenciesInCache = currencyCodes.every(code => {
@@ -162,14 +160,14 @@ export function useNbuRates() {
         { context: 'useNbuRates', action: 'fetchRatesForCurrencies', currencyCodes }
       );
       
-      if (cached) {
+      if (staleCached) {
         console.warn('⚠️ Використано застарілий кеш через помилку API');
         const filteredRates: Record<string, number> = {};
         currencyCodes.forEach(code => {
           if (code === 'UAH') {
             filteredRates['UAH'] = 1;
-          } else if (cached.rates[code] !== undefined) {
-            filteredRates[code] = cached.rates[code];
+          } else if (staleCached.rates[code] !== undefined) {
+            filteredRates[code] = staleCached.rates[code];
           }
         });
         return filteredRates;

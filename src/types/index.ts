@@ -21,6 +21,10 @@ export interface CurrencyInfo {
   };
   symbol: string;
   emoji: string;
+  regions?: {
+    uk: string[];
+    en: string[];
+  };
 }
 
 export interface ExchangeRates {

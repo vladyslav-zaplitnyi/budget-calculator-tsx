@@ -65,6 +65,12 @@
         "label": "Auto fetch (NBU)",
         "hint": "When enabled, on page refresh the app automatically triggers \"Update rates from NBU\"."
       },
+      "region": {
+        "label": "Region for local rate",
+        "auto": "Auto detect from browser",
+        "selectedHint": "{{country}} uses {{currency}}. Rate refresh includes this currency.",
+        "noRegionHint": "Choose a region to include its local currency during rate refresh."
+      },
       "update": "🔄 Update rates from NBU",
       "updating": "⏳ Updating rates..."
     },

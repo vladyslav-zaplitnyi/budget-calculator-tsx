@@ -5,6 +5,7 @@ import { ExchangeRates } from '../types';
 import { handleError } from '../utils/errorHandler';
 import { translate } from '../i18n/config';
 import { roundToDecimals } from '../utils/rounding';
+import { resolveRegionalCurrency } from '../utils/currencies';
 
 export function useCurrencyRates(budgetState: BudgetStateWithSync) {
   const { fetchRatesForCurrencies } = useNbuRates();
@@ -21,7 +22,11 @@ export function useCurrencyRates(budgetState: BudgetStateWithSync) {
     setRateUpdateMessage('');
 
     try {
-      const currenciesToFetch = selectedCurrencies.filter(code => code !== baseCurrency);
+      const regionalCurrency = resolveRegionalCurrency();
+      const currenciesToFetch = Array.from(new Set([
+        ...selectedCurrencies,
+        ...(regionalCurrency ? [regionalCurrency.currencyCode] : [])
+      ])).filter(code => code !== baseCurrency);
       
       if (currenciesToFetch.length === 0) {
         setRateUpdateMessage(translate('rates.noCurrenciesToUpdate'));

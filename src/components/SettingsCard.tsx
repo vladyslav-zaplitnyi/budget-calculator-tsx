@@ -1,6 +1,15 @@
 import React, { ChangeEvent, RefObject, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { AVAILABLE_CURRENCIES, getCurrencyName } from '../utils/currencies';
+import {
+  AVAILABLE_CURRENCIES,
+  getCurrencyName,
+  getCurrencyRegionLabel,
+  getRegionalCurrencyOptions,
+  getStoredRegionCode,
+  REGION_AUTO_VALUE,
+  REGION_CURRENCY_STORAGE_KEY,
+  resolveRegionalCurrency
+} from '../utils/currencies';
 import { User } from 'firebase/auth';
 import { Budgets, ExchangeRates, Day } from '../types';
 import { isExchangeRatePair, getBuyRate } from '../utils/typeGuards';
@@ -103,6 +112,20 @@ const SettingsCard: React.FC<SettingsCardProps> = ({
   budgetMonth
 }) => {
   const { t, i18n: i18nInstance } = useTranslation();
+  const currencyLanguage = i18nInstance.language === 'uk' ? 'uk' : 'en';
+  const regionOptions = React.useMemo(() => getRegionalCurrencyOptions(), []);
+  const [selectedRegionCode, setSelectedRegionCode] = useState<string>(() => getStoredRegionCode());
+  const regionalCurrency = React.useMemo(
+    () => resolveRegionalCurrency(selectedRegionCode),
+    [selectedRegionCode]
+  );
+  const exchangeRateCurrencies = React.useMemo(
+    () => Array.from(new Set([
+      ...selectedCurrencies,
+      ...(regionalCurrency ? [regionalCurrency.currencyCode] : [])
+    ])),
+    [selectedCurrencies, regionalCurrency]
+  );
 
   /** Raw string while editing — avoids collapsing "3." / "3," to a number before the user finishes typing. */
   const [startBalanceFocusCode, setStartBalanceFocusCode] = useState<string | null>(null);
@@ -188,6 +211,21 @@ const SettingsCard: React.FC<SettingsCardProps> = ({
     });
   };
 
+  const handleRegionChange = (countryCode: string) => {
+    setSelectedRegionCode(countryCode);
+    try {
+      if (typeof window !== 'undefined') {
+        window.localStorage.setItem(REGION_CURRENCY_STORAGE_KEY, countryCode);
+      }
+    } catch {
+      // ignore storage errors
+    }
+
+    if (handleUpdateNbuRates && !isUpdatingRates) {
+      void handleUpdateNbuRates();
+    }
+  };
+
   const needsNbuFetch = React.useCallback((): boolean => {
     try {
       const cached = localStorage.getItem('nbu_rates_cache');
@@ -205,10 +243,11 @@ const SettingsCard: React.FC<SettingsCardProps> = ({
   useEffect(() => {
     if (!isAutoFetchNbuRatesEnabled) return;
     if (!handleUpdateNbuRates) return;
+    if (isUpdatingRates) return;
     if (!needsNbuFetch()) return;
 
     void handleUpdateNbuRates();
-  }, [isAutoFetchNbuRatesEnabled, handleUpdateNbuRates, needsNbuFetch]);
+  }, [isAutoFetchNbuRatesEnabled, handleUpdateNbuRates, isUpdatingRates, needsNbuFetch]);
 
   // Re-check when tab becomes visible (e.g. next day)
   useEffect(() => {
@@ -217,13 +256,14 @@ const SettingsCard: React.FC<SettingsCardProps> = ({
 
     const onVisible = () => {
       if (document.visibilityState !== 'visible') return;
+      if (isUpdatingRates) return;
       if (!needsNbuFetch()) return;
       void handleUpdateNbuRates();
     };
 
     document.addEventListener('visibilitychange', onVisible);
     return () => document.removeEventListener('visibilitychange', onVisible);
-  }, [isAutoFetchNbuRatesEnabled, handleUpdateNbuRates, needsNbuFetch]);
+  }, [isAutoFetchNbuRatesEnabled, handleUpdateNbuRates, isUpdatingRates, needsNbuFetch]);
   
   const handleCurrencySelect = (currencyCode: string, index: number) => {
     const previousValue = selectedCurrencies[index];
@@ -374,13 +414,14 @@ const SettingsCard: React.FC<SettingsCardProps> = ({
                 >
                   {availableCurrencies.map(code => {
                     const isSelected = displayCurrencies.includes(code) && code !== currencyCode;
+                    const regionLabel = getCurrencyRegionLabel(code, currencyLanguage);
                     return (
                       <option 
                         key={code} 
                         value={code} 
                         disabled={isSelected}
                       >
-                        {code} - {getCurrencyName(code, i18nInstance.language === 'uk' ? 'uk' : 'en')}
+                        {code} - {getCurrencyName(code, currencyLanguage)}{regionLabel ? ` (${regionLabel})` : ''}
                       </option>
                     );
                   })}
@@ -474,6 +515,35 @@ const SettingsCard: React.FC<SettingsCardProps> = ({
 
         {isExchangeRatesExpanded && (
           <>
+            {/* Region selector */}
+            <div className="mb-3 rounded-xl border border-indigo-100 bg-indigo-50/40 px-3 py-3">
+              <label className="block text-xs sm:text-sm font-semibold text-gray-800 mb-1">
+                {t('settings.exchangeRates.region.label')}
+              </label>
+              <select
+                value={selectedRegionCode}
+                onChange={(e) => handleRegionChange(e.target.value)}
+                className="w-full px-3 py-2 sm:py-2.5 text-sm sm:text-base border-2 border-indigo-200 rounded-lg focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 bg-white"
+              >
+                <option value={REGION_AUTO_VALUE}>
+                  {t('settings.exchangeRates.region.auto')}
+                </option>
+                {regionOptions.map(region => (
+                  <option key={region.countryCode} value={region.countryCode}>
+                    {region.countryName[currencyLanguage]} - {region.currencyCode} ({getCurrencyName(region.currencyCode, currencyLanguage)})
+                  </option>
+                ))}
+              </select>
+              <p className="mt-1 text-[10px] sm:text-xs text-gray-600">
+                {regionalCurrency
+                  ? t('settings.exchangeRates.region.selectedHint', {
+                      country: regionalCurrency.countryName[currencyLanguage],
+                      currency: regionalCurrency.currencyCode
+                    })
+                  : t('settings.exchangeRates.region.noRegionHint')}
+              </p>
+            </div>
+
             {/* Auto fetch toggle */}
             {handleUpdateNbuRates && (
               <div className="mb-3 flex items-start justify-between gap-3 rounded-xl border border-indigo-100 bg-indigo-50/40 px-3 py-2">
@@ -523,7 +593,7 @@ const SettingsCard: React.FC<SettingsCardProps> = ({
             )}
 
             <div className="space-y-4">
-              {selectedCurrencies.map((currencyCode, index) => {
+              {exchangeRateCurrencies.map((currencyCode, index) => {
                 if (currencyCode === baseCurrency) return null; // Не показуємо курс базової валюти до самої себе
                 
                 const pairKey = `${baseCurrency}_${currencyCode}`;
