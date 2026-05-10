@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import Footer from './Footer';
 import Header from './Header';
 import SettingsCard from './SettingsCard';
@@ -7,6 +7,9 @@ import DaysTable from './DaysTable';
 import DaysCards from './DaysCards';
 import Statistics from './Statistics';
 import Analytics from './Analytics';
+import AppTabs, { BudgetAppTab } from './AppTabs';
+import OverviewDashboard from './OverviewDashboard';
+import TransactionExplorer from './TransactionExplorer';
 import AlertModal from './AlertModal';
 import PromptModal from './PromptModal';
 import ConfirmModal from './ConfirmModal';
@@ -15,6 +18,19 @@ import { useBudgetContext } from '../contexts/BudgetContext';
 import { useBudgetHandlers } from '../hooks/useBudgetHandlers';
 import { calculateTotals, calculateFinalBalances, convertCurrency } from '../utils/calculations';
 import { translate } from '../i18n/config';
+
+const APP_TAB_STORAGE_KEY = 'budget_tracker_active_tab';
+
+const isBudgetAppTab = (value: string | null): value is BudgetAppTab => (
+  value === 'budget' ||
+  value === 'overview' ||
+  value === 'insights'
+);
+
+const normalizeStoredTab = (value: string | null): BudgetAppTab => {
+  if (value === 'transactions' || value === 'settings') return 'budget';
+  return isBudgetAppTab(value) ? value : 'budget';
+};
 
 export default function BudgetTracker() {
   const context = useBudgetContext();
@@ -112,6 +128,27 @@ export default function BudgetTracker() {
     handleCancelEditName,
     editingBudgetId
   } = handlers;
+
+  const [activeTab, setActiveTab] = useState<BudgetAppTab>(() => {
+    try {
+      if (typeof window === 'undefined') return 'budget';
+      const stored = window.localStorage.getItem(APP_TAB_STORAGE_KEY);
+      return normalizeStoredTab(stored);
+    } catch {
+      return 'budget';
+    }
+  });
+
+  const handleTabChange = (tab: BudgetAppTab) => {
+    setActiveTab(tab);
+    try {
+      if (typeof window !== 'undefined') {
+        window.localStorage.setItem(APP_TAB_STORAGE_KEY, tab);
+      }
+    } catch {
+      // ignore storage errors
+    }
+  };
 
   // Створюємо об'єкт початкових балансів для вибраних валют
   const startBalances = useMemo(() => {
@@ -220,110 +257,144 @@ export default function BudgetTracker() {
           {/* Приховуємо весь контент між Header і Footer, якщо потрібен пароль */}
           {!(showPasswordModal && user) && (
             <>
-              <SettingsCard
-                isUk={language === 'uk'}
-                user={user}
-                budgets={budgets}
-                activeBudgetId={activeBudgetId}
-                handleBudgetChange={handleBudgetChange}
-                handleAddBudgetClick={handleAddBudgetClick}
-                handleEditBudgetClick={handleEditBudgetClick}
-                handleDeleteBudget={handleDeleteBudget}
-                selectedCurrencies={selectedCurrencies}
-                exchangeRates={exchangeRates}
-                handleCurrencyChange={handleCurrencyChange}
-                handleExchangeRateChange={handleExchangeRateChange}
-                handleStartBalanceChange={handleStartBalanceChange}
-                handleExportToJsonFile={handleExportToJsonFile}
-                handleImportFromJsonFile={handleImportFromJsonFile}
-                isLoading={isLoading}
-                fileInputRef={fileInputRef}
-                handleJsonFileSelected={handleJsonFileSelected}
-                saveMessage={saveMessage}
-                loadMessage={loadMessage}
-                handleClearAll={handleClearAll}
-                handleClearAllDays={handleClearAllDays}
-                handleStartNewMonth={handleStartNewMonth}
-                handleConfirmStartNewMonth={handleConfirmStartNewMonth}
-                handleCancelStartNewMonth={handleCancelStartNewMonth}
-                showStartNewMonthModal={showStartNewMonthModal}
-                baseCurrency={baseCurrency}
-                handleUpdateNbuRates={handleUpdateNbuRates}
-                isUpdatingRates={isUpdatingRates}
-                rateUpdateMessage={rateUpdateMessage}
-                handleEnableEncryptionClick={handleEnableEncryptionClick}
-                handleDisableEncryptionClick={handleDisableEncryptionClick}
-                handleEnableEncryption={handleEnableEncryption}
-                handleDisableEncryption={handleDisableEncryption}
-                showEnableEncryptionModal={showEnableEncryptionModal}
-                showDisableEncryptionModal={showDisableEncryptionModal}
-                setShowEnableEncryptionModal={setShowEnableEncryptionModal}
-                setShowDisableEncryptionModal={setShowDisableEncryptionModal}
-                isEncrypted={isEncrypted}
-                updateDay={updateDay}
-                days={days}
-                budgetYear={budgetDate.year}
-                budgetMonth={budgetDate.month}
-              />
+              <AppTabs activeTab={activeTab} onChange={handleTabChange} />
 
-              <BudgetStatus
-                finalBalances={finalBalances}
-                startBalances={startBalances}
-                selectedCurrencies={selectedCurrencies}
-                exchangeRates={exchangeRates}
-                totalInUAH={totalInUAH}
-                totalInBaseCurrency={totalInBaseCurrency}
-                baseCurrency={baseCurrency}
-                displayCurrency={displayCurrency}
-                setDisplayCurrency={setDisplayCurrency}
-                setDisplayCurrencyIndex={setDisplayCurrencyIndex}
-                totalInDisplayCurrency={totalInDisplayCurrency}
-                days={days}
-                budgetYear={budgetDate.year}
-                budgetMonth={budgetDate.month}
-              />
+              {activeTab === 'overview' && (
+                <>
+                  <OverviewDashboard
+                    days={days}
+                    selectedCurrencies={selectedCurrencies}
+                    displayCurrency={displayCurrency}
+                    exchangeRates={exchangeRates}
+                    startBalances={startBalances}
+                    budgetYear={budgetDate.year}
+                    budgetMonth={budgetDate.month}
+                  />
+                </>
+              )}
 
-              <DaysTable
-                isUk={language === 'uk'}
-                days={days}
-                updateDay={updateDay}
-                startBalances={startBalances}
-                selectedCurrencies={selectedCurrencies}
-                displayCurrency={displayCurrency}
-                exchangeRates={exchangeRates}
-                budgetYear={budgetDate.year}
-                budgetMonth={budgetDate.month}
-              />
+              {activeTab === 'budget' && (
+                <>
+                  <SettingsCard
+                    isUk={language === 'uk'}
+                    user={user}
+                    budgets={budgets}
+                    activeBudgetId={activeBudgetId}
+                    handleBudgetChange={handleBudgetChange}
+                    handleAddBudgetClick={handleAddBudgetClick}
+                    handleEditBudgetClick={handleEditBudgetClick}
+                    handleDeleteBudget={handleDeleteBudget}
+                    selectedCurrencies={selectedCurrencies}
+                    exchangeRates={exchangeRates}
+                    handleCurrencyChange={handleCurrencyChange}
+                    handleExchangeRateChange={handleExchangeRateChange}
+                    handleStartBalanceChange={handleStartBalanceChange}
+                    handleExportToJsonFile={handleExportToJsonFile}
+                    handleImportFromJsonFile={handleImportFromJsonFile}
+                    isLoading={isLoading}
+                    fileInputRef={fileInputRef}
+                    handleJsonFileSelected={handleJsonFileSelected}
+                    saveMessage={saveMessage}
+                    loadMessage={loadMessage}
+                    handleClearAll={handleClearAll}
+                    handleClearAllDays={handleClearAllDays}
+                    handleStartNewMonth={handleStartNewMonth}
+                    handleConfirmStartNewMonth={handleConfirmStartNewMonth}
+                    handleCancelStartNewMonth={handleCancelStartNewMonth}
+                    showStartNewMonthModal={showStartNewMonthModal}
+                    baseCurrency={baseCurrency}
+                    handleUpdateNbuRates={handleUpdateNbuRates}
+                    isUpdatingRates={isUpdatingRates}
+                    rateUpdateMessage={rateUpdateMessage}
+                    handleEnableEncryptionClick={handleEnableEncryptionClick}
+                    handleDisableEncryptionClick={handleDisableEncryptionClick}
+                    handleEnableEncryption={handleEnableEncryption}
+                    handleDisableEncryption={handleDisableEncryption}
+                    showEnableEncryptionModal={showEnableEncryptionModal}
+                    showDisableEncryptionModal={showDisableEncryptionModal}
+                    setShowEnableEncryptionModal={setShowEnableEncryptionModal}
+                    setShowDisableEncryptionModal={setShowDisableEncryptionModal}
+                    isEncrypted={isEncrypted}
+                    updateDay={updateDay}
+                    days={days}
+                    budgetYear={budgetDate.year}
+                    budgetMonth={budgetDate.month}
+                  />
 
-              <DaysCards
-                isUk={language === 'uk'}
-                days={days}
-                updateDay={updateDay}
-                startBalances={startBalances}
-                selectedCurrencies={selectedCurrencies}
-                displayCurrency={displayCurrency}
-                exchangeRates={exchangeRates}
-                budgetYear={budgetDate.year}
-                budgetMonth={budgetDate.month}
-              />
+                  <BudgetStatus
+                    finalBalances={finalBalances}
+                    startBalances={startBalances}
+                    selectedCurrencies={selectedCurrencies}
+                    exchangeRates={exchangeRates}
+                    totalInUAH={totalInUAH}
+                    totalInBaseCurrency={totalInBaseCurrency}
+                    baseCurrency={baseCurrency}
+                    displayCurrency={displayCurrency}
+                    setDisplayCurrency={setDisplayCurrency}
+                    setDisplayCurrencyIndex={setDisplayCurrencyIndex}
+                    totalInDisplayCurrency={totalInDisplayCurrency}
+                    days={days}
+                    budgetYear={budgetDate.year}
+                    budgetMonth={budgetDate.month}
+                  />
 
-              <Statistics
-                isUk={language === 'uk'}
-                totals={totals}
-                selectedCurrencies={selectedCurrencies}
-                displayCurrency={displayCurrency}
-                exchangeRates={exchangeRates}
-              />
+                  <TransactionExplorer
+                    days={days}
+                    selectedCurrencies={selectedCurrencies}
+                    displayCurrency={displayCurrency}
+                    exchangeRates={exchangeRates}
+                    budgetYear={budgetDate.year}
+                    budgetMonth={budgetDate.month}
+                  />
 
-              <Analytics
-                days={days}
-                selectedCurrencies={selectedCurrencies}
-                displayCurrency={displayCurrency}
-                exchangeRates={exchangeRates}
-                startBalances={startBalances}
-                budgetYear={budgetDate.year}
-                budgetMonth={budgetDate.month}
-              />
+                  <DaysTable
+                    isUk={language === 'uk'}
+                    days={days}
+                    updateDay={updateDay}
+                    startBalances={startBalances}
+                    selectedCurrencies={selectedCurrencies}
+                    displayCurrency={displayCurrency}
+                    exchangeRates={exchangeRates}
+                    budgetYear={budgetDate.year}
+                    budgetMonth={budgetDate.month}
+                  />
+
+                  <DaysCards
+                    isUk={language === 'uk'}
+                    days={days}
+                    updateDay={updateDay}
+                    startBalances={startBalances}
+                    selectedCurrencies={selectedCurrencies}
+                    displayCurrency={displayCurrency}
+                    exchangeRates={exchangeRates}
+                    budgetYear={budgetDate.year}
+                    budgetMonth={budgetDate.month}
+                  />
+                </>
+              )}
+
+              {activeTab === 'insights' && (
+                <>
+                  <Statistics
+                    isUk={language === 'uk'}
+                    totals={totals}
+                    selectedCurrencies={selectedCurrencies}
+                    displayCurrency={displayCurrency}
+                    exchangeRates={exchangeRates}
+                  />
+
+                  <Analytics
+                    days={days}
+                    selectedCurrencies={selectedCurrencies}
+                    displayCurrency={displayCurrency}
+                    exchangeRates={exchangeRates}
+                    startBalances={startBalances}
+                    budgetYear={budgetDate.year}
+                    budgetMonth={budgetDate.month}
+                  />
+                </>
+              )}
+
             </>
           )}
         </div>
