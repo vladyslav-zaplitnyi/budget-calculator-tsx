@@ -47,6 +47,18 @@ export interface Budget {
     year: number;
     month: number;
   };
+  /**
+   * Заплановані транзакції для майбутніх місяців.
+   * Ключ — у форматі "YYYY-MM" (місяць 01-12).
+   * Використовується режимом "12-month plan" на сторінці бюджету.
+   */
+  monthlyPlans?: Record<string, Transaction[]>;
+  /** Рік початку 12-місячного вікна планувальника (для збереження між сесіями). */
+  plannerStartYear?: number;
+  /** Місяць (0-11) початку 12-місячного вікна планувальника. */
+  plannerStartMonth?: number;
+  /** Ключ "YYYY-MM" місяця, який зараз розгорнуто в планувальнику. */
+  plannerExpandedMonth?: string | null;
 }
 
 export interface Budgets {

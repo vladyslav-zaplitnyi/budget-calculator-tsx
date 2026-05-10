@@ -138,6 +138,8 @@
     "endOfMonth": "End of month balance",
     "criticalDays": "Critical days (lowest balance)",
     "criticalDaysHint": "Days when your balance is projected to be at its lowest point.",
+    "criticalMonths": "Critical months (lowest projected balance)",
+    "criticalMonthsHint": "Months in this 12-month window when the rolling projected balance is at its lowest.",
     "dayLabel": "Day"
   },
   "bulkTransactions": {
@@ -382,6 +384,63 @@
     "save": "Save",
     "expand": "Expand",
     "collapse": "Collapse"
+  },
+  "budgetView": {
+    "ariaLabel": "Budget view mode",
+    "days": "By days",
+    "daysHint": "Day-by-day for the current month",
+    "months": "12-month plan",
+    "monthsHint": "Plan transactions for upcoming months"
+  },
+  "monthlyPlanner": {
+    "title": "12-month plan",
+    "subtitle": "Plan future income and expenses on a rolling 12-month window — projected balance rolls forward from the current budget.",
+    "startingBalance": "Starting balance",
+    "totalIncome": "Planned income",
+    "totalExpense": "Planned expense",
+    "endProjection": "End projection",
+    "month": "Month",
+    "income": "Income",
+    "expense": "Expense",
+    "net": "Net",
+    "projected": "Projected balance",
+    "actions": "Actions",
+    "details": "Details",
+    "add": "Add",
+    "addTransaction": "Add planned transaction",
+    "empty": "No planned transactions for this month yet.",
+    "clearMonth": "Clear month",
+    "pastBadge": "Past",
+    "deleteTitle": "Delete planned transaction?",
+    "deleteMessage": "This planned transaction will be removed from the forecast.",
+    "clearMonthConfirm": {
+      "title": "Clear all planned transactions for this month?",
+      "message": "All planned transactions for this month will be removed. This cannot be undone."
+    },
+    "nav": {
+      "prevYear": "Previous year (-12 months)",
+      "prevMonth": "Previous month",
+      "nextMonth": "Next month",
+      "nextYear": "Next year (+12 months)",
+      "reset": "Reset to default"
+    },
+    "futureYearConfirm": {
+      "title": "Plan into a future year?",
+      "message": "You're moving the planning window to {{range}}. This expands what we'll need to store for your account — please confirm you want to plan that far ahead.",
+      "confirm": "Yes, continue"
+    },
+    "modal": {
+      "addTitle": "Add planned transaction",
+      "forMonth": "For month",
+      "forMonths": "Apply to months",
+      "selectAll": "Select all",
+      "clearSelection": "Clear",
+      "multiMonthHint": "Select one or more months — the same transaction will be added to each (useful for recurring items).",
+      "editLockHint": "When editing, the original month is locked.",
+      "noSelectableMonths": "No future months available in this window.",
+      "willCreateCount": "Will create {{count}} planned transactions.",
+      "selectAtLeastOne": "Select at least one month."
+    }
   },
   "monthYearPicker": {
     "title": "Select Month and Year",

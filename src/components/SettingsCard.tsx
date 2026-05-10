@@ -64,6 +64,10 @@ interface SettingsCardProps {
   days?: Day[];
   budgetYear: number;
   budgetMonth: number;
+  /** When `months`, the bulk-transaction button becomes "add planned transaction". */
+  budgetViewMode?: 'days' | 'months';
+  /** Opens planned-transaction modal (12-month plan). Only used when `budgetViewMode === 'months'`. */
+  onAddPlannedTransaction?: () => void;
 }
 
 const SettingsCard: React.FC<SettingsCardProps> = ({
@@ -109,7 +113,9 @@ const SettingsCard: React.FC<SettingsCardProps> = ({
   updateDay,
   days = [],
   budgetYear,
-  budgetMonth
+  budgetMonth,
+  budgetViewMode = 'days',
+  onAddPlannedTransaction
 }) => {
   const { t, i18n: i18nInstance } = useTranslation();
   const currencyLanguage = i18nInstance.language === 'uk' ? 'uk' : 'en';
@@ -822,17 +828,37 @@ const SettingsCard: React.FC<SettingsCardProps> = ({
             </button>
             <button
               type="button"
-              onClick={() => setShowRecurringModal(true)}
-              disabled={!updateDay || !days || days.length === 0}
+              onClick={() => {
+                if (budgetViewMode === 'months' && onAddPlannedTransaction) {
+                  onAddPlannedTransaction();
+                } else {
+                  setShowRecurringModal(true);
+                }
+              }}
+              disabled={
+                budgetViewMode === 'months'
+                  ? !onAddPlannedTransaction
+                  : !updateDay || !days || days.length === 0
+              }
               className={`w-full px-4 sm:px-6 py-3 rounded-xl font-bold transition-all text-sm sm:text-base text-white shadow-lg hover:shadow-xl active:scale-95 ${
-                !updateDay || !days || days.length === 0
-                  ? 'bg-gray-400 cursor-not-allowed'
-                  : 'bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700'
+                budgetViewMode === 'months'
+                  ? onAddPlannedTransaction
+                    ? 'bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700'
+                    : 'bg-gray-400 cursor-not-allowed'
+                  : !updateDay || !days || days.length === 0
+                    ? 'bg-gray-400 cursor-not-allowed'
+                    : 'bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700'
               }`}
-              title={t('bulkTransactions.button')}
+              title={
+                budgetViewMode === 'months'
+                  ? t('monthlyPlanner.addTransaction')
+                  : t('bulkTransactions.button')
+              }
             >
               <span className="mr-2">➕</span>
-              {t('bulkTransactions.button')}
+              {budgetViewMode === 'months'
+                ? t('monthlyPlanner.addTransaction')
+                : t('bulkTransactions.button')}
             </button>
           </div>
         </div>
@@ -861,7 +887,7 @@ const SettingsCard: React.FC<SettingsCardProps> = ({
       />
 
       <BulkTransactionModal
-        isOpen={showRecurringModal}
+        isOpen={showRecurringModal && budgetViewMode === 'days'}
         onClose={() => setShowRecurringModal(false)}
         days={days}
         updateDay={updateDay || (() => {})}

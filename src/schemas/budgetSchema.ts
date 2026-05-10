@@ -52,7 +52,11 @@ export const BudgetSchema: z.ZodType<Budget> = z.object({
   startBalances: z.record(z.string(), z.number().nullable()),
   days: z.array(DaySchema),
   selectedCurrencies: z.array(z.string()),
-  exchangeRates: ExchangeRatesSchema
+  exchangeRates: ExchangeRatesSchema,
+  monthlyPlans: z.record(z.string(), z.array(TransactionSchema)).optional(),
+  plannerStartYear: z.number().int().optional(),
+  plannerStartMonth: z.number().int().min(0).max(11).optional(),
+  plannerExpandedMonth: z.string().nullable().optional()
 });
 
 /**

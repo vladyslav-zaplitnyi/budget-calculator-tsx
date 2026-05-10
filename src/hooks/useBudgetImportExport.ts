@@ -9,6 +9,57 @@ import { handleError } from '../utils/errorHandler';
 import { translate } from '../i18n/config';
 import { sanitizeFileNamePart } from '../utils/fileNameSanitizer';
 
+/** Must match `BUDGET_VIEW_MODE_STORAGE_KEY` in BudgetTracker. */
+const BUDGET_VIEW_MODE_STORAGE_KEY = 'budget_tracker_budget_view_mode';
+
+const MONTH_PLAN_KEY_RE = /^\d{4}-(0[1-9]|1[0-2])$/;
+
+export const BUDGET_VIEW_MODE_IMPORT_EVENT = 'budget-view-mode-from-import';
+
+type ParsedMonthlyPlans =
+  | { fromFile: false }
+  | { fromFile: true; plans: Record<string, Transaction[]> };
+
+function parseMonthlyPlansFromImport(data: Record<string, unknown>): ParsedMonthlyPlans {
+  if (!Object.prototype.hasOwnProperty.call(data, 'monthlyPlans')) {
+    return { fromFile: false };
+  }
+  const raw = data.monthlyPlans;
+  if (raw === null || typeof raw !== 'object' || Array.isArray(raw)) {
+    return { fromFile: true, plans: {} };
+  }
+  const plans: Record<string, Transaction[]> = {};
+  for (const [key, value] of Object.entries(raw)) {
+    if (!MONTH_PLAN_KEY_RE.test(key)) continue;
+    if (!Array.isArray(value)) continue;
+    const txs: Transaction[] = [];
+    for (const t of value) {
+      try {
+        txs.push(validateTransaction(t));
+      } catch {
+        console.warn(`⚠️ Пропущено невалідну транзакцію в плані місяця ${key}`);
+      }
+    }
+    if (txs.length > 0) {
+      plans[key] = txs;
+    }
+  }
+  return { fromFile: true, plans };
+}
+
+function applyBudgetViewModeFromImport(data: Record<string, unknown>) {
+  const mode = data.budgetViewMode;
+  if (mode !== 'days' && mode !== 'months') return;
+  try {
+    if (typeof window !== 'undefined') {
+      window.localStorage.setItem(BUDGET_VIEW_MODE_STORAGE_KEY, mode);
+      window.dispatchEvent(new CustomEvent(BUDGET_VIEW_MODE_IMPORT_EVENT, { detail: mode }));
+    }
+  } catch {
+    // ignore
+  }
+}
+
 /**
  * Hook для імпорту та експорту бюджету в JSON формат
  */
@@ -58,6 +109,25 @@ export function useBudgetImportExport() {
         exchangeRates: { ...exchangeRates }
       };
 
+      let budgetViewModeExport: 'days' | 'months' | undefined;
+      try {
+        if (typeof window !== 'undefined') {
+          const stored = window.localStorage.getItem(BUDGET_VIEW_MODE_STORAGE_KEY);
+          if (stored === 'days' || stored === 'months') {
+            budgetViewModeExport = stored;
+          }
+        }
+      } catch {
+        // ignore
+      }
+
+      const monthlyPlansRaw = activeBudget?.monthlyPlans || {};
+      const monthlyPlansExport: Record<string, Transaction[]> = {};
+      Object.entries(monthlyPlansRaw).forEach(([key, txs]) => {
+        if (!MONTH_PLAN_KEY_RE.test(key) || !Array.isArray(txs)) return;
+        monthlyPlansExport[key] = txs.map((t) => ({ ...t }));
+      });
+
       const dataToSave = {
         savedAt: new Date().toISOString(),
         displayCurrency: displayCurrency,
@@ -71,7 +141,21 @@ export function useBudgetImportExport() {
         days: days.map((day, index) => ({
           day: day.day || (index + 1),
           transactions: Array.isArray(day.transactions) ? day.transactions : []
-        }))
+        })),
+        monthlyPlans: monthlyPlansExport,
+        ...(typeof activeBudget?.plannerStartYear === 'number' &&
+        Number.isInteger(activeBudget.plannerStartYear) &&
+        typeof activeBudget?.plannerStartMonth === 'number' &&
+        Number.isInteger(activeBudget.plannerStartMonth) &&
+        activeBudget.plannerStartMonth >= 0 &&
+        activeBudget.plannerStartMonth <= 11
+          ? {
+              plannerStartYear: activeBudget.plannerStartYear,
+              plannerStartMonth: activeBudget.plannerStartMonth
+            }
+          : {}),
+        plannerExpandedMonth: activeBudget?.plannerExpandedMonth ?? null,
+        ...(budgetViewModeExport ? { budgetViewMode: budgetViewModeExport } : {})
       };
 
       const now = new Date();
@@ -328,9 +412,41 @@ export function useBudgetImportExport() {
     });
 
     // Оновлюємо або створюємо бюджет ПЕРЕД встановленням валют та днів
+    const importRecord = data as Record<string, unknown>;
+    const parsedMonthlyPlans = parseMonthlyPlansFromImport(importRecord);
+
     setBudgets((prevBudgets: Budgets) => {
       const safePrev = prevBudgets || {};
-      
+      const existingForTarget = safePrev[targetBudgetId];
+
+      const nextMonthlyPlans = parsedMonthlyPlans.fromFile
+        ? parsedMonthlyPlans.plans
+        : (existingForTarget?.monthlyPlans || {});
+
+      let plannerStartYear = existingForTarget?.plannerStartYear;
+      let plannerStartMonth = existingForTarget?.plannerStartMonth;
+      if (
+        typeof importRecord.plannerStartYear === 'number' &&
+        Number.isInteger(importRecord.plannerStartYear) &&
+        typeof importRecord.plannerStartMonth === 'number' &&
+        Number.isInteger(importRecord.plannerStartMonth) &&
+        importRecord.plannerStartMonth >= 0 &&
+        importRecord.plannerStartMonth <= 11
+      ) {
+        plannerStartYear = importRecord.plannerStartYear;
+        plannerStartMonth = importRecord.plannerStartMonth;
+      }
+
+      let plannerExpandedMonth: string | null | undefined = existingForTarget?.plannerExpandedMonth;
+      if (Object.prototype.hasOwnProperty.call(importRecord, 'plannerExpandedMonth')) {
+        const ex = importRecord.plannerExpandedMonth;
+        if (ex === null) {
+          plannerExpandedMonth = null;
+        } else if (typeof ex === 'string' && MONTH_PLAN_KEY_RE.test(ex)) {
+          plannerExpandedMonth = ex;
+        }
+      }
+
       const updatedBudget: Budget = {
         name: budgetName,
         startBalances,
@@ -339,7 +455,14 @@ export function useBudgetImportExport() {
         days: normalizedDays || days,
         displayCurrency: data.displayCurrency || loadedCurrencies[0] || 'UAH',
         displayCurrencyIndex: data.displayCurrencyIndex ?? 0,
-        budgetDate
+        budgetDate,
+        monthlyPlans: nextMonthlyPlans,
+        ...(plannerStartYear != null && plannerStartMonth != null
+          ? { plannerStartYear, plannerStartMonth }
+          : {}),
+        ...(plannerExpandedMonth !== undefined
+          ? { plannerExpandedMonth }
+          : {})
       };
 
       const updatedBudgets = {
@@ -405,6 +528,8 @@ export function useBudgetImportExport() {
       if (Object.keys(loadedExchangeRates).length > 0) {
         setExchangeRates(loadedExchangeRates);
       }
+
+      applyBudgetViewModeFromImport(importRecord);
       
       // Додаткова перевірка: переконуємося, що дані все ще в localStorage
       setTimeout(() => {

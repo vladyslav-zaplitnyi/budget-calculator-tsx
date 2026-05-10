@@ -3,8 +3,10 @@ import { useTranslation } from 'react-i18next';
 import { getCurrencyInfo, getCurrencySymbol, AVAILABLE_CURRENCIES, getCurrencyName } from '../utils/currencies';
 import { convertCurrency, formatNumber, calculateDayAmountsFromTransactions } from '../utils/calculations';
 import { getDaysInMonth } from '../utils/dateHelpers';
-import { Day, ExchangeRates } from '../types';
+import { Day, ExchangeRates, Transaction } from '../types';
 import CurrencyFlag from './CurrencyFlag';
+import { buildPlannerRows, getRollingMonths } from '../utils/monthlyPlan';
+import { capitalizeFirstLetter, getMonthYearLabel } from '../utils/dateHelpers';
 
 const BALANCE_CARD_COLORS = [
   'border-blue-200 hover:border-blue-300',
@@ -34,9 +36,15 @@ interface BudgetStatusProps {
   days: Day[];
   budgetYear: number;
   budgetMonth: number;
+  /** When `months`, day slider shows critical months from the 12-month plan instead. */
+  budgetViewMode?: 'days' | 'months';
+  monthlyPlans?: Record<string, Transaction[]>;
+  plannerStartYear?: number;
+  plannerStartMonth?: number;
 }
 
 const CRITICAL_DAYS_STORAGE_KEY = 'budget_critical_days_expanded';
+const CRITICAL_MONTHS_STORAGE_KEY = 'budget_critical_months_expanded';
 
 const BudgetStatus: React.FC<BudgetStatusProps> = ({
   finalBalances = {},
@@ -52,7 +60,11 @@ const BudgetStatus: React.FC<BudgetStatusProps> = ({
   totalInDisplayCurrency,
   days,
   budgetYear,
-  budgetMonth
+  budgetMonth,
+  budgetViewMode = 'days',
+  monthlyPlans,
+  plannerStartYear,
+  plannerStartMonth
 }) => {
   const { t, i18n: i18nInstance } = useTranslation();
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
@@ -78,6 +90,23 @@ const BudgetStatus: React.FC<BudgetStatusProps> = ({
     });
   }, []);
 
+  const [isCriticalMonthsExpanded, setIsCriticalMonthsExpanded] = useState<boolean>(() => {
+    try {
+      const stored = localStorage.getItem(CRITICAL_MONTHS_STORAGE_KEY);
+      return stored === 'true';
+    } catch {
+      return false;
+    }
+  });
+
+  const toggleCriticalMonths = useCallback(() => {
+    setIsCriticalMonthsExpanded((prev) => {
+      const next = !prev;
+      try { localStorage.setItem(CRITICAL_MONTHS_STORAGE_KEY, String(next)); } catch { /* ignore */ }
+      return next;
+    });
+  }, []);
+
   const getConvertedValue = useCallback((currencyCode: string, finalBalance: number) => {
     if (currencyCode === displayCurrency) return null;
     const displayInfo = getCurrencyInfo(displayCurrency);
@@ -86,8 +115,41 @@ const BudgetStatus: React.FC<BudgetStatusProps> = ({
     return `≈ ${formatNumber(convertedValue, 2)} ${dSym}`;
   }, [displayCurrency, exchangeRates]);
 
-  // Compute cumulative balance in display currency for each day
-  const { dailyBalances, criticalDays } = useMemo(() => {
+  // Compute cumulative balance in display currency for each day (days mode),
+  // or critical months from the 12-month planner (months mode).
+  const { dailyBalances, criticalDays, criticalMonths } = useMemo(() => {
+    if (budgetViewMode === 'months' && typeof plannerStartYear === 'number' && typeof plannerStartMonth === 'number') {
+      const months = getRollingMonths(plannerStartYear, plannerStartMonth, 12);
+      const rows = buildPlannerRows({
+        months,
+        monthlyPlans: monthlyPlans || {},
+        startingBalance: totalInDisplayCurrency ?? 0,
+        displayCurrency,
+        exchangeRates,
+        budgetYear,
+        budgetMonth
+      });
+      const withCum = rows.filter((r) => r.cumulative !== null);
+      if (withCum.length === 0) {
+        return { dailyBalances: [] as number[], criticalDays: [] as { day: number; balance: number }[], criticalMonths: [] as { key: string; year: number; month: number; balance: number }[] };
+      }
+      const minBalance = Math.min(...withCum.map((r) => r.cumulative as number));
+      const criticalMonthsList = withCum
+        .filter((r) => (r.cumulative as number) === minBalance)
+        .slice(0, 5)
+        .map((r) => ({
+          key: r.key,
+          year: r.year,
+          month: r.month,
+          balance: r.cumulative as number
+        }));
+      return {
+        dailyBalances: [],
+        criticalDays: [],
+        criticalMonths: criticalMonthsList
+      };
+    }
+
     const visibleDays = days.slice(0, daysInMonth);
     const balances: number[] = [];
 
@@ -111,7 +173,7 @@ const BudgetStatus: React.FC<BudgetStatusProps> = ({
       balances.push(running);
     }
 
-    if (balances.length === 0) return { dailyBalances: [], criticalDays: [] };
+    if (balances.length === 0) return { dailyBalances: [], criticalDays: [], criticalMonths: [] };
 
     const minBalance = Math.min(...balances);
     const critical = balances
@@ -119,8 +181,8 @@ const BudgetStatus: React.FC<BudgetStatusProps> = ({
       .filter(d => d.balance === minBalance)
       .slice(0, 5);
 
-    return { dailyBalances: balances, criticalDays: critical };
-  }, [days, daysInMonth, selectedCurrencies, startBalances, displayCurrency, exchangeRates]);
+    return { dailyBalances: balances, criticalDays: critical, criticalMonths: [] };
+  }, [budgetViewMode, plannerStartYear, plannerStartMonth, monthlyPlans, totalInDisplayCurrency, displayCurrency, exchangeRates, budgetYear, budgetMonth, days, daysInMonth, selectedCurrencies, startBalances]);
 
   // Balance as of the selected day
   const selectedDayBalance = dailyBalances.length > 0 && selectedDay >= 1 && selectedDay <= dailyBalances.length
@@ -263,8 +325,8 @@ const BudgetStatus: React.FC<BudgetStatusProps> = ({
         </div>
       </div>
 
-      {/* Day selector & projected balance */}
-      {dailyBalances.length > 0 && (
+      {/* Day selector & projected balance (days mode only) */}
+      {budgetViewMode === 'days' && dailyBalances.length > 0 && (
         <div className="mt-4 bg-white/80 backdrop-blur rounded-xl p-4 border border-indigo-100 shadow-sm">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
             <div className="flex items-center gap-3 flex-1 min-w-0">
@@ -305,8 +367,8 @@ const BudgetStatus: React.FC<BudgetStatusProps> = ({
         </div>
       )}
 
-      {/* Critical days - expandable */}
-      {criticalDays.length > 0 && (
+      {/* Critical days — days mode */}
+      {budgetViewMode === 'days' && criticalDays.length > 0 && (
         <div className="mt-3">
           <button
             type="button"
@@ -342,6 +404,50 @@ const BudgetStatus: React.FC<BudgetStatusProps> = ({
                   </span>
                 </div>
               ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Critical months — 12-month plan mode */}
+      {budgetViewMode === 'months' && criticalMonths.length > 0 && (
+        <div className="mt-3">
+          <button
+            type="button"
+            onClick={toggleCriticalMonths}
+            className="w-full flex items-center justify-between bg-gradient-to-r from-rose-50 to-orange-50 rounded-xl px-4 py-2.5 border border-rose-200 hover:border-rose-300 transition-all text-left"
+          >
+            <span className="flex items-center gap-2 text-xs sm:text-sm font-semibold text-rose-700">
+              <span>⚠️</span>
+              {t('budgetStatus.criticalMonths')}
+            </span>
+            <span className="text-xs text-gray-500">
+              {isCriticalMonthsExpanded ? '▲' : '▼'}
+            </span>
+          </button>
+
+          {isCriticalMonthsExpanded && (
+            <div className="mt-2 bg-white/80 rounded-xl border border-rose-100 p-3 space-y-2">
+              <p className="text-[10px] sm:text-xs text-gray-500 mb-2">
+                {t('budgetStatus.criticalMonthsHint')}
+              </p>
+              {criticalMonths.map((cm) => {
+                const locale = i18nInstance.language || 'en';
+                const label = capitalizeFirstLetter(getMonthYearLabel(locale, cm.year, cm.month));
+                return (
+                  <div
+                    key={cm.key}
+                    className="flex items-center justify-between bg-rose-50 rounded-lg px-3 py-2 border border-rose-100"
+                  >
+                    <span className="text-rose-500 font-bold text-sm">
+                      {label}
+                    </span>
+                    <span className={`text-sm font-bold tabular-nums ${cm.balance >= 0 ? 'text-amber-600' : 'text-rose-600'}`}>
+                      {displaySymbol}{formatNumber(cm.balance, 2)}
+                    </span>
+                  </div>
+                );
+              })}
             </div>
           )}
         </div>
