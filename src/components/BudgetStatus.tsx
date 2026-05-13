@@ -1,11 +1,11 @@
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { getCurrencyInfo, getCurrencySymbol, AVAILABLE_CURRENCIES, getCurrencyName } from '../utils/currencies';
 import { convertCurrency, formatNumber, calculateDayAmountsFromTransactions } from '../utils/calculations';
 import { getDaysInMonth } from '../utils/dateHelpers';
 import { Day, ExchangeRates, Transaction } from '../types';
 import CurrencyFlag from './CurrencyFlag';
-import { buildPlannerRows, getRollingMonths } from '../utils/monthlyPlan';
+import { buildPlannerRows, getRollingMonths, PlannerRow } from '../utils/monthlyPlan';
 import { capitalizeFirstLetter, getMonthYearLabel } from '../utils/dateHelpers';
 
 const BALANCE_CARD_COLORS = [
@@ -72,6 +72,8 @@ const BudgetStatus: React.FC<BudgetStatusProps> = ({
   const daysInMonth = getDaysInMonth(budgetYear, budgetMonth);
 
   const [selectedDay, setSelectedDay] = useState<number>(daysInMonth);
+  /** 1..12 — позиція в поточному 12-місячному вікні планувальника (аналог «день» у режимі днів). */
+  const [selectedPlannerMonthSlot, setSelectedPlannerMonthSlot] = useState<number>(12);
 
   const [isCriticalExpanded, setIsCriticalExpanded] = useState<boolean>(() => {
     try {
@@ -116,8 +118,9 @@ const BudgetStatus: React.FC<BudgetStatusProps> = ({
   }, [displayCurrency, exchangeRates]);
 
   // Compute cumulative balance in display currency for each day (days mode),
-  // or critical months from the 12-month planner (months mode).
-  const { dailyBalances, criticalDays, criticalMonths } = useMemo(() => {
+  // або рядки 12-місячного плану + критичні місяці (months mode).
+  const { dailyBalances, criticalDays, criticalMonths, monthlyPlannerRows } = useMemo(() => {
+    const emptyPlannerRows: PlannerRow[] = [];
     if (budgetViewMode === 'months' && typeof plannerStartYear === 'number' && typeof plannerStartMonth === 'number') {
       const months = getRollingMonths(plannerStartYear, plannerStartMonth, 12);
       const rows = buildPlannerRows({
@@ -131,7 +134,12 @@ const BudgetStatus: React.FC<BudgetStatusProps> = ({
       });
       const withCum = rows.filter((r) => r.cumulative !== null);
       if (withCum.length === 0) {
-        return { dailyBalances: [] as number[], criticalDays: [] as { day: number; balance: number }[], criticalMonths: [] as { key: string; year: number; month: number; balance: number }[] };
+        return {
+          dailyBalances: [] as number[],
+          criticalDays: [] as { day: number; balance: number }[],
+          criticalMonths: [] as { key: string; year: number; month: number; balance: number }[],
+          monthlyPlannerRows: rows
+        };
       }
       const minBalance = Math.min(...withCum.map((r) => r.cumulative as number));
       const criticalMonthsList = withCum
@@ -146,7 +154,8 @@ const BudgetStatus: React.FC<BudgetStatusProps> = ({
       return {
         dailyBalances: [],
         criticalDays: [],
-        criticalMonths: criticalMonthsList
+        criticalMonths: criticalMonthsList,
+        monthlyPlannerRows: rows
       };
     }
 
@@ -173,7 +182,9 @@ const BudgetStatus: React.FC<BudgetStatusProps> = ({
       balances.push(running);
     }
 
-    if (balances.length === 0) return { dailyBalances: [], criticalDays: [], criticalMonths: [] };
+    if (balances.length === 0) {
+      return { dailyBalances: [], criticalDays: [], criticalMonths: [], monthlyPlannerRows: emptyPlannerRows };
+    }
 
     const minBalance = Math.min(...balances);
     const critical = balances
@@ -181,8 +192,14 @@ const BudgetStatus: React.FC<BudgetStatusProps> = ({
       .filter(d => d.balance === minBalance)
       .slice(0, 5);
 
-    return { dailyBalances: balances, criticalDays: critical, criticalMonths: [] };
+    return { dailyBalances: balances, criticalDays: critical, criticalMonths: [], monthlyPlannerRows: emptyPlannerRows };
   }, [budgetViewMode, plannerStartYear, plannerStartMonth, monthlyPlans, totalInDisplayCurrency, displayCurrency, exchangeRates, budgetYear, budgetMonth, days, daysInMonth, selectedCurrencies, startBalances]);
+
+  useEffect(() => {
+    if (budgetViewMode === 'months') {
+      setSelectedPlannerMonthSlot(12);
+    }
+  }, [budgetViewMode, plannerStartYear, plannerStartMonth, budgetYear, budgetMonth]);
 
   // Balance as of the selected day
   const selectedDayBalance = dailyBalances.length > 0 && selectedDay >= 1 && selectedDay <= dailyBalances.length
@@ -191,6 +208,19 @@ const BudgetStatus: React.FC<BudgetStatusProps> = ({
 
   const isEndOfMonth = selectedDay === daysInMonth;
   const displaySymbol = getCurrencySymbol(displayCurrency);
+
+  const plannerMonthCount = monthlyPlannerRows.length;
+  const selectedPlannerRow =
+    plannerMonthCount > 0 && selectedPlannerMonthSlot >= 1 && selectedPlannerMonthSlot <= plannerMonthCount
+      ? monthlyPlannerRows[selectedPlannerMonthSlot - 1]
+      : undefined;
+  const selectedPlannerMonthLabel = selectedPlannerRow
+    ? capitalizeFirstLetter(
+        getMonthYearLabel(i18nInstance.language || 'en', selectedPlannerRow.year, selectedPlannerRow.month)
+      )
+    : '';
+  const selectedPlannerBalance = selectedPlannerRow?.cumulative ?? null;
+  const isEndOfPlannerWindow = plannerMonthCount > 0 && selectedPlannerMonthSlot === plannerMonthCount;
 
   return (
     <div className="bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 rounded-2xl shadow-xl p-4 sm:p-6 mb-4 sm:mb-6 border border-indigo-100 transition-all hover:shadow-2xl">
@@ -360,6 +390,59 @@ const BudgetStatus: React.FC<BudgetStatusProps> = ({
                   selectedDayBalance !== null && selectedDayBalance >= 0 ? 'text-emerald-600' : 'text-rose-600'
                 }`}>
                   {displaySymbol}{formatNumber(selectedDayBalance ?? 0, 2)}
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Month selector & projected balance (12-month plan mode) */}
+      {budgetViewMode === 'months' && plannerMonthCount > 0 && (
+        <div className="mt-4 bg-white/80 backdrop-blur rounded-xl p-4 border border-indigo-100 shadow-sm">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <div className="flex items-center gap-3 flex-1 min-w-0">
+              <span className="text-lg flex-shrink-0">📅</span>
+              <div className="flex-1 min-w-0">
+                <label className="block text-xs font-semibold text-gray-600 mb-1">
+                  {t('budgetStatus.selectMonth')}
+                </label>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="range"
+                    min={1}
+                    max={plannerMonthCount}
+                    value={selectedPlannerMonthSlot}
+                    onChange={(e) => setSelectedPlannerMonthSlot(Number(e.target.value))}
+                    className="flex-1 h-2 bg-indigo-200 rounded-lg appearance-none cursor-pointer accent-indigo-600"
+                  />
+                  <span className="text-sm font-bold text-indigo-700 tabular-nums w-8 text-center flex-shrink-0">
+                    {selectedPlannerMonthSlot}
+                  </span>
+                </div>
+                <p className="text-[10px] sm:text-xs text-gray-500 mt-1 truncate" title={selectedPlannerMonthLabel}>
+                  {selectedPlannerMonthLabel}
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 flex-shrink-0">
+              <div className="text-right">
+                <p className="text-[10px] text-gray-500">
+                  {isEndOfPlannerWindow
+                    ? t('budgetStatus.endOfPlannerWindow')
+                    : t('budgetStatus.balanceOnMonth', { month: selectedPlannerMonthLabel })}
+                </p>
+                <p
+                  className={`text-lg sm:text-xl font-bold tabular-nums ${
+                    selectedPlannerBalance === null
+                      ? 'text-gray-400'
+                      : selectedPlannerBalance >= 0
+                        ? 'text-emerald-600'
+                        : 'text-rose-600'
+                  }`}
+                >
+                  {selectedPlannerBalance === null ? '—' : `${displaySymbol}${formatNumber(selectedPlannerBalance, 2)}`}
                 </p>
               </div>
             </div>
