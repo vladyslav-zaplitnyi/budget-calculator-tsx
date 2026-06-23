@@ -33,7 +33,9 @@ export function useBudgetManagement() {
     setDisplayCurrencyIndex,
     days,
     displayCurrency,
-    displayCurrencyIndex
+    displayCurrencyIndex,
+    currentBudgetBookId,
+    isCurrentBookReadOnly
   } = context;
 
   // Стан для модальних вікон
@@ -51,6 +53,13 @@ export function useBudgetManagement() {
   const createNewBudget = useCallback((name: string) => {
     const trimmedName = (name || '').trim();
     if (!trimmedName) return;
+
+    if (user && isCurrentBookReadOnly) {
+      setAlertMessage(translate('budgetBook.readOnlyActionBlocked'));
+      setAlertType('warning');
+      setShowAlertModal(true);
+      return;
+    }
 
     const currentBudgets = budgets || {};
     const count = Object.keys(currentBudgets).length;
@@ -139,7 +148,7 @@ export function useBudgetManagement() {
     }
 
     setDays(newDays);
-  }, [budgets, activeBudgetId, selectedCurrencies, exchangeRates, days, displayCurrency, displayCurrencyIndex, setBudgets, setActiveBudgetId, setDays]);
+  }, [budgets, activeBudgetId, selectedCurrencies, exchangeRates, days, displayCurrency, displayCurrencyIndex, setBudgets, setActiveBudgetId, setDays, user, isCurrentBookReadOnly]);
 
   const handleBudgetChange = useCallback((event: ChangeEvent<HTMLSelectElement>) => {
     const newId = event.target.value;
@@ -305,8 +314,15 @@ export function useBudgetManagement() {
       return;
     }
 
+    if (isCurrentBookReadOnly) {
+      setAlertMessage(translate('budgetBook.readOnlyActionBlocked'));
+      setAlertType('warning');
+      setShowAlertModal(true);
+      return;
+    }
+
     setShowPromptModal(true);
-  }, [user]);
+  }, [user, isCurrentBookReadOnly]);
 
   const handlePromptConfirm = useCallback((name: string) => {
     if (!name || !name.trim()) return;
@@ -316,6 +332,13 @@ export function useBudgetManagement() {
   const handleDeleteBudget = useCallback(() => {
     if (!user) {
       setAlertMessage(translate('settings.budget.signInRequiredDelete'));
+      setAlertType('warning');
+      setShowAlertModal(true);
+      return;
+    }
+
+    if (isCurrentBookReadOnly) {
+      setAlertMessage(translate('budgetBook.readOnlyActionBlocked'));
       setAlertType('warning');
       setShowAlertModal(true);
       return;
@@ -343,9 +366,18 @@ export function useBudgetManagement() {
     
     setBudgetToDeleteName(budgetName);
     setShowDeleteBudgetConfirmModal(true);
-  }, [user, budgets, activeBudgetId]);
+  }, [user, budgets, activeBudgetId, isCurrentBookReadOnly]);
 
   const handleConfirmDeleteBudget = useCallback(() => {
+    if (user && isCurrentBookReadOnly) {
+      setShowDeleteBudgetConfirmModal(false);
+      setBudgetToDeleteName('');
+      setAlertMessage(translate('budgetBook.readOnlyActionBlocked'));
+      setAlertType('warning');
+      setShowAlertModal(true);
+      return;
+    }
+
     setShowDeleteBudgetConfirmModal(false);
     
     const currentBudgets = budgets || {};
@@ -405,14 +437,24 @@ export function useBudgetManagement() {
     if (user) {
       (async () => {
         try {
-          await saveToFirestore(user, updatedBudgets, newActiveId, true, setSyncStatus, getSyncStatusText, encryptionPassword, setIsEncrypted);
+          await saveToFirestore(
+            user,
+            updatedBudgets,
+            newActiveId,
+            true,
+            setSyncStatus,
+            getSyncStatusText,
+            encryptionPassword,
+            setIsEncrypted,
+            { budgetBookId: currentBudgetBookId, isReadOnly: isCurrentBookReadOnly }
+          );
           console.log('✅ Бюджет успішно видалено з Firestore');
         } catch (error) {
           console.error('❌ Помилка при видаленні бюджету з Firestore:', error);
         }
       })();
     }
-  }, [budgets, activeBudgetId, setBudgets, setActiveBudgetId, setSelectedCurrencies, setExchangeRates, setDays, setSyncStatus, getSyncStatusText, encryptionPassword, setIsEncrypted, user]);
+  }, [budgets, activeBudgetId, setBudgets, setActiveBudgetId, setSelectedCurrencies, setExchangeRates, setDays, setSyncStatus, getSyncStatusText, encryptionPassword, setIsEncrypted, user, isCurrentBookReadOnly, currentBudgetBookId]);
 
   const handleCancelDeleteBudget = useCallback(() => {
     setShowDeleteBudgetConfirmModal(false);
@@ -424,6 +466,13 @@ export function useBudgetManagement() {
     const trimmedName = (newName || '').trim();
     if (!trimmedName) {
       setAlertMessage(translate('settings.budget.editNamePlaceholder'));
+      setAlertType('warning');
+      setShowAlertModal(true);
+      return;
+    }
+
+    if (user && isCurrentBookReadOnly) {
+      setAlertMessage(translate('budgetBook.readOnlyActionBlocked'));
       setAlertType('warning');
       setShowAlertModal(true);
       return;
@@ -463,14 +512,15 @@ export function useBudgetManagement() {
       (async () => {
         try {
           await saveToFirestore(
-            user, 
-            updatedBudgets, 
-            activeBudgetId, 
-            true, 
-            setSyncStatus, 
-            getSyncStatusText, 
-            encryptionPassword, 
-            setIsEncrypted
+            user,
+            updatedBudgets,
+            activeBudgetId,
+            true,
+            setSyncStatus,
+            getSyncStatusText,
+            encryptionPassword,
+            setIsEncrypted,
+            { budgetBookId: currentBudgetBookId, isReadOnly: isCurrentBookReadOnly }
           );
           console.log('✅ Назва бюджету успішно оновлена');
         } catch (error) {
@@ -478,7 +528,7 @@ export function useBudgetManagement() {
         }
       })();
     }
-  }, [budgets, activeBudgetId, user, encryptionPassword, setBudgets, setSyncStatus, getSyncStatusText, setIsEncrypted]);
+  }, [budgets, activeBudgetId, user, encryptionPassword, setBudgets, setSyncStatus, getSyncStatusText, setIsEncrypted, isCurrentBookReadOnly, currentBudgetBookId]);
 
   const handleEditBudgetClick = useCallback(() => {
     if (!user) {
@@ -488,9 +538,16 @@ export function useBudgetManagement() {
       return;
     }
 
+    if (isCurrentBookReadOnly) {
+      setAlertMessage(translate('budgetBook.readOnlyActionBlocked'));
+      setAlertType('warning');
+      setShowAlertModal(true);
+      return;
+    }
+
     setEditingBudgetId(activeBudgetId);
     setShowEditNameModal(true);
-  }, [user, activeBudgetId]);
+  }, [user, activeBudgetId, isCurrentBookReadOnly]);
 
   const handleEditNameConfirm = useCallback((newName: string) => {
     if (!newName || !newName.trim() || !editingBudgetId) return;

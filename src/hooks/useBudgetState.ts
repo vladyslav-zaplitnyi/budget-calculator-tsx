@@ -2,16 +2,26 @@ import { useReducer, useEffect, useCallback, useMemo, useRef, useState } from 'r
 import { loadFromLocalStorage, saveToLocalStorage, createEmptyDefaultBudget } from '../utils/storageHelpers';
 import { normalizeDaysArray } from '../utils/dayHelpers';
 import { DEFAULT_CURRENCIES, validateSelectedCurrencies, BASE_CURRENCY } from '../utils/currencies';
+import {
+  monthKeyFromBudgetDate,
+  trimOldestMonthKeys,
+  trimRollingMonthsToMax,
+  buildEmptyMonthSlice,
+  getCurrentCalendarBudgetDate
+} from '../utils/rollingMonthsBudget';
+import { applyBalanceWaterfallToBudget } from '../utils/balanceWaterfall';
+import type { Budget } from '../types';
 import { LANGUAGE_STORAGE_KEY, LANGUAGE_COOKIE_KEY } from '../utils/constants';
 import { setCookie } from '../utils/cookieHelpers';
 import { currencyReducer, createCurrencyInitialState, currencyActions } from '../reducers/currencyReducer';
 import { budgetReducer, createBudgetInitialState, budgetActions } from '../reducers/budgetReducer';
 import { displayReducer, createDisplayInitialState, displayActions } from '../reducers/displayReducer';
 import { messageReducer, createMessageInitialState, messageActions } from '../reducers/messageReducer';
-import { Day, ExchangeRates, Budgets } from '../types';
+import { Day, ExchangeRates, Budgets, BudgetBookSummary } from '../types';
 import { hasPairStructure, getBuyRate } from '../utils/typeGuards';
 import i18n from '../i18n/config';
 import { roundToDecimals } from '../utils/rounding';
+import { DEFAULT_BUDGET_BOOK_ID } from '../services/budgetBooksFirestore';
 
 export interface BudgetStateInterface {
   language: string;
@@ -54,6 +64,12 @@ export interface BudgetStateInterface {
   // Budget date
   budgetDate: { year: number; month: number };
   setBudgetDate: (date: { year: number; month: number }) => void;
+  /** Firestore budget books (`users/{uid}/budgetBooks/*`); empty when signed out / local-only. */
+  availableBudgetBooks: BudgetBookSummary[];
+  setAvailableBudgetBooks: (books: BudgetBookSummary[]) => void;
+  currentBudgetBookId: string;
+  setCurrentBudgetBookId: (id: string) => void;
+  isCurrentBookReadOnly: boolean;
 }
 
 export function useBudgetState(): BudgetStateInterface {
@@ -127,6 +143,9 @@ export function useBudgetState(): BudgetStateInterface {
   // Encryption state - НЕ зберігається в localStorage, тільки в пам'яті
   const [encryptionPassword, setEncryptionPasswordState] = useState<string | null>(null);
   const [isEncrypted, setIsEncryptedState] = useState<boolean>(false);
+
+  const [availableBudgetBooks, setAvailableBudgetBooks] = useState<BudgetBookSummary[]>([]);
+  const [currentBudgetBookId, setCurrentBudgetBookId] = useState<string>(DEFAULT_BUDGET_BOOK_ID);
 
   // Використовуємо ref для зберігання поточного стану, щоб уникнути залежностей в useCallback
   const budgetStateRef = useRef(budgetState);
@@ -258,7 +277,10 @@ export function useBudgetState(): BudgetStateInterface {
     // Очищаємо шифрування
     setEncryptionPassword(null);
     setIsEncrypted(false);
-    
+
+    setAvailableBudgetBooks([]);
+    setCurrentBudgetBookId(DEFAULT_BUDGET_BOOK_ID);
+
     // Зберігаємо в localStorage
     saveToLocalStorage(emptyBudget, 'default');
   }, [
@@ -322,74 +344,88 @@ export function useBudgetState(): BudgetStateInterface {
     }
   }, [displayState.displayCurrency, displayState.displayCurrencyIndex]);
 
-  // Функція для оновлення budgetDate активного бюджету
+  // Функція для оновлення budgetDate активного бюджету (rolling months, max 12)
   const setBudgetDate = useCallback((date: { year: number; month: number }) => {
-    const currentId = budgetStateRef.current.activeBudgetId || 'default';
-    setBudgets((prevBudgets: Budgets) => {
-      const safePrev = prevBudgets || {};
-      const existingBudget = safePrev[currentId];
-      
-      if (!existingBudget) return safePrev;
-      
-      // Отримуємо кількість днів у новому місяці
-      const newDaysInMonth = new Date(date.year, date.month + 1, 0).getDate();
-      const currentDays = existingBudget.days || [];
-      
-      // Створюємо новий масив днів
-      let updatedDays: Day[];
-      
-      if (newDaysInMonth >= currentDays.length) {
-        // Якщо новий місяць має більше або стільки ж днів - додаємо нові дні
-        updatedDays = [...currentDays];
-        for (let i = currentDays.length; i < newDaysInMonth; i++) {
-          updatedDays.push({
-            day: i + 1,
-            transactions: [],
-            description: ''
-          });
-        }
-      } else {
-        // Якщо новий місяць має менше днів - очищаємо "зайві" дні
-        updatedDays = currentDays.map((day, index) => {
-          if (index >= newDaysInMonth) {
-            // Очищаємо дні які виходять за межі місяця
-            return {
-              day: day.day,
+    const snap = budgetStateRef.current;
+    const currentId = snap.activeBudgetId || 'default';
+    const existingBudget = snap.budgets[currentId];
+    if (!existingBudget) return;
+
+    const prevDate = existingBudget.budgetDate || getCurrentCalendarBudgetDate();
+    const oldKey = monthKeyFromBudgetDate(prevDate.year, prevDate.month);
+    const newKey = monthKeyFromBudgetDate(date.year, date.month);
+
+    if (oldKey === newKey) {
+      setBudgets((prevBudgets: Budgets) => {
+        const safePrev = prevBudgets || {};
+        const existing = safePrev[currentId];
+        if (!existing) return safePrev;
+
+        const newDaysInMonth = new Date(date.year, date.month + 1, 0).getDate();
+        const currentDays = existing.days || [];
+        let updatedDays: Day[];
+
+        if (newDaysInMonth >= currentDays.length) {
+          updatedDays = [...currentDays];
+          for (let i = currentDays.length; i < newDaysInMonth; i++) {
+            updatedDays.push({
+              day: i + 1,
               transactions: [],
               description: ''
-            };
+            });
           }
-          return day;
-        });
-      }
-      
-      return {
-        ...safePrev,
-        [currentId]: {
-          ...existingBudget,
-          budgetDate: date,
-          days: updatedDays
-        }
-      };
-    });
-    
-    // Також оновлюємо days в стані
-    setDays((prevDays: Day[]) => {
-      const newDaysInMonth = new Date(date.year, date.month + 1, 0).getDate();
-      
-      if (newDaysInMonth >= prevDays.length) {
-        // Додаємо нові дні
-        const updatedDays = [...prevDays];
-        for (let i = prevDays.length; i < newDaysInMonth; i++) {
-          updatedDays.push({
-            day: i + 1,
-            transactions: [],
-            description: ''
+        } else {
+          updatedDays = currentDays.map((day, index) => {
+            if (index >= newDaysInMonth) {
+              return {
+                day: day.day,
+                transactions: [],
+                description: ''
+              };
+            }
+            return day;
           });
         }
-        return updatedDays;
-      } else {
-        // Очищаємо дні які виходять за межі місяця
+
+        const monthsByKey = trimOldestMonthKeys({
+          ...(existing.monthsByKey || {}),
+          [oldKey]: {
+            days: updatedDays,
+            startBalances: { ...(existing.startBalances || {}) }
+          }
+        });
+
+        const draftBudget: Budget = {
+          ...existing,
+          budgetDate: date,
+          days: updatedDays,
+          monthsByKey,
+          startBalances: { ...(existing.startBalances || {}) },
+          selectedCurrencies: existing.selectedCurrencies || DEFAULT_CURRENCIES
+        };
+        const afterWaterfall = applyBalanceWaterfallToBudget(draftBudget);
+
+        return {
+          ...safePrev,
+          [currentId]: { ...existing, ...afterWaterfall }
+        };
+      });
+
+      setDays((prevDays: Day[]) => {
+        const newDaysInMonth = new Date(date.year, date.month + 1, 0).getDate();
+
+        if (newDaysInMonth >= prevDays.length) {
+          const updatedDays = [...prevDays];
+          for (let i = prevDays.length; i < newDaysInMonth; i++) {
+            updatedDays.push({
+              day: i + 1,
+              transactions: [],
+              description: ''
+            });
+          }
+          return updatedDays;
+        }
+
         return prevDays.map((day, index) => {
           if (index >= newDaysInMonth) {
             return {
@@ -400,8 +436,67 @@ export function useBudgetState(): BudgetStateInterface {
           }
           return day;
         });
+      });
+      return;
+    }
+
+    let monthsByKey = trimOldestMonthKeys({ ...(existingBudget.monthsByKey || {}) });
+    const uiDays =
+      snap.days && snap.days.length > 0 ? snap.days : existingBudget.days || [];
+    monthsByKey = trimOldestMonthKeys({
+      ...monthsByKey,
+      [oldKey]: {
+        days: uiDays,
+        startBalances: { ...(existingBudget.startBalances || {}) }
       }
     });
+
+    let nextSlice = monthsByKey[newKey];
+    if (!nextSlice) {
+      nextSlice = buildEmptyMonthSlice(
+        date.year,
+        date.month,
+        existingBudget.selectedCurrencies || DEFAULT_CURRENCIES
+      );
+    } else {
+      nextSlice = {
+        days: normalizeDaysArray(nextSlice.days, date.year, date.month),
+        startBalances: { ...nextSlice.startBalances }
+      };
+      const codes = existingBudget.selectedCurrencies || DEFAULT_CURRENCIES;
+      codes.forEach((c) => {
+        if (!(c in nextSlice!.startBalances)) nextSlice!.startBalances[c] = null;
+      });
+    }
+
+    const mergedForTrim = {
+      ...monthsByKey,
+      [newKey]: nextSlice
+    };
+    const forwardJump = newKey > oldKey;
+    monthsByKey = trimRollingMonthsToMax(mergedForTrim, 12, !forwardJump).trimmed;
+
+    const draftBudget: Budget = {
+      ...existingBudget,
+      budgetDate: date,
+      days: nextSlice!.days,
+      startBalances: { ...nextSlice!.startBalances },
+      monthsByKey,
+      selectedCurrencies: existingBudget.selectedCurrencies || DEFAULT_CURRENCIES
+    };
+    const afterWaterfall = applyBalanceWaterfallToBudget(draftBudget);
+
+    setBudgets((prevBudgets: Budgets) => {
+      const safePrev = prevBudgets || {};
+      const existing = safePrev[currentId];
+      if (!existing) return safePrev;
+      return {
+        ...safePrev,
+        [currentId]: { ...existing, ...afterWaterfall }
+      };
+    });
+
+    setDays(afterWaterfall.days);
   }, [setBudgets, setDays]);
 
   // Обчислюємо поточний budgetDate з активного бюджету
@@ -417,6 +512,11 @@ export function useBudgetState(): BudgetStateInterface {
       month: now.getMonth()
     };
   }, [budgetState.budgets, budgetState.activeBudgetId]);
+
+  const isCurrentBookReadOnly = useMemo(() => {
+    const meta = availableBudgetBooks.find((b) => b.id === currentBudgetBookId);
+    return meta?.isReadOnly === true;
+  }, [availableBudgetBooks, currentBudgetBookId]);
 
   // Мемоізуємо об'єкт стану, щоб уникнути створення нового об'єкта на кожен рендер
   return useMemo(() => ({
@@ -473,7 +573,13 @@ export function useBudgetState(): BudgetStateInterface {
     setEncryptionPassword,
     isEncrypted,
     setIsEncrypted,
-    
+
+    availableBudgetBooks,
+    setAvailableBudgetBooks,
+    currentBudgetBookId,
+    setCurrentBudgetBookId,
+    isCurrentBookReadOnly,
+
     // Budget date
     budgetDate,
     setBudgetDate
@@ -513,6 +619,9 @@ export function useBudgetState(): BudgetStateInterface {
     setEncryptionPassword,
     isEncrypted,
     setIsEncrypted,
+    availableBudgetBooks,
+    currentBudgetBookId,
+    isCurrentBookReadOnly,
     budgetDate,
     setBudgetDate
   ]);

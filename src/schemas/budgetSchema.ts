@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { Transaction, Day, Budget, Budgets, UserData, ExchangeRates } from '../types';
+import { Transaction, Day, Budget, Budgets, UserData, ExchangeRates, MonthSlice } from '../types';
 
 /**
  * Схема валідації для ExchangeRates
@@ -44,6 +44,11 @@ export const DaySchema = z.object({
   description: data.description || ''
 })) as z.ZodType<Day>;
 
+const MonthSliceSchema = z.object({
+  days: z.array(DaySchema),
+  startBalances: z.record(z.string(), z.number().nullable())
+}) as z.ZodType<MonthSlice>;
+
 /**
  * Схема валідації для Budget
  */
@@ -56,7 +61,16 @@ export const BudgetSchema: z.ZodType<Budget> = z.object({
   monthlyPlans: z.record(z.string(), z.array(TransactionSchema)).optional(),
   plannerStartYear: z.number().int().optional(),
   plannerStartMonth: z.number().int().min(0).max(11).optional(),
-  plannerExpandedMonth: z.string().nullable().optional()
+  plannerExpandedMonth: z.string().nullable().optional(),
+  displayCurrency: z.string().optional(),
+  displayCurrencyIndex: z.number().int().optional(),
+  budgetDate: z
+    .object({
+      year: z.number().int(),
+      month: z.number().int().min(0).max(11)
+    })
+    .optional(),
+  monthsByKey: z.record(z.string(), MonthSliceSchema).optional()
 });
 
 /**

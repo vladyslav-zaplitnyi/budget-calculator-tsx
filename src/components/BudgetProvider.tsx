@@ -63,11 +63,19 @@ export function BudgetProvider({ children }: BudgetProviderProps) {
     ...budgetState,
     syncStatus,
     setSyncStatus,
-    getSyncStatusText
-  }), [budgetState, syncStatus, getSyncStatusText]);
+    getSyncStatusText,
+    user
+  }), [budgetState, syncStatus, getSyncStatusText, user]);
 
   // Використовуємо синхронізацію
-  const { showPasswordModal, passwordError, handlePasswordSubmit, handlePasswordCancel: originalHandlePasswordCancel } = useBudgetSync(budgetStateWithSync, getSyncStatusText, user, authLoading);
+  const {
+    showPasswordModal,
+    passwordError,
+    handlePasswordSubmit,
+    handlePasswordCancel: originalHandlePasswordCancel,
+    switchBudgetBook,
+    isSwitchingBudgetBook
+  } = useBudgetSync(budgetStateWithSync, getSyncStatusText, user, authLoading);
   
   // Обгортка для handlePasswordCancel з автоматичним виходом
   const handlePasswordCancel = useCallback(async () => {
@@ -160,15 +168,16 @@ export function BudgetProvider({ children }: BudgetProviderProps) {
   const value: BudgetContextValue = useMemo(() => ({
     ...budgetStateWithSync,
     ...currencyRates,
-    user,
     authLoading,
     loginWithGoogle,
     logout,
     deleteUserAccount,
+    switchBudgetBook,
+    isSwitchingBudgetBook,
     showPasswordModal,
     handlePasswordSubmit,
     passwordError
-  }), [budgetStateWithSync, currencyRates, user, authLoading, loginWithGoogle, logout, deleteUserAccount, showPasswordModal, handlePasswordSubmit, passwordError]);
+  }), [budgetStateWithSync, currencyRates, authLoading, loginWithGoogle, logout, deleteUserAccount, switchBudgetBook, isSwitchingBudgetBook, showPasswordModal, handlePasswordSubmit, passwordError]);
 
   return (
     <BudgetContext.Provider value={value}>

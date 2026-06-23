@@ -47,6 +47,7 @@ interface MonthlyPlannerProps {
   exchangeRates: ExchangeRates;
   /** Projected balance at end of current budget month (in display currency). */
   startingBalance: number;
+  readOnly?: boolean;
 }
 
 const MAX_TRANSACTIONS_PER_MONTH = 30;
@@ -81,7 +82,8 @@ const MonthlyPlanner = forwardRef<MonthlyPlannerHandle, MonthlyPlannerProps>(fun
   selectedCurrencies,
   displayCurrency,
   exchangeRates,
-  startingBalance
+  startingBalance,
+  readOnly = false
 }, ref) {
   const { t, i18n: i18nInstance } = useTranslation();
   const symbol = getCurrencySymbol(displayCurrency);
@@ -187,15 +189,20 @@ const MonthlyPlanner = forwardRef<MonthlyPlannerHandle, MonthlyPlannerProps>(fun
     }
   }, [months, expandedMonth, setExpandedMonth]);
 
-  useImperativeHandle(ref, () => ({
-    openAddPlannedModal: (defaultSelectedMonthKeys: string[] = []) => {
-      setModal({
-        isOpen: true,
-        editing: null,
-        defaultSelectedKeys: defaultSelectedMonthKeys ?? []
-      });
-    }
-  }), []);
+  useImperativeHandle(
+    ref,
+    () => ({
+      openAddPlannedModal: (defaultSelectedMonthKeys: string[] = []) => {
+        if (readOnly) return;
+        setModal({
+          isOpen: true,
+          editing: null,
+          defaultSelectedKeys: defaultSelectedMonthKeys ?? []
+        });
+      }
+    }),
+    [readOnly]
+  );
 
   const openEditModal = (monthKey: string, transaction: Transaction) => {
     setModal({ isOpen: true, editing: { monthKey, transaction }, defaultSelectedKeys: [] });
@@ -260,11 +267,16 @@ const MonthlyPlanner = forwardRef<MonthlyPlannerHandle, MonthlyPlannerProps>(fun
   };
 
   const toggleExpand = (key: string) => {
+    if (readOnly) return;
     setExpandedMonth(expandedMonth === key ? null : key);
   };
 
   return (
-    <div className="bg-white/95 backdrop-blur rounded-2xl shadow-xl border border-gray-100 mb-4 sm:mb-6 overflow-hidden">
+    <div
+      className={`bg-white/95 backdrop-blur rounded-2xl shadow-xl border border-gray-100 mb-4 sm:mb-6 overflow-hidden ${
+        readOnly ? 'opacity-[0.88] pointer-events-none' : ''
+      }`}
+    >
       <div className="bg-gradient-to-r from-indigo-600 via-blue-600 to-violet-600 p-4 sm:p-6 text-white">
         <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-3">
           <div>

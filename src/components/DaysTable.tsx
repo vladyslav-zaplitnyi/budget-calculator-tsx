@@ -24,6 +24,7 @@ interface DaysTableProps {
   startBalances?: Record<string, number | null>;
   budgetYear: number;
   budgetMonth: number;
+  readOnly?: boolean;
 }
 
 const DaysTable: React.FC<DaysTableProps> = ({
@@ -35,7 +36,8 @@ const DaysTable: React.FC<DaysTableProps> = ({
   exchangeRates = {},
   startBalances = {},
   budgetYear,
-  budgetMonth
+  budgetMonth,
+  readOnly = false
 }) => {
   const { t: translate, i18n: i18nInstance } = useTranslation();
   const [modalState, setModalState] = useState<{
@@ -59,6 +61,7 @@ const DaysTable: React.FC<DaysTableProps> = ({
   const visibleDays = days.slice(0, daysInMonth);
 
   const handleAddTransaction = (dayIndex: number) => {
+    if (readOnly) return;
     const day = days[dayIndex];
     if (!day) return;
     const transactionCount = Array.isArray(day.transactions) ? day.transactions.length : 0;
@@ -77,6 +80,7 @@ const DaysTable: React.FC<DaysTableProps> = ({
   };
 
   const handleEditTransaction = (dayIndex: number, transaction: Transaction) => {
+    if (readOnly) return;
     setModalState({
       isOpen: true,
       dayIndex,
@@ -85,6 +89,7 @@ const DaysTable: React.FC<DaysTableProps> = ({
   };
 
   const handleDeleteTransaction = (dayIndex: number, transactionId: string) => {
+    if (readOnly) return;
     const day = days[dayIndex];
     if (!day) return;
     const updatedTransactions = (day.transactions || []).filter(t => t.id !== transactionId);
@@ -92,6 +97,7 @@ const DaysTable: React.FC<DaysTableProps> = ({
   };
 
   const handleSaveTransaction = (transactionData: Partial<Transaction>) => {
+    if (readOnly) return;
     const { dayIndex, transaction: existingTransaction } = modalState;
     if (dayIndex === null) return;
 
@@ -144,7 +150,11 @@ const DaysTable: React.FC<DaysTableProps> = ({
   };
 
   return (
-    <div className="hidden md:block bg-white rounded-2xl shadow-xl overflow-hidden mb-4 sm:mb-6">
+    <div
+      className={`hidden md:block bg-white rounded-2xl shadow-xl overflow-hidden mb-4 sm:mb-6 ${
+        readOnly ? 'opacity-[0.88] pointer-events-none' : ''
+      }`}
+    >
       <div className="table-container overflow-x-auto lg:max-h-[85vh] lg:overflow-y-auto">
         <table className="w-full text-sm tabular-nums">
           <thead className="bg-gradient-to-r from-indigo-600 via-blue-600 to-violet-600 !text-white sticky-table-header">

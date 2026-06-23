@@ -3,6 +3,12 @@ import { BudgetStateWithSync } from '../contexts/BudgetContext';
 import { Budgets, Budget } from '../types';
 import { DEFAULT_CURRENCIES } from '../utils/currencies';
 import { translate } from '../i18n/config';
+import {
+  monthKeyFromBudgetDate,
+  trimOldestMonthKeys,
+  getCurrentCalendarBudgetDate
+} from '../utils/rollingMonthsBudget';
+import { applyBalanceWaterfallToBudget } from '../utils/balanceWaterfall';
 
 /**
  * Hook для синхронізації стану бюджету (баланси, курси, дні) в об'єкт budgets
@@ -114,6 +120,27 @@ export function useBudgetStateSync(
         // Завжди беремо значення з існуючого бюджету
         updatedStartBalances[code] = existingBudget.startBalances?.[code] ?? null;
       });
+
+      const bd = existingBudget.budgetDate || getCurrentCalendarBudgetDate();
+      const mk = monthKeyFromBudgetDate(bd.year, bd.month);
+      const monthsByKey = trimOldestMonthKeys({
+        ...(existingBudget.monthsByKey || {}),
+        [mk]: {
+          days: existingBudget.days || [],
+          startBalances: updatedStartBalances
+        }
+      });
+
+      const draftBudget: Budget = {
+        ...existingBudget,
+        startBalances: updatedStartBalances,
+        selectedCurrencies: selectedCurrencies || existingBudget.selectedCurrencies || DEFAULT_CURRENCIES,
+        exchangeRates: existingBudget.exchangeRates || {},
+        days: existingBudget.days || [],
+        budgetDate: existingBudget.budgetDate,
+        monthsByKey
+      };
+      const afterWaterfall = applyBalanceWaterfallToBudget(draftBudget);
       
       // ВАЖЛИВО: Зберігаємо всі курси з існуючого бюджету
       // Не замінюємо їх, щоб не втратити курси для невибраних валют
@@ -123,12 +150,8 @@ export function useBudgetStateSync(
         ...safePrev,
         [currentId]: {
           ...existingBudget,
-          startBalances: updatedStartBalances,
-          selectedCurrencies: selectedCurrencies || existingBudget.selectedCurrencies || DEFAULT_CURRENCIES,
-          exchangeRates: preservedExchangeRates,
-          days: existingBudget.days || [],
-          // Зберігаємо budgetDate з існуючого бюджету (важливо не втратити при синхронізації)
-          budgetDate: existingBudget.budgetDate
+          ...afterWaterfall,
+          exchangeRates: preservedExchangeRates
         }
       };
     });
@@ -168,6 +191,16 @@ export function useBudgetStateSync(
         ...(existingBudget.exchangeRates || {}),
         ...(exchangeRates || {})
       };
+
+      const bd = existingBudget.budgetDate || getCurrentCalendarBudgetDate();
+      const mk = monthKeyFromBudgetDate(bd.year, bd.month);
+      const monthsByKey = trimOldestMonthKeys({
+        ...(existingBudget.monthsByKey || {}),
+        [mk]: {
+          days: existingBudget.days || [],
+          startBalances: { ...(existingBudget.startBalances || {}) }
+        }
+      });
       
       return {
         ...safePrev,
@@ -178,7 +211,8 @@ export function useBudgetStateSync(
           selectedCurrencies: existingBudget.selectedCurrencies || DEFAULT_CURRENCIES,
           days: existingBudget.days || [],
           // Зберігаємо budgetDate з існуючого бюджету
-          budgetDate: existingBudget.budgetDate
+          budgetDate: existingBudget.budgetDate,
+          monthsByKey
         }
       };
     });
@@ -216,17 +250,34 @@ export function useBudgetStateSync(
       // ВАЖЛИВО: Зберігаємо всі курси з існуючого бюджету
       // Курси не повинні втрачатися при синхронізації днів
       const preservedExchangeRates = existingBudget.exchangeRates || {};
+
+      const bd = existingBudget.budgetDate || getCurrentCalendarBudgetDate();
+      const mk = monthKeyFromBudgetDate(bd.year, bd.month);
+      const monthsByKey = trimOldestMonthKeys({
+        ...(existingBudget.monthsByKey || {}),
+        [mk]: {
+          days: days || [],
+          startBalances: { ...(existingBudget.startBalances || {}) }
+        }
+      });
+
+      const draftBudget: Budget = {
+        ...existingBudget,
+        days: days || [],
+        startBalances: existingBudget.startBalances || {},
+        selectedCurrencies: existingBudget.selectedCurrencies || DEFAULT_CURRENCIES,
+        exchangeRates: preservedExchangeRates,
+        budgetDate: existingBudget.budgetDate,
+        monthsByKey
+      };
+      const afterWaterfall = applyBalanceWaterfallToBudget(draftBudget);
       
       return {
         ...safePrev,
         [currentId]: {
           ...existingBudget,
-          days: days || [],
-          startBalances: existingBudget.startBalances || {},
-          selectedCurrencies: existingBudget.selectedCurrencies || DEFAULT_CURRENCIES,
-          exchangeRates: preservedExchangeRates,
-          // Зберігаємо budgetDate з існуючого бюджету
-          budgetDate: existingBudget.budgetDate
+          ...afterWaterfall,
+          exchangeRates: preservedExchangeRates
         }
       };
     });
@@ -263,6 +314,16 @@ export function useBudgetStateSync(
       // ВАЖЛИВО: Зберігаємо всі курси з існуючого бюджету
       // Курси не повинні втрачатися при синхронізації displayCurrency
       const preservedExchangeRates = existingBudget.exchangeRates || {};
+
+      const bd = existingBudget.budgetDate || getCurrentCalendarBudgetDate();
+      const mk = monthKeyFromBudgetDate(bd.year, bd.month);
+      const monthsByKey = trimOldestMonthKeys({
+        ...(existingBudget.monthsByKey || {}),
+        [mk]: {
+          days: existingBudget.days || [],
+          startBalances: { ...(existingBudget.startBalances || {}) }
+        }
+      });
       
       return {
         ...safePrev,
@@ -275,7 +336,8 @@ export function useBudgetStateSync(
           exchangeRates: preservedExchangeRates,
           days: existingBudget.days || [],
           // Зберігаємо budgetDate з існуючого бюджету
-          budgetDate: existingBudget.budgetDate
+          budgetDate: existingBudget.budgetDate,
+          monthsByKey
         }
       };
     });

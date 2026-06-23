@@ -1,4 +1,5 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import Footer from './Footer';
 import Header from './Header';
 import SettingsCard from './SettingsCard';
@@ -10,7 +11,8 @@ import Analytics from './Analytics';
 import AppTabs, { BudgetAppTab } from './AppTabs';
 import OverviewDashboard from './OverviewDashboard';
 import TransactionExplorer from './TransactionExplorer';
-import MonthlyPlanner, { MonthlyPlannerHandle } from './MonthlyPlanner';
+import TwelveMonthOverview from './TwelveMonthOverview';
+import BudgetMonthSection from './BudgetMonthSection';
 import AlertModal from './AlertModal';
 import PromptModal from './PromptModal';
 import ConfirmModal from './ConfirmModal';
@@ -18,10 +20,11 @@ import ImportModal from './ImportModal';
 import { useBudgetContext } from '../contexts/BudgetContext';
 import { useBudgetHandlers } from '../hooks/useBudgetHandlers';
 import { calculateTotals, calculateFinalBalances, convertCurrency } from '../utils/calculations';
-import { Budgets, Transaction } from '../types';
-import { getDefaultPlannerStart } from '../utils/monthlyPlan';
 import { translate } from '../i18n/config';
 import { BUDGET_VIEW_MODE_IMPORT_EVENT } from '../hooks/useBudgetImportExport';
+import { getDefaultPlannerStart } from '../utils/monthlyPlan';
+import { isViewingCurrentCalendarMonth } from '../utils/rollingMonthsBudget';
+import { simulateMonthsAfterNavigation } from '../utils/balanceWaterfall';
 
 const APP_TAB_STORAGE_KEY = 'budget_tracker_active_tab';
 const BUDGET_VIEW_MODE_STORAGE_KEY = 'budget_tracker_budget_view_mode';
@@ -46,7 +49,7 @@ const normalizeStoredTab = (value: string | null): BudgetAppTab => {
 export default function BudgetTracker() {
   const context = useBudgetContext();
   const handlers = useBudgetHandlers();
-  const monthlyPlannerRef = useRef<MonthlyPlannerHandle>(null);
+  const { t } = useTranslation();
 
   const {
     language,
@@ -61,7 +64,6 @@ export default function BudgetTracker() {
     exchangeRates,
     activeBudgetId,
     budgets,
-    setBudgets,
     days,
     updateDay,
     displayCurrency,
@@ -81,7 +83,12 @@ export default function BudgetTracker() {
     showPasswordModal,
     handlePasswordSubmit,
     passwordError,
-    budgetDate
+    budgetDate,
+    setBudgetDate,
+    isCurrentBookReadOnly,
+    currentBudgetBookId,
+    switchBudgetBook,
+    isSwitchingBudgetBook
   } = context;
 
   const {
@@ -173,7 +180,7 @@ export default function BudgetTracker() {
     }
   });
 
-  const handleBudgetViewModeChange = (mode: BudgetViewMode) => {
+  const handleBudgetViewModeChange = useCallback((mode: BudgetViewMode) => {
     setBudgetViewMode(mode);
     try {
       if (typeof window !== 'undefined') {
@@ -182,7 +189,7 @@ export default function BudgetTracker() {
     } catch {
       // ignore storage errors
     }
-  };
+  }, []);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -197,106 +204,83 @@ export default function BudgetTracker() {
       window.removeEventListener(BUDGET_VIEW_MODE_IMPORT_EVENT, onImported as EventListener);
   }, []);
 
-  // Plans for future months are stored on the active budget so they sync to
-  // Firestore/localStorage alongside everything else.
   const activeBudgetIdSafe = activeBudgetId || 'default';
-  const monthlyPlans = useMemo<Record<string, Transaction[]>>(() => {
-    const active = budgets && budgets[activeBudgetIdSafe];
-    return (active && active.monthlyPlans) || {};
-  }, [budgets, activeBudgetIdSafe]);
-
-  const updateMonthlyPlan = useCallback((monthKey: string, transactions: Transaction[]) => {
-    setBudgets((prev: Budgets) => {
-      const safePrev = prev || {};
-      const existingBudget = safePrev[activeBudgetIdSafe];
-      if (!existingBudget) return safePrev;
-      const prevPlans = existingBudget.monthlyPlans || {};
-      const nextPlans: Record<string, Transaction[]> = { ...prevPlans };
-      if (!transactions || transactions.length === 0) {
-        delete nextPlans[monthKey];
-      } else {
-        nextPlans[monthKey] = transactions;
-      }
-      return {
-        ...safePrev,
-        [activeBudgetIdSafe]: {
-          ...existingBudget,
-          monthlyPlans: nextPlans
-        }
-      };
-    });
-  }, [setBudgets, activeBudgetIdSafe]);
-
-  const bulkUpdateMonthlyPlans = useCallback((updates: Record<string, Transaction[]>) => {
-    if (!updates || Object.keys(updates).length === 0) return;
-    setBudgets((prev: Budgets) => {
-      const safePrev = prev || {};
-      const existingBudget = safePrev[activeBudgetIdSafe];
-      if (!existingBudget) return safePrev;
-      const nextPlans: Record<string, Transaction[]> = { ...(existingBudget.monthlyPlans || {}) };
-      Object.entries(updates).forEach(([key, transactions]) => {
-        if (!transactions || transactions.length === 0) {
-          delete nextPlans[key];
-        } else {
-          nextPlans[key] = transactions;
-        }
-      });
-      return {
-        ...safePrev,
-        [activeBudgetIdSafe]: {
-          ...existingBudget,
-          monthlyPlans: nextPlans
-        }
-      };
-    });
-  }, [setBudgets, activeBudgetIdSafe]);
-
-  // Persisted rolling-window position (per budget). Falls back to "next month
-  // after the budget month" so each budget remembers its planning view.
   const activeBudgetData = budgets && budgets[activeBudgetIdSafe];
-  const defaultPlannerStart = useMemo(
+  const monthlyPlans = activeBudgetData?.monthlyPlans || {};
+  const plannerFallback = useMemo(
     () => getDefaultPlannerStart(budgetDate.year, budgetDate.month),
     [budgetDate.year, budgetDate.month]
   );
-  const plannerStartYear = (activeBudgetData?.plannerStartYear ?? defaultPlannerStart.year);
-  const plannerStartMonth = (activeBudgetData?.plannerStartMonth ?? defaultPlannerStart.month);
-  const plannerExpandedMonth = activeBudgetData?.plannerExpandedMonth ?? null;
+  const plannerStartYear = activeBudgetData?.plannerStartYear ?? plannerFallback.year;
+  const plannerStartMonth = activeBudgetData?.plannerStartMonth ?? plannerFallback.month;
 
-  const setPlannerStart = useCallback((year: number, month: number) => {
-    setBudgets((prev: Budgets) => {
-      const safePrev = prev || {};
-      const existingBudget = safePrev[activeBudgetIdSafe];
-      if (!existingBudget) return safePrev;
-      return {
-        ...safePrev,
-        [activeBudgetIdSafe]: {
-          ...existingBudget,
-          plannerStartYear: year,
-          plannerStartMonth: month
-        }
-      };
+  const startingBalancesReadOnly = !isViewingCurrentCalendarMonth(
+    budgetDate.year,
+    budgetDate.month
+  );
+
+  const monthRollingPreview = useMemo(
+    () => ({
+      monthsByKey: activeBudgetData?.monthsByKey,
+      budgetDate: { year: budgetDate.year, month: budgetDate.month },
+      uiDays: days,
+      uiStartBalances: activeBudgetData?.startBalances ?? {},
+      selectedCurrencies
+    }),
+    [
+      activeBudgetData?.monthsByKey,
+      activeBudgetData?.startBalances,
+      budgetDate.year,
+      budgetDate.month,
+      days,
+      selectedCurrencies
+    ]
+  );
+
+  const [overviewMonthTrimConfirm, setOverviewMonthTrimConfirm] = useState<{
+    year: number;
+    month: number;
+    forward: boolean;
+  } | null>(null);
+
+  const handleSelectMonthFromOverview = useCallback(
+    (year: number, month: number) => {
+      if (isCurrentBookReadOnly) return;
+      const sim = simulateMonthsAfterNavigation({
+        ...monthRollingPreview,
+        oldDate: { year: budgetDate.year, month: budgetDate.month },
+        newDate: { year, month }
+      });
+      if (!sim.exceeds) {
+        setBudgetDate({ year, month });
+        handleBudgetViewModeChange('days');
+        return;
+      }
+      setOverviewMonthTrimConfirm({ year, month, forward: sim.forwardJump });
+    },
+    [
+      isCurrentBookReadOnly,
+      monthRollingPreview,
+      budgetDate.year,
+      budgetDate.month,
+      setBudgetDate,
+      handleBudgetViewModeChange
+    ]
+  );
+
+  const handleOverviewMonthTrimConfirm = useCallback(() => {
+    if (!overviewMonthTrimConfirm) return;
+    setBudgetDate({
+      year: overviewMonthTrimConfirm.year,
+      month: overviewMonthTrimConfirm.month
     });
-  }, [setBudgets, activeBudgetIdSafe]);
+    handleBudgetViewModeChange('days');
+    setOverviewMonthTrimConfirm(null);
+  }, [overviewMonthTrimConfirm, setBudgetDate, handleBudgetViewModeChange]);
 
-  const setPlannerExpandedMonth = useCallback((key: string | null) => {
-    setBudgets((prev: Budgets) => {
-      const safePrev = prev || {};
-      const existingBudget = safePrev[activeBudgetIdSafe];
-      if (!existingBudget) return safePrev;
-      return {
-        ...safePrev,
-        [activeBudgetIdSafe]: {
-          ...existingBudget,
-          plannerExpandedMonth: key
-        }
-      };
-    });
-  }, [setBudgets, activeBudgetIdSafe]);
-
-  const handleOpenPlannedTransactionFromSettings = useCallback(() => {
-    const preset = plannerExpandedMonth ? [plannerExpandedMonth] : [];
-    monthlyPlannerRef.current?.openAddPlannedModal(preset);
-  }, [plannerExpandedMonth]);
+  const handleOverviewMonthTrimCancel = useCallback(() => {
+    setOverviewMonthTrimConfirm(null);
+  }, []);
 
   // Створюємо об'єкт початкових балансів для вибраних валют
   const startBalances = useMemo(() => {
@@ -396,10 +380,11 @@ export default function BudgetTracker() {
             showDisableEncryptionModal={showDisableEncryptionModal}
             setShowEnableEncryptionModal={setShowEnableEncryptionModal}
             setShowDisableEncryptionModal={setShowDisableEncryptionModal}
-            budgetYear={budgetDate.year}
-            budgetMonth={budgetDate.month}
-            setBudgetDate={context.setBudgetDate}
-            days={days}
+            availableBudgetBooks={[]}
+            currentBudgetBookId={currentBudgetBookId}
+            onBudgetBookChange={(id) => void switchBudgetBook(id)}
+            isSwitchingBudgetBook={isSwitchingBudgetBook}
+            isCurrentBookReadOnly={isCurrentBookReadOnly}
           />
 
           {/* Приховуємо весь контент між Header і Footer, якщо потрібен пароль */}
@@ -503,7 +488,8 @@ export default function BudgetTracker() {
                     budgetYear={budgetDate.year}
                     budgetMonth={budgetDate.month}
                     budgetViewMode={budgetViewMode}
-                    onAddPlannedTransaction={handleOpenPlannedTransactionFromSettings}
+                    readOnly={isCurrentBookReadOnly}
+                    startingBalancesReadOnly={startingBalancesReadOnly}
                   />
 
                   <BudgetStatus
@@ -525,17 +511,17 @@ export default function BudgetTracker() {
                     monthlyPlans={monthlyPlans}
                     plannerStartYear={plannerStartYear}
                     plannerStartMonth={plannerStartMonth}
+                    readOnly={isCurrentBookReadOnly}
                   />
 
                   {budgetViewMode === 'days' && (
                     <>
-                      <TransactionExplorer
-                        days={days}
-                        selectedCurrencies={selectedCurrencies}
-                        displayCurrency={displayCurrency}
-                        exchangeRates={exchangeRates}
+                      <BudgetMonthSection
                         budgetYear={budgetDate.year}
                         budgetMonth={budgetDate.month}
+                        setBudgetDate={setBudgetDate}
+                        rollingMonthPreview={monthRollingPreview}
+                        readOnly={isCurrentBookReadOnly}
                       />
 
                       <DaysTable
@@ -548,6 +534,7 @@ export default function BudgetTracker() {
                         exchangeRates={exchangeRates}
                         budgetYear={budgetDate.year}
                         budgetMonth={budgetDate.month}
+                        readOnly={isCurrentBookReadOnly}
                       />
 
                       <DaysCards
@@ -560,28 +547,27 @@ export default function BudgetTracker() {
                         exchangeRates={exchangeRates}
                         budgetYear={budgetDate.year}
                         budgetMonth={budgetDate.month}
+                        readOnly={isCurrentBookReadOnly}
+                      />
+
+                      <TransactionExplorer
+                        days={days}
+                        selectedCurrencies={selectedCurrencies}
+                        displayCurrency={displayCurrency}
+                        exchangeRates={exchangeRates}
+                        budgetYear={budgetDate.year}
+                        budgetMonth={budgetDate.month}
                       />
                     </>
                   )}
 
                   {budgetViewMode === 'months' && (
-                    <MonthlyPlanner
-                      ref={monthlyPlannerRef}
-                      isUk={language === 'uk'}
-                      monthlyPlans={monthlyPlans}
-                      updateMonthlyPlan={updateMonthlyPlan}
-                      bulkUpdateMonthlyPlans={bulkUpdateMonthlyPlans}
-                      budgetYear={budgetDate.year}
-                      budgetMonth={budgetDate.month}
-                      plannerStartYear={plannerStartYear}
-                      plannerStartMonth={plannerStartMonth}
-                      setPlannerStart={setPlannerStart}
-                      expandedMonth={plannerExpandedMonth}
-                      setExpandedMonth={setPlannerExpandedMonth}
+                    <TwelveMonthOverview
+                      activeBudget={activeBudgetData}
                       selectedCurrencies={selectedCurrencies}
                       displayCurrency={displayCurrency}
                       exchangeRates={exchangeRates}
-                      startingBalance={totalInDisplayCurrency}
+                      onSelectMonth={handleSelectMonthFromOverview}
                     />
                   )}
                 </>
@@ -641,6 +627,20 @@ export default function BudgetTracker() {
         buttonText={translate('common.ok')}
       />
       
+      <ConfirmModal
+        isOpen={overviewMonthTrimConfirm !== null}
+        onClose={handleOverviewMonthTrimCancel}
+        onConfirm={handleOverviewMonthTrimConfirm}
+        title={t('monthYearPicker.overflow.title')}
+        message={
+          overviewMonthTrimConfirm?.forward === true
+            ? t('monthYearPicker.overflow.forwardMessage')
+            : t('monthYearPicker.overflow.backwardMessage')
+        }
+        confirmButtonText={t('monthYearPicker.overflow.proceed')}
+        cancelButtonText={t('monthYearPicker.overflow.cancel')}
+      />
+
       {/* ConfirmModal для очищення всіх полів */}
       <ConfirmModal
         isOpen={showClearAllConfirmModal}

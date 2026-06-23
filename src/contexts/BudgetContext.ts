@@ -6,15 +6,18 @@ export interface BudgetStateWithSync extends BudgetStateInterface {
   syncStatus: string;
   setSyncStatus: (status: string) => void;
   getSyncStatusText: (key: string) => string;
+  user: User | null;
 }
 
 export interface BudgetContextValue extends BudgetStateWithSync {
   handleUpdateNbuRates: () => Promise<void>;
-  user: User | null;
   authLoading: boolean;
   loginWithGoogle: () => Promise<void>;
   logout: () => Promise<void>;
   deleteUserAccount: () => Promise<void>;
+  /** Switch Firestore budget book for signed-in users. */
+  switchBudgetBook: (bookId: string) => Promise<void>;
+  isSwitchingBudgetBook: boolean;
   // Password modal props
   showPasswordModal?: boolean;
   handlePasswordSubmit?: (password: string) => void;

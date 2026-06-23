@@ -2,12 +2,21 @@ import { useRef, useCallback, ChangeEvent, useState } from 'react';
 import { useBudgetContext } from '../contexts/BudgetContext';
 import { normalizeDaysArray } from '../utils/dayHelpers';
 import { saveToLocalStorage } from '../utils/storageHelpers';
-import { validateSelectedCurrencies } from '../utils/currencies';
+import { validateSelectedCurrencies, DEFAULT_CURRENCIES } from '../utils/currencies';
 import { Budgets, Day, Transaction, Budget } from '../types';
 import { validateDay, validateTransaction } from '../schemas/budgetSchema';
 import { handleError } from '../utils/errorHandler';
 import { translate } from '../i18n/config';
 import { sanitizeFileNamePart } from '../utils/fileNameSanitizer';
+import {
+  buildSingleMonthExportJson,
+  buildFullRollingExportJson,
+  parseBudgetImportJson,
+  applySingleMonthImportToBudget,
+  budgetsFromFullRollingPayload,
+  type SingleMonthExportPayload,
+  type FullRollingExportPayload
+} from '../utils/budgetImportExport';
 
 /** Must match `BUDGET_VIEW_MODE_STORAGE_KEY` in BudgetTracker. */
 const BUDGET_VIEW_MODE_STORAGE_KEY = 'budget_tracker_budget_view_mode';
@@ -95,21 +104,13 @@ export function useBudgetImportExport() {
   const handleExportToJsonFile = useCallback(async () => {
     try {
       const activeBudget = budgets && budgets[activeBudgetId || 'default'];
-      const budgetStartBalances = activeBudget?.startBalances || {};
+      if (!activeBudget) {
+        setSaveMessage(translate('errors.exportError'));
+        setTimeout(() => setSaveMessage(''), 3000);
+        return;
+      }
 
-      // Формуємо мапу startBalances з усіх вибраних валют
-      const exportStartBalances: Record<string, number | null> = {};
-      selectedCurrencies.forEach(code => {
-        exportStartBalances[code] = budgetStartBalances[code] ?? null;
-      });
-
-      const settingsToSave: Record<string, unknown> = {
-        startBalances: exportStartBalances,
-        selectedCurrencies: [...selectedCurrencies],
-        exchangeRates: { ...exchangeRates }
-      };
-
-      let budgetViewModeExport: 'days' | 'months' | undefined;
+      let budgetViewModeExport: 'days' | 'months' = 'days';
       try {
         if (typeof window !== 'undefined') {
           const stored = window.localStorage.getItem(BUDGET_VIEW_MODE_STORAGE_KEY);
@@ -121,66 +122,54 @@ export function useBudgetImportExport() {
         // ignore
       }
 
-      const monthlyPlansRaw = activeBudget?.monthlyPlans || {};
-      const monthlyPlansExport: Record<string, Transaction[]> = {};
-      Object.entries(monthlyPlansRaw).forEach(([key, txs]) => {
-        if (!MONTH_PLAN_KEY_RE.test(key) || !Array.isArray(txs)) return;
-        monthlyPlansExport[key] = txs.map((t) => ({ ...t }));
+      const budgetStartBalances = activeBudget?.startBalances || {};
+      const exportStartBalances: Record<string, number | null> = {};
+      selectedCurrencies.forEach((code) => {
+        exportStartBalances[code] = budgetStartBalances[code] ?? null;
       });
 
-      const dataToSave = {
-        savedAt: new Date().toISOString(),
-        displayCurrency: displayCurrency,
-        displayCurrencyIndex: displayCurrencyIndex,
-        budgetName: activeBudget?.name || translate('budget.main'),
-        budgetDate: activeBudget?.budgetDate || {
-          year: new Date().getFullYear(),
-          month: new Date().getMonth()
-        },
-        settings: settingsToSave,
-        days: days.map((day, index) => ({
-          day: day.day || (index + 1),
-          transactions: Array.isArray(day.transactions) ? day.transactions : []
-        })),
-        monthlyPlans: monthlyPlansExport,
-        ...(typeof activeBudget?.plannerStartYear === 'number' &&
-        Number.isInteger(activeBudget.plannerStartYear) &&
-        typeof activeBudget?.plannerStartMonth === 'number' &&
-        Number.isInteger(activeBudget.plannerStartMonth) &&
-        activeBudget.plannerStartMonth >= 0 &&
-        activeBudget.plannerStartMonth <= 11
-          ? {
-              plannerStartYear: activeBudget.plannerStartYear,
-              plannerStartMonth: activeBudget.plannerStartMonth
-            }
-          : {}),
-        plannerExpandedMonth: activeBudget?.plannerExpandedMonth ?? null,
-        ...(budgetViewModeExport ? { budgetViewMode: budgetViewModeExport } : {})
-      };
+      const jsonString =
+        budgetViewModeExport === 'months'
+          ? buildFullRollingExportJson({
+              budgets: budgets || {},
+              activeBudgetId: activeBudgetId || 'default'
+            })
+          : buildSingleMonthExportJson({
+              budget: activeBudget,
+              days,
+              startBalances: exportStartBalances,
+              selectedCurrencies,
+              exchangeRates,
+              displayCurrency,
+              displayCurrencyIndex
+            });
 
       const now = new Date();
-      const year = now.getFullYear();
-      const month = String(now.getMonth() + 1).padStart(2, '0');
-      const day = String(now.getDate()).padStart(2, '0');
+      const y = now.getFullYear();
+      const mo = String(now.getMonth() + 1).padStart(2, '0');
+      const d = String(now.getDate()).padStart(2, '0');
       const hours = String(now.getHours()).padStart(2, '0');
       const minutes = String(now.getMinutes()).padStart(2, '0');
       const rawBudgetName =
         (activeBudget?.name && String(activeBudget.name).trim()) ||
-        // If name is missing, fall back to a friendly default.
         (activeBudgetId === 'default' ? '1' : activeBudgetId) ||
         '1';
       const safeBudgetName = sanitizeFileNamePart(rawBudgetName, '1');
-      const filename = `budget_${safeBudgetName}_${year}-${month}-${day}_${hours}-${minutes}.json`;
+      const bd = activeBudget.budgetDate || {
+        year: now.getFullYear(),
+        month: now.getMonth()
+      };
+      const monthTag = `${bd.year}-${String(bd.month + 1).padStart(2, '0')}`;
+      const filename =
+        budgetViewModeExport === 'months'
+          ? `budget_${safeBudgetName}_all-months_${y}-${mo}-${d}_${hours}-${minutes}.json`
+          : `budget_${safeBudgetName}_month-${monthTag}_${y}-${mo}-${d}_${hours}-${minutes}.json`;
 
-      const jsonString = JSON.stringify(dataToSave, null, 2);
-
-      // Детекція браузера для кращого UX
-      const isFirefox = typeof navigator !== 'undefined' && 
+      const isFirefox =
+        typeof navigator !== 'undefined' &&
         (navigator.userAgent.includes('Firefox') || navigator.userAgent.includes('Gecko'));
-      
-      // Якщо браузер підтримує File System Access API – даємо користувачу вибрати місце збереження
-      // Перевіряємо наявність API більш надійним способом
-      const supportsFileSystemAccess = 
+
+      const supportsFileSystemAccess =
         typeof window !== 'undefined' &&
         'showSaveFilePicker' in window &&
         typeof (window as any).showSaveFilePicker === 'function';
@@ -208,20 +197,15 @@ export function useBudgetImportExport() {
           setTimeout(() => setSaveMessage(''), 3000);
           return;
         } catch (error: unknown) {
-          // Якщо користувач просто закрив діалог – не вважаємо це помилкою
           if (error instanceof DOMException && error.name === 'AbortError') {
             setSaveMessage(translate('importExport.saveCancelled'));
             setTimeout(() => setSaveMessage(''), 3000);
             return;
           }
-          // Якщо помилка безпеки або інша – використовуємо fallback
           console.warn('File System Access API помилка, fallback до стандартного завантаження:', error);
-          // Продовжуємо до fallback
         }
       }
 
-      // Fallback для браузерів без File System Access API (Firefox, Safari тощо)
-      // Використовуємо стандартний спосіб завантаження
       const blob = new Blob([jsonString], {
         type: 'application/json'
       });
@@ -229,14 +213,12 @@ export function useBudgetImportExport() {
       const link = document.createElement('a');
       link.href = url;
       link.download = filename;
-      // Додаємо атрибут для кращої сумісності
       link.setAttribute('download', filename);
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
       URL.revokeObjectURL(url);
 
-      // Для Firefox показуємо додаткову інформацію
       if (isFirefox) {
         setSaveMessage(translate('importExport.fileSavedInfo', { filename }));
       } else {
@@ -549,6 +531,73 @@ export function useBudgetImportExport() {
     }, 100);
   }, [days, setSelectedCurrencies, setExchangeRates, setBudgets, setDays, setLoadMessage, setDisplayCurrency, setDisplayCurrencyIndex]);
 
+  const applyRollingFullPayload = useCallback(
+    (payload: FullRollingExportPayload) => {
+      const { budgets: nb, activeBudgetId: aid } = budgetsFromFullRollingPayload(payload);
+      const active = nb[aid];
+      const bd = active?.budgetDate;
+      if (!active || !bd) return;
+      setBudgets(nb);
+      setActiveBudgetId(aid);
+      saveToLocalStorage(nb, aid);
+      setTimeout(() => {
+        setSelectedCurrencies(validateSelectedCurrencies(active.selectedCurrencies || DEFAULT_CURRENCIES));
+        setExchangeRates(active.exchangeRates || {});
+        setDisplayCurrency(active.displayCurrency || 'RON');
+        setDisplayCurrencyIndex(active.displayCurrencyIndex ?? 0);
+        setDays(normalizeDaysArray(active.days || [], bd.year, bd.month));
+      }, 100);
+    },
+    [
+      setBudgets,
+      setActiveBudgetId,
+      setSelectedCurrencies,
+      setExchangeRates,
+      setDisplayCurrency,
+      setDisplayCurrencyIndex,
+      setDays
+    ]
+  );
+
+  const applyRollingSinglePayload = useCallback(
+    (payload: SingleMonthExportPayload, targetBudgetId: string) => {
+      setBudgets((prev) => {
+        const safePrev = prev || {};
+        const base = safePrev[targetBudgetId];
+        if (!base) return safePrev;
+        const nextB = applySingleMonthImportToBudget(base, payload);
+        const out = { ...safePrev, [targetBudgetId]: nextB };
+        saveToLocalStorage(out, targetBudgetId);
+        return out;
+      });
+      setTimeout(() => {
+        setDays(
+          normalizeDaysArray(payload.days, payload.budgetDate.year, payload.budgetDate.month)
+        );
+        if (payload.settings?.selectedCurrencies?.length) {
+          setSelectedCurrencies(validateSelectedCurrencies(payload.settings.selectedCurrencies));
+        }
+        if (payload.settings?.exchangeRates && typeof payload.settings.exchangeRates === 'object') {
+          setExchangeRates(payload.settings.exchangeRates);
+        }
+        if (payload.settings?.displayCurrency) {
+          setDisplayCurrency(payload.settings.displayCurrency);
+        }
+        if (payload.settings?.displayCurrencyIndex !== undefined) {
+          setDisplayCurrencyIndex(payload.settings.displayCurrencyIndex);
+        }
+      }, 100);
+    },
+    [
+      setBudgets,
+      setDays,
+      setSelectedCurrencies,
+      setExchangeRates,
+      setDisplayCurrency,
+      setDisplayCurrencyIndex
+    ]
+  );
+
   // Функція для прямого імпорту (для неавторизованих користувачів)
   const applyImportDataDirectly = useCallback((data: any, targetBudgetId: string, budgetName: string, fileName: string) => {
     try {
@@ -584,6 +633,43 @@ export function useBudgetImportExport() {
           return;
         }
         
+        const parsed = parseBudgetImportJson(text);
+
+        if (parsed?.kind === 'rollingState') {
+          console.log('📂 Rolling-state JSON:', file.name);
+          if (user) {
+            setPendingImport(parsed.data);
+            setShowImportModal(true);
+            setIsLoading(false);
+          } else {
+            applyRollingFullPayload(parsed.data);
+            setLoadMessage(`✅ Імпортовано повний стан з файлу: ${file.name}`);
+            setTimeout(() => {
+              setLoadMessage('');
+              setIsLoading(false);
+            }, 3000);
+          }
+          return;
+        }
+
+        if (parsed?.kind === 'singleMonth') {
+          console.log('📂 Single-month JSON:', file.name);
+          if (user) {
+            setPendingImport(parsed.data);
+            setShowImportModal(true);
+            setIsLoading(false);
+          } else {
+            const currentId = activeBudgetId || 'default';
+            applyRollingSinglePayload(parsed.data, currentId);
+            setLoadMessage(`✅ Імпортовано місяць з файлу: ${file.name}`);
+            setTimeout(() => {
+              setLoadMessage('');
+              setIsLoading(false);
+            }, 3000);
+          }
+          return;
+        }
+
         const data = JSON.parse(text);
 
         console.log('📂 Завантажено дані з локального JSON-файлу:', file.name);
@@ -621,14 +707,100 @@ export function useBudgetImportExport() {
     };
 
     reader.readAsText(file, 'utf-8');
-  }, [user, activeBudgetId, budgets, applyImportDataDirectly, setIsLoading, setLoadMessage]);
+  }, [
+    user,
+    activeBudgetId,
+    budgets,
+    applyImportDataDirectly,
+    applyRollingFullPayload,
+    applyRollingSinglePayload,
+    setIsLoading,
+    setLoadMessage
+  ]);
 
   // Функція для вирішення конфлікту імпорту (тільки для авторизованих користувачів)
   const resolveImport = useCallback((action: 'new' | 'overwrite') => {
     if (!pendingImport) return;
 
     try {
-      const data = pendingImport;
+      const data = pendingImport as Record<string, unknown> & {
+        exportKind?: string;
+        exportVersion?: number;
+      };
+
+      if (data.exportKind === 'rollingState' && data.exportVersion === 1) {
+        applyRollingFullPayload(data as unknown as FullRollingExportPayload);
+        setLoadMessage('✅ Імпортовано повний стан (до 12 місяців)');
+        setTimeout(() => setLoadMessage(''), 3000);
+        setShowImportModal(false);
+        setPendingImport(null);
+        return;
+      }
+
+      if (data.exportKind === 'singleMonth' && data.exportVersion === 1) {
+        const payload = data as unknown as SingleMonthExportPayload;
+        const currentBudgets = budgets || {};
+        if (action === 'new') {
+          const count = Object.keys(currentBudgets).length;
+          if (count >= 3) {
+            setLoadMessage('❌ Ліміт 3 бюджети досягнуто! Видаліть один, щоб додати новий.');
+            setTimeout(() => setLoadMessage(''), 4000);
+            setShowImportModal(false);
+            setPendingImport(null);
+            return;
+          }
+          const savedDate = payload.savedAt ? new Date(payload.savedAt) : new Date();
+          const budgetName = `Import ${payload.monthKey} (${savedDate.toLocaleString()})`;
+          const baseId = `import-${payload.monthKey}`.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+          let newId = baseId;
+          let suffix = 1;
+          while (currentBudgets[newId]) {
+            newId = `${baseId}-${suffix++}`;
+          }
+          const template = currentBudgets[activeBudgetId || 'default'];
+          const starter: Budget = template
+            ? { ...template, name: budgetName, days: [], startBalances: {}, monthsByKey: {} }
+            : ({
+                name: budgetName,
+                startBalances: {},
+                selectedCurrencies: DEFAULT_CURRENCIES,
+                exchangeRates: {},
+                days: [],
+                displayCurrency: 'RON',
+                displayCurrencyIndex: 0,
+                budgetDate: payload.budgetDate
+              } as Budget);
+          const nextB = applySingleMonthImportToBudget(starter, payload);
+          setBudgets({ ...currentBudgets, [newId]: nextB });
+          setActiveBudgetId(newId);
+          saveToLocalStorage({ ...currentBudgets, [newId]: nextB }, newId);
+          setTimeout(() => {
+            setDays(
+              normalizeDaysArray(payload.days, payload.budgetDate.year, payload.budgetDate.month)
+            );
+            if (payload.settings?.selectedCurrencies?.length) {
+              setSelectedCurrencies(validateSelectedCurrencies(payload.settings.selectedCurrencies));
+            }
+            if (payload.settings?.exchangeRates && typeof payload.settings.exchangeRates === 'object') {
+              setExchangeRates(payload.settings.exchangeRates);
+            }
+            if (payload.settings?.displayCurrency) setDisplayCurrency(payload.settings.displayCurrency);
+            if (payload.settings?.displayCurrencyIndex !== undefined) {
+              setDisplayCurrencyIndex(payload.settings.displayCurrencyIndex);
+            }
+          }, 100);
+          setLoadMessage(`✅ Створено бюджет з імпорту місяця: ${budgetName}`);
+        } else {
+          const currentId = activeBudgetId || 'default';
+          applyRollingSinglePayload(payload, currentId);
+          setLoadMessage(`✅ Оновлено місяць у поточному бюджеті`);
+        }
+        setTimeout(() => setLoadMessage(''), 3000);
+        setShowImportModal(false);
+        setPendingImport(null);
+        return;
+      }
+
       const currentBudgets = budgets || {};
       const count = Object.keys(currentBudgets).length;
 
@@ -643,8 +815,15 @@ export function useBudgetImportExport() {
         }
 
         // Створюємо нову назву з датою збереження
-        const savedDate = data.savedAt ? new Date(data.savedAt) : new Date();
-        const budgetName = data.budgetName || data.settings?.name || translate('budget.main');
+        const savedDate =
+          typeof data.savedAt === 'string' ? new Date(data.savedAt) : new Date();
+        const budgetName =
+          (typeof data.budgetName === 'string' && data.budgetName) ||
+          (typeof data.settings === 'object' &&
+            data.settings &&
+            typeof (data.settings as { name?: unknown }).name === 'string' &&
+            (data.settings as { name: string }).name) ||
+          translate('budget.main');
         const dateStr = savedDate.toLocaleString();
         const newBudgetName = `${budgetName} (від ${dateStr})`;
 
@@ -681,7 +860,22 @@ export function useBudgetImportExport() {
       setShowImportModal(false);
       setPendingImport(null);
     }
-  }, [pendingImport, budgets, activeBudgetId, applyImportData, setActiveBudgetId, setLoadMessage]);
+  }, [
+    pendingImport,
+    budgets,
+    activeBudgetId,
+    applyImportData,
+    applyRollingFullPayload,
+    applyRollingSinglePayload,
+    setActiveBudgetId,
+    setBudgets,
+    setDays,
+    setSelectedCurrencies,
+    setExchangeRates,
+    setDisplayCurrency,
+    setDisplayCurrencyIndex,
+    setLoadMessage
+  ]);
 
   // Функція для скасування імпорту
   const cancelImport = useCallback(() => {

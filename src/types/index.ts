@@ -13,6 +13,21 @@ export interface Day {
   description?: string;
 }
 
+/** One calendar month of data inside the rolling (max 12) store. */
+export interface MonthSlice {
+  days: Day[];
+  startBalances: Record<string, number | null>;
+}
+
+/** Snapshot for 12-month navigation warnings when changing the active budget month. */
+export interface RollingMonthNavigationPreview {
+  monthsByKey: Record<string, MonthSlice> | undefined;
+  budgetDate: { year: number; month: number };
+  uiDays: Day[];
+  uiStartBalances: Record<string, number | null>;
+  selectedCurrencies: string[];
+}
+
 export interface CurrencyInfo {
   code: string;
   name: {
@@ -59,6 +74,11 @@ export interface Budget {
   plannerStartMonth?: number;
   /** Ключ "YYYY-MM" місяця, який зараз розгорнуто в планувальнику. */
   plannerExpandedMonth?: string | null;
+  /**
+   * Rolling window (max 12) of month files keyed by `YYYY-MM`.
+   * The active calendar month also mirrors `days` / `startBalances` on this object.
+   */
+  monthsByKey?: Record<string, MonthSlice>;
 }
 
 export interface Budgets {
@@ -90,3 +110,9 @@ export interface LoadedUserData extends UserData {
   budgetDate?: Budget['budgetDate'];
 }
 
+/** One Firestore document under `users/{uid}/budgetBooks/{id}` (workspace). */
+export interface BudgetBookSummary {
+  id: string;
+  isReadOnly: boolean;
+  displayLabel: string;
+}

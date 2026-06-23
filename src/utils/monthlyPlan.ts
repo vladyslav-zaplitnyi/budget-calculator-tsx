@@ -188,8 +188,8 @@ export const buildPlannerRows = ({
   });
 };
 
-/** Default rolling window start = next month after the current budget month. */
+/** Default rolling window start = the current budget month (first column = this month). */
 export const getDefaultPlannerStart = (
   budgetYear: number,
   budgetMonth: number
-): { year: number; month: number } => shiftMonths(budgetYear, budgetMonth, 1);
+): { year: number; month: number } => shiftMonths(budgetYear, budgetMonth, 0);

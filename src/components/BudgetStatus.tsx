@@ -41,6 +41,8 @@ interface BudgetStatusProps {
   monthlyPlans?: Record<string, Transaction[]>;
   plannerStartYear?: number;
   plannerStartMonth?: number;
+  /** When true, display currency cannot be changed (it is persisted with the budget). */
+  readOnly?: boolean;
 }
 
 const CRITICAL_DAYS_STORAGE_KEY = 'budget_critical_days_expanded';
@@ -64,7 +66,8 @@ const BudgetStatus: React.FC<BudgetStatusProps> = ({
   budgetViewMode = 'days',
   monthlyPlans,
   plannerStartYear,
-  plannerStartMonth
+  plannerStartMonth,
+  readOnly = false
 }) => {
   const { t, i18n: i18nInstance } = useTranslation();
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
@@ -283,8 +286,14 @@ const BudgetStatus: React.FC<BudgetStatusProps> = ({
             <div className="relative">
               <button
                 type="button"
-                onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                className="flex items-center space-x-1 bg-white/20 hover:bg-white/30 rounded-lg px-2 py-1.5 transition-all hover:scale-105 "
+                onClick={() => {
+                  if (readOnly) return;
+                  setIsDropdownOpen(!isDropdownOpen);
+                }}
+                disabled={readOnly}
+                className={`flex items-center space-x-1 bg-white/20 rounded-lg px-2 py-1.5 transition-all ${
+                  readOnly ? 'opacity-60 cursor-not-allowed' : 'hover:bg-white/30 hover:scale-105'
+                }`}
                 title={t('budgetStatus.selectDisplayCurrency')}
               >
                 <CurrencyFlag currencyCode={displayCurrency} size={16} />
@@ -311,6 +320,7 @@ const BudgetStatus: React.FC<BudgetStatusProps> = ({
                             key={currencyCode}
                             type="button"
                             onClick={() => {
+                              if (readOnly) return;
                               if (setDisplayCurrency) {
                                 setDisplayCurrency(currencyCode);
                                 const index = selectedCurrencies.indexOf(currencyCode);

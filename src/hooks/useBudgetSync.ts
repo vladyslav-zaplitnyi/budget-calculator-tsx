@@ -26,7 +26,9 @@ export function useBudgetSync(
     isInitialLoad,
     setSyncStatus,
     encryptionPassword,
-    setIsEncrypted
+    setIsEncrypted,
+    currentBudgetBookId,
+    isCurrentBookReadOnly
   } = budgetState;
 
   // ВАЖЛИВО: Не зберігаємо хардкодні значення startBalanceUAH/USD/EUR
@@ -153,7 +155,10 @@ export function useBudgetSync(
     // 🔒 ЗАПОБІЖНИК: Передаємо стан зашифрованих даних
     isRemoteDataEncrypted: passwordModal.isRemoteDataEncrypted,
     // 🔒 FETCH-FIRST: Передаємо стан завантаження даних
-    isDataLoaded: passwordModal.isDataLoaded
+    isDataLoaded: passwordModal.isDataLoaded,
+    firestoreBudgetContext: user
+      ? { budgetBookId: currentBudgetBookId, isReadOnly: isCurrentBookReadOnly }
+      : null
   });
 
   return {

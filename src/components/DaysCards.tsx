@@ -25,6 +25,7 @@ interface DaysCardsProps {
   startBalances?: Record<string, number | null>;
   budgetYear: number;
   budgetMonth: number;
+  readOnly?: boolean;
 }
 
 const DaysCards: React.FC<DaysCardsProps> = ({
@@ -36,7 +37,8 @@ const DaysCards: React.FC<DaysCardsProps> = ({
   exchangeRates = {},
   startBalances = {},
   budgetYear,
-  budgetMonth
+  budgetMonth,
+  readOnly = false
 }) => {
   const { t, i18n: i18nInstance } = useTranslation();
   
@@ -71,6 +73,7 @@ const DaysCards: React.FC<DaysCardsProps> = ({
   };
 
   const handleAddTransaction = (dayIndex: number) => {
+    if (readOnly) return;
     const day = days[dayIndex];
     if (!day) return;
     const transactionCount = Array.isArray(day.transactions) ? day.transactions.length : 0;
@@ -89,6 +92,7 @@ const DaysCards: React.FC<DaysCardsProps> = ({
   };
 
   const handleEditTransaction = (dayIndex: number, transaction: Transaction) => {
+    if (readOnly) return;
     setModalState({
       isOpen: true,
       dayIndex,
@@ -97,6 +101,7 @@ const DaysCards: React.FC<DaysCardsProps> = ({
   };
 
   const handleDeleteTransaction = (dayIndex: number, transactionId: string) => {
+    if (readOnly) return;
     const day = days[dayIndex];
     if (!day) return;
     const updatedTransactions = (day.transactions || []).filter(t => t.id !== transactionId);
@@ -104,6 +109,7 @@ const DaysCards: React.FC<DaysCardsProps> = ({
   };
 
   const handleSaveTransaction = (transactionData: Partial<Transaction>) => {
+    if (readOnly) return;
     const { dayIndex, transaction: existingTransaction } = modalState;
     if (dayIndex === null) return;
 
@@ -131,7 +137,7 @@ const DaysCards: React.FC<DaysCardsProps> = ({
   };
 
   return (
-    <div className="block md:hidden space-y-3 mb-4">
+    <div className={`block md:hidden space-y-3 mb-4 ${readOnly ? 'opacity-[0.88] pointer-events-none' : ''}`}>
       {visibleDays.map((day, index) => {
         if (!day) return null;
         const amounts = calculateDayAmountsFromTransactions(day, selectedCurrencies);

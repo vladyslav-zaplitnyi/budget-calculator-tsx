@@ -1,7 +1,7 @@
 import { useRef, useEffect } from 'react';
 import { User } from 'firebase/auth';
 import { Budgets, Day, ExchangeRates } from '../types';
-import { saveToFirestore } from '../utils/storageHelpers';
+import { saveToFirestore, FirestoreBudgetContext } from '../utils/storageHelpers';
 
 interface UseSyncDebounceParams {
   budgets: Budgets;
@@ -22,6 +22,8 @@ interface UseSyncDebounceParams {
   isRemoteDataEncrypted?: boolean;
   // 🔒 FETCH-FIRST: Прапорець, чи дані завантажені з хмари
   isDataLoaded?: boolean;
+  /** Active Firestore budget book; writes are skipped when read-only. */
+  firestoreBudgetContext?: FirestoreBudgetContext | null;
 }
 
 /**
@@ -60,7 +62,8 @@ export function useSyncDebounce({
   encryptionPassword,
   setIsEncrypted,
   isRemoteDataEncrypted = false,
-  isDataLoaded = false
+  isDataLoaded = false,
+  firestoreBudgetContext = null
 }: UseSyncDebounceParams) {
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -83,6 +86,12 @@ export function useSyncDebounce({
       // 🔒 ЗАПОБІЖНИК ЗАПИСУ: Якщо в хмарі дані зашифровані, але у нас немає пароля — НІЧОГО НЕ ПИШЕМО!
       if (isRemoteDataEncrypted && !encryptionPassword) {
         console.warn('⛔ Блокування запису: Спроба перезаписати зашифровані дані без пароля!');
+        setSyncStatus(getSyncStatusText('local'));
+        return;
+      }
+
+      if (firestoreBudgetContext?.isReadOnly) {
+        console.warn('⛔ Блокування запису: активна книга бюджету лише для читання.');
         setSyncStatus(getSyncStatusText('local'));
         return;
       }
@@ -119,7 +128,17 @@ export function useSyncDebounce({
         }
       };
       
-      saveToFirestore(user, budgetsToSave, currentId, false, setSyncStatus, getSyncStatusText, encryptionPassword, setIsEncrypted);
+      saveToFirestore(
+        user,
+        budgetsToSave,
+        currentId,
+        false,
+        setSyncStatus,
+        getSyncStatusText,
+        encryptionPassword,
+        setIsEncrypted,
+        firestoreBudgetContext || undefined
+      );
     }, 2000);
 
     return () => {
@@ -127,7 +146,7 @@ export function useSyncDebounce({
         clearTimeout(saveTimeoutRef.current);
       }
     };
-  }, [budgets, activeBudgetId, user, isInitialLoad, authLoading, latestDataRef, setSyncStatus, getSyncStatusText, encryptionPassword, setIsEncrypted, isRemoteDataEncrypted, isDataLoaded]);
+  }, [budgets, activeBudgetId, user, isInitialLoad, authLoading, latestDataRef, setSyncStatus, getSyncStatusText, encryptionPassword, setIsEncrypted, isRemoteDataEncrypted, isDataLoaded, firestoreBudgetContext]);
 
   return saveTimeoutRef;
 }

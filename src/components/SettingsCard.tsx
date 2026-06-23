@@ -68,6 +68,9 @@ interface SettingsCardProps {
   budgetViewMode?: 'days' | 'months';
   /** Opens planned-transaction modal (12-month plan). Only used when `budgetViewMode === 'months'`. */
   onAddPlannedTransaction?: () => void;
+  readOnly?: boolean;
+  /** When true, starting balances follow the linked-month chain and are not editable for this view. */
+  startingBalancesReadOnly?: boolean;
 }
 
 const SettingsCard: React.FC<SettingsCardProps> = ({
@@ -115,7 +118,9 @@ const SettingsCard: React.FC<SettingsCardProps> = ({
   budgetYear,
   budgetMonth,
   budgetViewMode = 'days',
-  onAddPlannedTransaction
+  onAddPlannedTransaction,
+  readOnly = false,
+  startingBalancesReadOnly = false
 }) => {
   const { t, i18n: i18nInstance } = useTranslation();
   const currencyLanguage = i18nInstance.language === 'uk' ? 'uk' : 'en';
@@ -332,7 +337,11 @@ const SettingsCard: React.FC<SettingsCardProps> = ({
   };
 
   return (
-    <div className="bg-white/90 backdrop-blur rounded-2xl shadow-xl p-4 sm:p-6 mb-4 sm:mb-6 border border-gray-100">
+    <div
+      className={`bg-white/90 backdrop-blur rounded-2xl shadow-xl p-4 sm:p-6 mb-4 sm:mb-6 border border-gray-100 ${
+        readOnly ? 'opacity-[0.88] pointer-events-none' : ''
+      }`}
+    >
       <h2 className="text-lg sm:text-xl font-bold text-gray-800 mb-4 flex items-center">
         <span className="mr-2">⚙️</span> {t('settings.title')}
       </h2>
@@ -467,6 +476,7 @@ const SettingsCard: React.FC<SettingsCardProps> = ({
               'from-amber-50 to-yellow-100/70 border-amber-200 hover:border-amber-300'
             ];
             const colorClass = colors[index % colors.length];
+            const balancesLocked = readOnly || startingBalancesReadOnly;
             
             return (
               <div key={currencyCode} className={`bg-gradient-to-br ${colorClass} p-3 sm:p-4 rounded-xl border-2 transition-all`}>
@@ -476,8 +486,15 @@ const SettingsCard: React.FC<SettingsCardProps> = ({
                 <input
                   type="text"
                   inputMode="decimal"
+                  disabled={balancesLocked}
+                  title={
+                    startingBalancesReadOnly && !readOnly
+                      ? t('settings.balances.linkedReadOnlyHint')
+                      : undefined
+                  }
                   value={startBalanceDisplayValue}
                   onFocus={() => {
+                    if (balancesLocked) return;
                     setStartBalanceFocusCode(currencyCode);
                     setStartBalanceDraftByCode((prev) => ({
                       ...prev,
@@ -491,6 +508,7 @@ const SettingsCard: React.FC<SettingsCardProps> = ({
                     setStartBalanceFocusCode((prev) => (prev === currencyCode ? null : prev));
                   }}
                   onChange={(e) => {
+                    if (balancesLocked) return;
                     const v = e.target.value;
                     setStartBalanceDraftByCode((prev) => ({ ...prev, [currencyCode]: v }));
                     handleStartBalanceChange?.(currencyCode, v);

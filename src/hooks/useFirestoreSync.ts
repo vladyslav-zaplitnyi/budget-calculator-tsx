@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react';
-import { loadFromFirestore, loadFromLocalStorage, saveToFirestore, createEmptyDefaultBudget, saveToLocalStorage } from '../utils/storageHelpers';
+import { loadFromFirestore, loadFromLocalStorage, saveToFirestore, createEmptyDefaultBudget, saveToLocalStorage, FirestoreBudgetContext } from '../utils/storageHelpers';
 import { normalizeDaysArray } from '../utils/dayHelpers';
 import { validateSelectedCurrencies, DEFAULT_CURRENCIES, BASE_CURRENCY } from '../utils/currencies';
-import { ACTIVE_BUDGET_COOKIE_KEY } from '../utils/constants';
-import { getCookie } from '../utils/cookieHelpers';
+import { ACTIVE_BUDGET_COOKIE_KEY, ACTIVE_BUDGET_BOOK_COOKIE_KEY } from '../utils/constants';
+import { getCookie, setCookie } from '../utils/cookieHelpers';
 import { BudgetStateWithSync } from '../contexts/BudgetContext';
 import { User } from 'firebase/auth';
 import { Budgets, ExchangeRates, Budget } from '../types';
@@ -11,6 +11,12 @@ import { getBuyRate, hasPairStructure } from '../utils/typeGuards';
 import { WrongPasswordError } from '../utils/encryption';
 import { translate } from '../i18n/config';
 import { roundToDecimals } from '../utils/rounding';
+import {
+  loadBudgetBookDocumentForUser,
+  persistUserCurrentBudgetBookId,
+  DEFAULT_BUDGET_BOOK_ID
+} from '../services/budgetBooksFirestore';
+import { applyRollingBootToAllBudgets } from '../utils/rollingMonthsBudget';
 
 /**
  * Hook для завантаження та синхронізації даних з Firestore
@@ -58,12 +64,18 @@ export function useFirestoreSync(
     setIsEncrypted,
     setDisplayCurrency,
     setDisplayCurrencyIndex,
-    setBudgetDate
+    setBudgetDate,
+    setAvailableBudgetBooks,
+    setCurrentBudgetBookId,
+    currentBudgetBookId,
+    availableBudgetBooks
   } = budgetState;
 
   // Стан для модального вікна введення пароля
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [passwordError, setPasswordError] = useState<string | undefined>();
+
+  const [isSwitchingBudgetBook, setIsSwitchingBudgetBook] = useState(false);
   
   // 🔒 ЗАПОБІЖНИК ЗАПИСУ: Стан для відстеження зашифрованих даних у Firestore
   const [isRemoteDataEncrypted, setIsRemoteDataEncrypted] = useState(false);
@@ -162,7 +174,10 @@ export function useFirestoreSync(
     loadedBudgetsRef.current = emptyBudget;
     setActiveBudgetId('default');
     setSyncStatus(getSyncStatusText('local'));
-    
+
+    setAvailableBudgetBooks([]);
+    setCurrentBudgetBookId(DEFAULT_BUDGET_BOOK_ID);
+
     // 🔒 FETCH-FIRST: Новий користувач без даних, дозволяємо запис
     setIsDataLoaded(true);
     console.log('✅ Новий користувач, створено порожній бюджет. Запис розблоковано.');
@@ -171,6 +186,13 @@ export function useFirestoreSync(
   // Функція для обробки даних з Firestore
   const processFirestoreData = (firestoreData: any) => {
     if (!firestoreData) return;
+
+    if (Array.isArray(firestoreData.budgetBooks)) {
+      setAvailableBudgetBooks(firestoreData.budgetBooks);
+    }
+    if (typeof firestoreData.currentBudgetBookId === 'string') {
+      setCurrentBudgetBookId(firestoreData.currentBudgetBookId);
+    }
 
     // Встановлюємо isEncrypted, якщо дані зашифровані
     if (firestoreData.isEncrypted) {
@@ -234,7 +256,13 @@ export function useFirestoreSync(
 
     // Обробляємо бюджети
     if (firestoreData.budgets) {
-      const budgetsToSet = firestoreData.budgets;
+      const preferredActive =
+        typeof firestoreData.activeBudgetId === 'string' &&
+        firestoreData.budgets[firestoreData.activeBudgetId]
+          ? firestoreData.activeBudgetId
+          : 'default';
+      const budgetsToSet = applyRollingBootToAllBudgets(firestoreData.budgets, preferredActive);
+      firestoreData.budgets = budgetsToSet;
       console.log('📦 Завантажено бюджетів з Firestore:', Object.keys(budgetsToSet).length, Object.keys(budgetsToSet));
       
       // ВАЖЛИВО: Спочатку встановлюємо loadedBudgetsRef, щоб він був доступний для loadBudgetData
@@ -291,6 +319,38 @@ export function useFirestoreSync(
     setSyncStatus(getSyncStatusText('saved'));
   };
 
+  const defaultFirestoreSaveContext: FirestoreBudgetContext = {
+    budgetBookId: DEFAULT_BUDGET_BOOK_ID,
+    isReadOnly: false
+  };
+
+  const switchBudgetBook = async (bookId: string) => {
+    if (!user || bookId === currentBudgetBookId) return;
+    setIsSwitchingBudgetBook(true);
+    try {
+      const res = await loadBudgetBookDocumentForUser(user, bookId, encryptionPassword ?? null);
+      if (res === 'needsPassword') {
+        setIsRemoteDataEncrypted(true);
+        setShowPasswordModal(true);
+        return;
+      }
+      if (!res) return;
+      processFirestoreData(res.data);
+      setAvailableBudgetBooks(
+        availableBudgetBooks.map((b) =>
+          b.id === bookId ? { ...b, isReadOnly: res.isReadOnly } : b
+        )
+      );
+      setCurrentBudgetBookId(bookId);
+      await persistUserCurrentBudgetBookId(user, bookId);
+      setCookie(ACTIVE_BUDGET_BOOK_COOKIE_KEY, bookId, 365);
+    } catch (err) {
+      console.error('switchBudgetBook', err);
+    } finally {
+      setIsSwitchingBudgetBook(false);
+    }
+  };
+
   // Завантаження даних з Firestore при вході користувача
   // Очищаємо loadedBudgetsRef коли користувач виходить з акаунту
   useEffect(() => {
@@ -298,8 +358,10 @@ export function useFirestoreSync(
       loadedBudgetsRef.current = null;
       // 🔒 FETCH-FIRST: Скидаємо блокування при виході (буде встановлено при наступному вході)
       setIsDataLoaded(false);
+      setAvailableBudgetBooks([]);
+      setCurrentBudgetBookId(DEFAULT_BUDGET_BOOK_ID);
     }
-  }, [user, authLoading, loadedBudgetsRef]);
+  }, [user, authLoading, loadedBudgetsRef, setAvailableBudgetBooks, setCurrentBudgetBookId]);
 
   useEffect(() => {
     if (authLoading) return;
@@ -370,6 +432,7 @@ export function useFirestoreSync(
             
             // Очищаємо cookies від попереднього користувача
             document.cookie = 'budgetTrackerActiveBudgetId=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
+            document.cookie = `${ACTIVE_BUDGET_BOOK_COOKIE_KEY}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`;
             document.cookie = 'budgetTrackerLanguage=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
             
             // Використовуємо збережену копію localStorage (до очищення)
@@ -435,7 +498,8 @@ export function useFirestoreSync(
                     setSyncStatus,
                     getSyncStatusText,
                     null,
-                    setIsEncrypted
+                    setIsEncrypted,
+                    defaultFirestoreSaveContext
                   ).then(() => {
                     // Після збереження, завантажуємо дані назад
                     loadFromFirestore(user, null).then((savedData) => {
@@ -482,7 +546,8 @@ export function useFirestoreSync(
                         setSyncStatus,
                         getSyncStatusText,
                         null,
-                        setIsEncrypted
+                        setIsEncrypted,
+                        defaultFirestoreSaveContext
                       ).then(() => {
                         loadFromFirestore(user, null).then((savedData) => {
                           if (savedData && !('isEncrypted' in savedData && 'needsPassword' in savedData)) {
@@ -564,7 +629,8 @@ export function useFirestoreSync(
                       setSyncStatus,
                       getSyncStatusText,
                       null,
-                      setIsEncrypted
+                      setIsEncrypted,
+                      defaultFirestoreSaveContext
                     ).then(() => {
                       // Після збереження, завантажуємо дані назад
                       loadFromFirestore(user, null).then((savedData) => {
@@ -822,8 +888,8 @@ export function useFirestoreSync(
     handlePasswordSubmit,
     handlePasswordCancel,
     isRemoteDataEncrypted,
-    isDataLoaded
+    isDataLoaded,
+    switchBudgetBook,
+    isSwitchingBudgetBook
   };
 }
-
-

@@ -5,9 +5,6 @@ import { translate } from '../i18n/config';
 import i18n from '../i18n/config';
 import SettingsModal from './SettingsModal';
 import CurrencyFlag from './CurrencyFlag';
-import MonthYearPickerModal from './MonthYearPickerModal';
-import { getMonthYearLabel } from '../utils/dateHelpers';
-import { Day } from '../types';
 
 interface HeaderProps {
   isUk: boolean;
@@ -35,11 +32,12 @@ interface HeaderProps {
   showDisableEncryptionModal?: boolean;
   setShowEnableEncryptionModal?: (show: boolean) => void;
   setShowDisableEncryptionModal?: (show: boolean) => void;
-  // Budget date
-  budgetYear?: number;
-  budgetMonth?: number;
-  setBudgetDate?: (date: { year: number; month: number }) => void;
-  days?: Day[];
+  /** Signed-in: switch Firestore budget book */
+  availableBudgetBooks?: { id: string; displayLabel: string; isReadOnly: boolean }[];
+  currentBudgetBookId?: string;
+  onBudgetBookChange?: (bookId: string) => void;
+  isSwitchingBudgetBook?: boolean;
+  isCurrentBookReadOnly?: boolean;
 }
 
 const GoogleIcon = () => (
@@ -102,40 +100,25 @@ const Header: React.FC<HeaderProps> = ({
   showDisableEncryptionModal = false,
   setShowEnableEncryptionModal,
   setShowDisableEncryptionModal,
-  budgetYear,
-  budgetMonth,
-  setBudgetDate,
-  days = []
+  availableBudgetBooks = [],
+  currentBudgetBookId,
+  onBudgetBookChange,
+  isSwitchingBudgetBook = false,
+  isCurrentBookReadOnly = false
 }) => {
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
-  const [isMonthYearPickerOpen, setIsMonthYearPickerOpen] = useState(false);
   const { t } = useTranslation();
-  
-  // Форматуємо дату бюджету для відображення
-  const budgetMonthLabel = budgetYear !== undefined && budgetMonth !== undefined
-    ? getMonthYearLabel(language, budgetYear, budgetMonth)
-    : null;
-
-  const handleTodayClick = () => {
-    if (!setBudgetDate) return;
-    const now = new Date();
-    setBudgetDate({ year: now.getFullYear(), month: now.getMonth() });
-  };
-
-  const handleMonthYearBadgeClick = () => {
-    if (setBudgetDate) {
-      setIsMonthYearPickerOpen(true);
-    }
-  };
-
-  const handleMonthYearApply = (year: number, month: number) => {
-    if (setBudgetDate) {
-      setBudgetDate({ year, month });
-    }
-  };
 
   return (
     <div className="bg-gradient-to-r from-indigo-600 via-blue-600 to-indigo-700 rounded-2xl shadow-2xl p-4 sm:p-6 md:p-8 mb-4 sm:mb-6 text-white">
+      {user && isCurrentBookReadOnly && (
+        <div
+          className="mb-3 rounded-xl bg-amber-500/25 border border-amber-200/40 px-3 py-2 text-sm text-amber-50 text-center font-semibold"
+          role="status"
+        >
+          {t('budgetBook.readOnlyBanner')}
+        </div>
+      )}
       {/* Десктоп / планшет: заголовок зліва, панель дій справа */}
       <div className="hidden md:flex flex-col lg:flex-row items-center justify-between gap-4 lg:gap-6 mb-3">
         {/* Брендинг + заголовок */}
@@ -150,29 +133,6 @@ const Header: React.FC<HeaderProps> = ({
           <p className="text-center lg:text-left text-indigo-100 text-sm sm:text-base mt-1 samsung-white-text">
             {t('header.description')}
           </p>
-          {budgetMonthLabel && (
-            <div className="inline-flex items-center justify-center lg:justify-start gap-2 mt-2">
-              <div 
-                className={`inline-flex items-center justify-center lg:justify-start gap-1.5 bg-white/15 backdrop-blur-sm px-3 py-1.5 rounded-full border border-white/20 shadow-sm ${setBudgetDate ? 'cursor-pointer hover:bg-white/25 transition-all' : 'cursor-help'}`}
-                title={t('settings.budgetMonth.tooltip')}
-                onClick={handleMonthYearBadgeClick}
-              >
-                <span className="text-xs font-medium text-white/90">📅</span>
-                <span className="text-xs sm:text-sm font-semibold text-white">
-                  {budgetMonthLabel}
-                </span>
-              </div>
-              {setBudgetDate && (
-                <button
-                  type="button"
-                  onClick={handleTodayClick}
-                  className="inline-flex items-center gap-1.5 bg-white/95 hover:bg-white text-slate-800 px-3 py-1.5 rounded-full shadow-lg border border-white/30 transition-all text-xs sm:text-sm font-semibold"
-                >
-                  {t('header.today')}
-                </button>
-              )}
-            </div>
-          )}
         </div>
 
         {/* Контейнер: статус, авторизація, мова */}
@@ -186,6 +146,26 @@ const Header: React.FC<HeaderProps> = ({
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-300 animate-pulse" />
               <span>{syncStatus}</span>
             </div>
+
+            {user && availableBudgetBooks.length > 0 && onBudgetBookChange && (
+              <div className="flex items-center gap-1.5 text-[11px] sm:text-xs font-medium bg-black/15 px-2 py-1 rounded-full border border-white/15">
+                <span className="hidden sm:inline text-blue-100/90">{t('budgetBook.selectLabel')}</span>
+                <select
+                  value={currentBudgetBookId || availableBudgetBooks[0]?.id}
+                  onChange={(e) => onBudgetBookChange(e.target.value)}
+                  disabled={isSwitchingBudgetBook}
+                  className="max-w-[140px] sm:max-w-[200px] truncate rounded-md bg-white/95 text-slate-900 text-[11px] font-semibold px-2 py-0.5 border border-white/40 disabled:opacity-60"
+                  aria-label={t('budgetBook.selectLabel')}
+                >
+                  {availableBudgetBooks.map((b) => (
+                    <option key={b.id} value={b.id}>
+                      {b.displayLabel}
+                      {b.isReadOnly ? ` (${t('budgetBook.readOnlySuffix')})` : ''}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
 
             {/* Тонка роздільна лінія */}
             <span className="hidden xl:block h-6 w-px bg-white/25" />
@@ -300,29 +280,6 @@ const Header: React.FC<HeaderProps> = ({
           <p className="text-center text-indigo-100 text-sm sm:text-base mt-1 samsung-white-text">
             {t('header.description')}
           </p>
-          {budgetMonthLabel && (
-            <div className="inline-flex items-center justify-center gap-2 mt-2">
-              <div 
-                className={`inline-flex items-center justify-center gap-1.5 bg-white/15 backdrop-blur-sm px-3 py-1.5 rounded-full border border-white/20 shadow-sm ${setBudgetDate ? 'cursor-pointer hover:bg-white/25 transition-all' : 'cursor-help'}`}
-                title={t('settings.budgetMonth.tooltip')}
-                onClick={handleMonthYearBadgeClick}
-              >
-                <span className="text-xs font-medium text-white/90">📅</span>
-                <span className="text-xs sm:text-sm font-semibold text-white">
-                  {budgetMonthLabel}
-                </span>
-              </div>
-              {setBudgetDate && (
-                <button
-                  type="button"
-                  onClick={handleTodayClick}
-                  className="inline-flex items-center gap-1.5 bg-white/95 hover:bg-white text-slate-800 px-3 py-1.5 rounded-full shadow-lg border border-white/30 transition-all text-xs sm:text-sm font-semibold"
-                >
-                  {t('header.today')}
-                </button>
-              )}
-            </div>
-          )}
         </div>
 
         <div className="flex flex-col gap-2 items-stretch">
@@ -335,6 +292,23 @@ const Header: React.FC<HeaderProps> = ({
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-300 animate-pulse" />
               <span className="truncate max-w-[140px]">{syncStatus}</span>
             </div>
+
+            {user && availableBudgetBooks.length > 0 && onBudgetBookChange && (
+              <select
+                value={currentBudgetBookId || availableBudgetBooks[0]?.id}
+                onChange={(e) => onBudgetBookChange(e.target.value)}
+                disabled={isSwitchingBudgetBook}
+                className="flex-1 min-w-0 max-w-[160px] rounded-lg bg-white/95 text-slate-900 text-[11px] font-semibold px-2 py-1 border border-white/40 disabled:opacity-60"
+                aria-label={t('budgetBook.selectLabel')}
+              >
+                {availableBudgetBooks.map((b) => (
+                  <option key={b.id} value={b.id}>
+                    {b.displayLabel}
+                    {b.isReadOnly ? ` (${t('budgetBook.readOnlySuffix')})` : ''}
+                  </option>
+                ))}
+              </select>
+            )}
 
             {/* Перемикач мови */}
             <div className="flex items-center gap-2">
@@ -445,18 +419,6 @@ const Header: React.FC<HeaderProps> = ({
         setShowEnableEncryptionModal={setShowEnableEncryptionModal}
         setShowDisableEncryptionModal={setShowDisableEncryptionModal}
       />
-
-      {/* Модальне вікно вибору місяця/року */}
-      {budgetYear !== undefined && budgetMonth !== undefined && (
-        <MonthYearPickerModal
-          isOpen={isMonthYearPickerOpen}
-          onClose={() => setIsMonthYearPickerOpen(false)}
-          currentYear={budgetYear}
-          currentMonth={budgetMonth}
-          onApply={handleMonthYearApply}
-          days={days}
-        />
-      )}
     </div>
   );
 };

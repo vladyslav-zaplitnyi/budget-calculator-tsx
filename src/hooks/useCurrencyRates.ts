@@ -14,10 +14,17 @@ export function useCurrencyRates(budgetState: BudgetStateWithSync) {
     setExchangeRates,
     baseCurrency,
     setRateUpdateMessage,
-    setIsUpdatingRates
+    setIsUpdatingRates,
+    user,
+    isCurrentBookReadOnly
   } = budgetState;
 
   const handleUpdateNbuRates = useCallback(async () => {
+    if (user && isCurrentBookReadOnly) {
+      setRateUpdateMessage(translate('budgetBook.readOnlyActionBlocked'));
+      setTimeout(() => setRateUpdateMessage(''), 4000);
+      return;
+    }
     setIsUpdatingRates(true);
     setRateUpdateMessage('');
 
@@ -85,7 +92,7 @@ export function useCurrencyRates(budgetState: BudgetStateWithSync) {
     } finally {
       setIsUpdatingRates(false);
     }
-  }, [selectedCurrencies, baseCurrency, fetchRatesForCurrencies, setExchangeRates, setRateUpdateMessage, setIsUpdatingRates]);
+  }, [selectedCurrencies, baseCurrency, fetchRatesForCurrencies, setExchangeRates, setRateUpdateMessage, setIsUpdatingRates, user, isCurrentBookReadOnly]);
 
   return useMemo(() => ({ handleUpdateNbuRates }), [handleUpdateNbuRates]);
 }

@@ -19,6 +19,12 @@
       "error": "Error synchronizing data."
     }
   },
+  "budgetBook": {
+    "readOnlyBanner": "Read-only mode: this budget book is historical. You cannot edit transactions or settings here.",
+    "selectLabel": "Budget book",
+    "readOnlySuffix": "read-only",
+    "readOnlyActionBlocked": "This budget book is read-only. Switch to an editable book to make changes."
+  },
   "settings": {
     "title": "Settings",
     "budget": {
@@ -54,7 +60,8 @@
     },
     "balances": {
       "title": "💰 Starting Balances",
-      "startingBudget": "Starting budget"
+      "startingBudget": "Starting budget",
+      "linkedReadOnlyHint": "Starting budget can only be edited in the current calendar month. For other months, the opening balance comes from the previous month or is kept as historical data."
     },
     "exchangeRates": {
       "title": "💱 Exchange Rates",
@@ -451,6 +458,13 @@
     "year": "Year",
     "apply": "Apply",
     "cancel": "Cancel",
+    "overflow": {
+      "title": "12-month limit",
+      "forwardMessage": "Selecting this month exceeds the 12-month limit. The oldest months will be permanently removed from this budget book. Proceed?",
+      "backwardMessage": "Selecting this month exceeds the 12-month limit. The newest future months will be removed. Proceed?",
+      "proceed": "Proceed",
+      "cancel": "Cancel"
+    },
     "warning": {
       "title": "⚠️ Warning! This month has fewer days.",
       "message": "Data for days that exceed this month will be deleted.",

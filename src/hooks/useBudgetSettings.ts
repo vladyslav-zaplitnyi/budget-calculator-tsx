@@ -2,11 +2,18 @@ import { useCallback, useState } from 'react';
 import { useBudgetContext } from '../contexts/BudgetContext';
 import { createEmptyMonthDays } from '../utils/dayHelpers';
 import { validateSelectedCurrencies, DEFAULT_CURRENCIES } from '../utils/currencies';
-import { Budgets, ExchangeRates } from '../types';
+import { Budgets, ExchangeRates, Budget } from '../types';
 import { isExchangeRatePair } from '../utils/typeGuards';
 import { saveToFirestore, saveToLocalStorage } from '../utils/storageHelpers';
 import { calculateFinalBalances, calculateTotals, sanitizeNumberInput } from '../utils/calculations';
 import { translate } from '../i18n/config';
+import {
+  monthKeyFromBudgetDate,
+  trimOldestMonthKeys,
+  buildEmptyMonthSlice,
+  isViewingCurrentCalendarMonth
+} from '../utils/rollingMonthsBudget';
+import { applyBalanceWaterfallToBudget } from '../utils/balanceWaterfall';
 
 /**
  * Hook для управління налаштуваннями бюджету (валюти, курси, баланси)
@@ -33,7 +40,9 @@ export function useBudgetSettings() {
     isEncrypted,
     setIsEncrypted,
     setSyncStatus,
-    getSyncStatusText
+    getSyncStatusText,
+    currentBudgetBookId,
+    isCurrentBookReadOnly
   } = context;
 
   // Стан для модальних вікон шифрування
@@ -50,11 +59,23 @@ export function useBudgetSettings() {
   const [showClearAllDaysConfirmModal, setShowClearAllDaysConfirmModal] = useState(false);
 
   const handleClearAll = useCallback(() => {
+    if (user && isCurrentBookReadOnly) {
+      setAlertMessage(translate('budgetBook.readOnlyActionBlocked'));
+      setAlertType('warning');
+      setShowAlertModal(true);
+      return;
+    }
     setShowClearAllConfirmModal(true);
-  }, []);
+  }, [user, isCurrentBookReadOnly]);
 
   const handleConfirmClearAll = useCallback(() => {
     setShowClearAllConfirmModal(false);
+    if (user && isCurrentBookReadOnly) {
+      setAlertMessage(translate('budgetBook.readOnlyActionBlocked'));
+      setAlertType('warning');
+      setShowAlertModal(true);
+      return;
+    }
       const currentId = activeBudgetId || 'default';
       const safePrev = budgets || {};
       const existingBudget = safePrev[currentId];
@@ -79,14 +100,27 @@ export function useBudgetSettings() {
         displayCurrencyIndex: existingBudget.displayCurrencyIndex ?? 0,
         budgetDate: existingBudget.budgetDate || budgetDate
       };
+
+      const mk = monthKeyFromBudgetDate(budgetDate.year, budgetDate.month);
+      const monthsByKey = trimOldestMonthKeys({
+        ...(clearedBudget.monthsByKey || {}),
+        [mk]: {
+          days: emptyDays,
+          startBalances: { ...clearedStartBalances }
+        }
+      });
+      const afterWaterfall = applyBalanceWaterfallToBudget({
+        ...clearedBudget,
+        monthsByKey
+      } as Budget);
       
       const updatedBudgets: Budgets = {
         ...safePrev,
-        [currentId]: clearedBudget
+        [currentId]: { ...clearedBudget, ...afterWaterfall }
       };
       
       setBudgets(updatedBudgets);
-      setDays(emptyDays);
+      setDays(afterWaterfall.days);
       
       setLoadMessage('');
       setSaveMessage('');
@@ -95,18 +129,30 @@ export function useBudgetSettings() {
       saveToLocalStorage(updatedBudgets, currentId);
       
       console.log('✅ Всі поля очищено');
-  }, [activeBudgetId, selectedCurrencies, budgets, setBudgets, setDays, setLoadMessage, setSaveMessage]);
+  }, [activeBudgetId, selectedCurrencies, budgets, setBudgets, setDays, setLoadMessage, setSaveMessage, user, isCurrentBookReadOnly]);
 
   const handleCancelClearAll = useCallback(() => {
     setShowClearAllConfirmModal(false);
   }, []);
 
   const handleClearAllDays = useCallback(() => {
+    if (user && isCurrentBookReadOnly) {
+      setAlertMessage(translate('budgetBook.readOnlyActionBlocked'));
+      setAlertType('warning');
+      setShowAlertModal(true);
+      return;
+    }
     setShowClearAllDaysConfirmModal(true);
-  }, []);
+  }, [user, isCurrentBookReadOnly]);
 
   const handleConfirmClearAllDays = useCallback(() => {
     setShowClearAllDaysConfirmModal(false);
+    if (user && isCurrentBookReadOnly) {
+      setAlertMessage(translate('budgetBook.readOnlyActionBlocked'));
+      setAlertType('warning');
+      setShowAlertModal(true);
+      return;
+    }
       const currentId = activeBudgetId || 'default';
       const safePrev = budgets || {};
       const existingBudget = safePrev[currentId] || {
@@ -130,30 +176,56 @@ export function useBudgetSettings() {
         ...existingBudget,
         days: emptyDays
       };
+
+      const mk = monthKeyFromBudgetDate(budgetDate.year, budgetDate.month);
+      const monthsByKey = trimOldestMonthKeys({
+        ...(clearedBudget.monthsByKey || {}),
+        [mk]: {
+          days: emptyDays,
+          startBalances: { ...(clearedBudget.startBalances || {}) }
+        }
+      });
+      const afterWaterfall = applyBalanceWaterfallToBudget({
+        ...clearedBudget,
+        monthsByKey
+      } as Budget);
       
       const updatedBudgets: Budgets = {
         ...safePrev,
-        [currentId]: clearedBudget
+        [currentId]: { ...clearedBudget, ...afterWaterfall }
       };
       
       setBudgets(updatedBudgets);
-      setDays(emptyDays);
+      setDays(afterWaterfall.days || emptyDays);
       
       // Оновлюємо localStorage з очищеними даними
       saveToLocalStorage(updatedBudgets, currentId);
       
       console.log('✅ Всі дні очищено');
-  }, [activeBudgetId, budgets, setBudgets, setDays]);
+  }, [activeBudgetId, budgets, setBudgets, setDays, user, isCurrentBookReadOnly]);
 
   const handleCancelClearAllDays = useCallback(() => {
     setShowClearAllDaysConfirmModal(false);
   }, []);
 
   const handleStartNewMonth = useCallback(() => {
+    if (user && isCurrentBookReadOnly) {
+      setAlertMessage(translate('budgetBook.readOnlyActionBlocked'));
+      setAlertType('warning');
+      setShowAlertModal(true);
+      return;
+    }
     setShowStartNewMonthModal(true);
-  }, []);
+  }, [user, isCurrentBookReadOnly]);
 
   const handleConfirmStartNewMonth = useCallback(() => {
+    if (user && isCurrentBookReadOnly) {
+      setShowStartNewMonthModal(false);
+      setAlertMessage(translate('budgetBook.readOnlyActionBlocked'));
+      setAlertType('warning');
+      setShowAlertModal(true);
+      return;
+    }
     const currentId = activeBudgetId || 'default';
     const safePrev = budgets || {};
     const existingBudget = safePrev[currentId] || {
@@ -172,6 +244,13 @@ export function useBudgetSettings() {
       month: new Date().getMonth()
     };
 
+    const oldKey = monthKeyFromBudgetDate(currentBudgetDate.year, currentBudgetDate.month);
+    let monthsByKey = trimOldestMonthKeys({ ...(existingBudget.monthsByKey || {}) });
+    monthsByKey[oldKey] = {
+      days: days || [],
+      startBalances: { ...(existingBudget.startBalances || {}) }
+    };
+
     // Обчислюємо наступний місяць
     let newMonth = currentBudgetDate.month + 1;
     let newYear = currentBudgetDate.year;
@@ -185,6 +264,8 @@ export function useBudgetSettings() {
       year: newYear,
       month: newMonth
     };
+
+    const newKey = monthKeyFromBudgetDate(newYear, newMonth);
 
     // Отримуємо поточні початкові баланси
     const currentStartBalances = existingBudget.startBalances || {};
@@ -206,24 +287,38 @@ export function useBudgetSettings() {
       newStartBalances[currencyCode] = finalBalance;
     });
 
-    // Створюємо порожні дні для нового місяця
-    const emptyDays = createEmptyMonthDays(newYear, newMonth);
+    let nextSlice = monthsByKey[newKey];
+    if (!nextSlice) {
+      nextSlice = buildEmptyMonthSlice(newYear, newMonth, selectedCurrencies);
+      nextSlice.startBalances = { ...newStartBalances };
+    } else {
+      nextSlice = {
+        days: createEmptyMonthDays(newYear, newMonth),
+        startBalances: { ...newStartBalances }
+      };
+    }
 
-    // Оновлюємо бюджет: стираємо дні, встановлюємо нові початкові баланси і оновлюємо дату
-    const updatedBudget = {
+    monthsByKey = trimOldestMonthKeys({
+      ...monthsByKey,
+      [newKey]: nextSlice
+    });
+
+    const updatedBudgetRaw = {
       ...existingBudget,
-      startBalances: newStartBalances,
-      days: emptyDays,
-      budgetDate: newBudgetDate
+      startBalances: nextSlice.startBalances,
+      days: nextSlice.days,
+      budgetDate: newBudgetDate,
+      monthsByKey
     };
+    const updatedBudget = applyBalanceWaterfallToBudget(updatedBudgetRaw as Budget);
 
     const updatedBudgets: Budgets = {
       ...safePrev,
-      [currentId]: updatedBudget
+      [currentId]: { ...existingBudget, ...updatedBudget }
     };
 
     setBudgets(updatedBudgets);
-    setDays(emptyDays);
+    setDays(nextSlice.days);
 
     // Оновлюємо localStorage
     saveToLocalStorage(updatedBudgets, currentId);
@@ -238,7 +333,8 @@ export function useBudgetSettings() {
         setSyncStatus,
         getSyncStatusText,
         encryptionPassword || undefined,
-        setIsEncrypted
+        setIsEncrypted,
+        { budgetBookId: currentBudgetBookId, isReadOnly: isCurrentBookReadOnly }
       ).catch((error) => {
         console.error('Помилка при збереженні в Firestore:', error);
       });
@@ -246,13 +342,14 @@ export function useBudgetSettings() {
 
     setShowStartNewMonthModal(false);
     console.log('✅ Новий місяць розпочато:', newBudgetDate);
-  }, [activeBudgetId, budgets, days, selectedCurrencies, setBudgets, setDays, user, encryptionPassword, setSyncStatus, getSyncStatusText, setIsEncrypted]);
+  }, [activeBudgetId, budgets, days, selectedCurrencies, setBudgets, setDays, user, encryptionPassword, setSyncStatus, getSyncStatusText, setIsEncrypted, isCurrentBookReadOnly, currentBudgetBookId]);
 
   const handleCancelStartNewMonth = useCallback(() => {
     setShowStartNewMonthModal(false);
   }, []);
 
   const handleCurrencyChange = useCallback((newCurrencies: string[]) => {
+    if (user && isCurrentBookReadOnly) return;
     const validated = validateSelectedCurrencies(newCurrencies);
     setSelectedCurrencies(validated);
 
@@ -315,10 +412,13 @@ export function useBudgetSettings() {
     activeBudgetId,
     setSelectedCurrencies,
     setExchangeRates,
-    setBudgets
+    setBudgets,
+    user,
+    isCurrentBookReadOnly
   ]);
 
   const handleExchangeRateChange = useCallback((pairKey: string, type: string | undefined, rate: number) => {
+    if (user && isCurrentBookReadOnly) return;
     setExchangeRates((prevRates: ExchangeRates) => {
       const newRates = { ...prevRates };
       
@@ -338,9 +438,18 @@ export function useBudgetSettings() {
       }
       return newRates;
     });
-  }, [setExchangeRates]);
+  }, [setExchangeRates, user, isCurrentBookReadOnly]);
 
   const handleStartBalanceChange = useCallback((currencyCode: string, value: string) => {
+    if (user && isCurrentBookReadOnly) return;
+    const currentId = activeBudgetId || 'default';
+    const existingForDate = budgets?.[currentId];
+    const bd = existingForDate?.budgetDate || {
+      year: new Date().getFullYear(),
+      month: new Date().getMonth()
+    };
+    if (!isViewingCurrentCalendarMonth(bd.year, bd.month)) return;
+
     let numValue: number | null = null;
     if (value !== '' && value !== null && value !== undefined) {
       const parsed = parseFloat(sanitizeNumberInput(value));
@@ -348,9 +457,7 @@ export function useBudgetSettings() {
         numValue = parsed;
       }
     }
-    
-    // ВАЖЛИВО: Оновлюємо баланс безпосередньо в бюджеті для всіх валют
-    const currentId = activeBudgetId || 'default';
+
     setBudgets((prevBudgets: Budgets) => {
       const safePrev = prevBudgets || {};
       const existingBudget = safePrev[currentId] || {
@@ -365,25 +472,58 @@ export function useBudgetSettings() {
       
       const startBalances = { ...(existingBudget.startBalances || {}) };
       startBalances[currencyCode] = numValue;
-      
+
+      const bd = existingBudget.budgetDate || {
+        year: new Date().getFullYear(),
+        month: new Date().getMonth()
+      };
+      const mk = monthKeyFromBudgetDate(bd.year, bd.month);
+      const monthsByKey = trimOldestMonthKeys({
+        ...(existingBudget.monthsByKey || {}),
+        [mk]: {
+          days: existingBudget.days || [],
+          startBalances: { ...startBalances }
+        }
+      });
+
+      const draft: Budget = {
+        ...existingBudget,
+        startBalances,
+        monthsByKey,
+        selectedCurrencies: existingBudget.selectedCurrencies || selectedCurrencies || DEFAULT_CURRENCIES,
+        days: existingBudget.days || [],
+        budgetDate: existingBudget.budgetDate,
+        exchangeRates: existingBudget.exchangeRates || {}
+      };
+      const after = applyBalanceWaterfallToBudget(draft);
+
       return {
         ...safePrev,
-        [currentId]: {
-          ...existingBudget,
-          startBalances
-        }
+        [currentId]: { ...existingBudget, ...after }
       };
     });
-  }, [activeBudgetId, setBudgets]);
+  }, [activeBudgetId, budgets, setBudgets, user, isCurrentBookReadOnly, selectedCurrencies]);
 
   // Обробники для шифрування
   const handleEnableEncryptionClick = useCallback(() => {
+    if (user && isCurrentBookReadOnly) {
+      setAlertMessage(translate('budgetBook.readOnlyActionBlocked'));
+      setAlertType('warning');
+      setShowAlertModal(true);
+      return;
+    }
     setShowEnableEncryptionModal(true);
-  }, []);
+  }, [user, isCurrentBookReadOnly]);
 
   const handleDisableEncryptionClick = useCallback(() => {
+    if (user && isCurrentBookReadOnly) {
+      setAlertMessage(translate('budgetBook.readOnlyActionBlocked'));
+      setAlertType('warning');
+      setShowAlertModal(true);
+      return;
+    }
     setShowDisableEncryptionModal(true);
-  }, []);
+  }, [user, isCurrentBookReadOnly]);
 
   const handleEnableEncryption = useCallback(async (password: string, confirmPassword: string) => {
     if (password !== confirmPassword) {
@@ -402,6 +542,13 @@ export function useBudgetSettings() {
 
     if (!user) {
       setAlertMessage(translate('encryption.authenticationRequired'));
+      setAlertType('warning');
+      setShowAlertModal(true);
+      return;
+    }
+
+    if (isCurrentBookReadOnly) {
+      setAlertMessage(translate('budgetBook.readOnlyActionBlocked'));
       setAlertType('warning');
       setShowAlertModal(true);
       return;
@@ -430,7 +577,8 @@ export function useBudgetSettings() {
         setSyncStatus,
         getSyncStatusText,
         password,
-        setIsEncrypted
+        setIsEncrypted,
+        { budgetBookId: currentBudgetBookId, isReadOnly: isCurrentBookReadOnly }
       );
       
       setShowEnableEncryptionModal(false);
@@ -443,7 +591,7 @@ export function useBudgetSettings() {
       setAlertType('error');
       setShowAlertModal(true);
     }
-  }, [user, budgets, activeBudgetId, selectedCurrencies, exchangeRates, setEncryptionPassword, setIsEncrypted, setSyncStatus, getSyncStatusText]);
+  }, [user, budgets, activeBudgetId, selectedCurrencies, exchangeRates, setEncryptionPassword, setIsEncrypted, setSyncStatus, getSyncStatusText, isCurrentBookReadOnly, currentBudgetBookId]);
 
   const handleDisableEncryption = useCallback(async (password: string) => {
     if (!password.trim()) {
@@ -455,6 +603,13 @@ export function useBudgetSettings() {
 
     if (!user) {
       setAlertMessage(translate('encryption.authenticationRequired'));
+      setAlertType('warning');
+      setShowAlertModal(true);
+      return;
+    }
+
+    if (isCurrentBookReadOnly) {
+      setAlertMessage(translate('budgetBook.readOnlyActionBlocked'));
       setAlertType('warning');
       setShowAlertModal(true);
       return;
@@ -491,7 +646,8 @@ export function useBudgetSettings() {
         setSyncStatus,
         getSyncStatusText,
         null,
-        setIsEncrypted
+        setIsEncrypted,
+        { budgetBookId: currentBudgetBookId, isReadOnly: isCurrentBookReadOnly }
       );
       
       setShowDisableEncryptionModal(false);
@@ -504,7 +660,7 @@ export function useBudgetSettings() {
       setAlertType('error');
       setShowAlertModal(true);
     }
-  }, [user, budgets, activeBudgetId, selectedCurrencies, exchangeRates, encryptionPassword, setEncryptionPassword, setIsEncrypted, setSyncStatus, getSyncStatusText]);
+  }, [user, budgets, activeBudgetId, selectedCurrencies, exchangeRates, encryptionPassword, setEncryptionPassword, setIsEncrypted, setSyncStatus, getSyncStatusText, isCurrentBookReadOnly, currentBudgetBookId]);
 
   return {
     handleClearAll,

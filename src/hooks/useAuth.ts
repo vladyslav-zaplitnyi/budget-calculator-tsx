@@ -5,6 +5,8 @@ import { auth, googleProvider, db } from '../firebase';
 import { handleError } from '../utils/errorHandler';
 import { saveToLocalStorage, createEmptyDefaultBudget } from '../utils/storageHelpers';
 import { Budgets } from '../types';
+import { deleteAllBudgetBooksForUser } from '../services/budgetBooksFirestore';
+import { ACTIVE_BUDGET_BOOK_COOKIE_KEY } from '../utils/constants';
 
 export function useAuth() {
   const [user, setUser] = useState<User | null>(null);
@@ -93,6 +95,7 @@ export function useAuth() {
     // НЕ видаляємо cookie з мовою - залишаємо налаштування користувача
     // document.cookie = 'budgetTrackerLanguage=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
     document.cookie = 'budgetTrackerActiveBudgetId=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
+    document.cookie = `${ACTIVE_BUDGET_BOOK_COOKIE_KEY}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`;
     
     // Якщо signOut впав з помилкою, вона буде викинута автоматично
     // і не дійдемо до очищення localStorage
@@ -107,21 +110,24 @@ export function useAuth() {
     const userId = currentUser.uid; // Зберігаємо UID перед видаленням
 
     try {
-      // 1. Видаляємо документ користувача з Firestore
+      // 1. Видаляємо всі книги бюджету з підколекції
+      await deleteAllBudgetBooksForUser(userId);
+
+      // 2. Видаляємо документ користувача з Firestore
       const userDocRef = doc(db, 'users', userId);
       await deleteDoc(userDocRef);
 
-      // 2. Видаляємо користувача з Authentication
+      // 3. Видаляємо користувача з Authentication
       await deleteUser(currentUser);
 
-      // 3. Обов'язково виходимо з акаунту після видалення
+      // 4. Обов'язково виходимо з акаунту після видалення
       // Це запобігає автоматичному створенню нового акаунту
       await signOut(auth);
       
-      // 4. Чекаємо трохи, щоб переконатися, що все завершилося
+      // 5. Чекаємо трохи, щоб переконатися, що все завершилося
       await new Promise(resolve => setTimeout(resolve, 200));
 
-      // 5. Очищаємо localStorage після підтвердження виходу
+      // 6. Очищаємо localStorage після підтвердження виходу
       localStorage.removeItem('budgetTrackerData');
       // НЕ видаляємо мову - це налаштування користувача, не пов'язане з акаунтом
       // localStorage.removeItem('budgetTrackerLanguage'); // ЗАЛИШАЄМО МОВУ
@@ -135,6 +141,7 @@ export function useAuth() {
       // НЕ видаляємо cookie з мовою - залишаємо налаштування користувача
       // document.cookie = 'budgetTrackerLanguage=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
       document.cookie = 'budgetTrackerActiveBudgetId=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
+      document.cookie = `${ACTIVE_BUDGET_BOOK_COOKIE_KEY}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`;
     } catch (error: any) {
       // Обробка помилки requires-recent-login
       if (error?.code === 'auth/requires-recent-login') {
