@@ -37,23 +37,16 @@ export function useBudgetHandlers() {
     editingBudgetId: budgetManagement.editingBudgetId,
     
     // Settings
-    handleClearAll: budgetSettings.handleClearAll,
     handleClearAllDays: budgetSettings.handleClearAllDays,
-    showClearAllConfirmModal: budgetSettings.showClearAllConfirmModal,
-    setShowClearAllConfirmModal: budgetSettings.setShowClearAllConfirmModal,
-    handleConfirmClearAll: budgetSettings.handleConfirmClearAll,
-    handleCancelClearAll: budgetSettings.handleCancelClearAll,
     showClearAllDaysConfirmModal: budgetSettings.showClearAllDaysConfirmModal,
     setShowClearAllDaysConfirmModal: budgetSettings.setShowClearAllDaysConfirmModal,
     handleConfirmClearAllDays: budgetSettings.handleConfirmClearAllDays,
     handleCancelClearAllDays: budgetSettings.handleCancelClearAllDays,
-    handleStartNewMonth: budgetSettings.handleStartNewMonth,
-    handleConfirmStartNewMonth: budgetSettings.handleConfirmStartNewMonth,
-    handleCancelStartNewMonth: budgetSettings.handleCancelStartNewMonth,
-    showStartNewMonthModal: budgetSettings.showStartNewMonthModal,
+    clearDaysScope: budgetSettings.clearDaysScope,
     handleCurrencyChange: budgetSettings.handleCurrencyChange,
     handleExchangeRateChange: budgetSettings.handleExchangeRateChange,
     handleStartBalanceChange: budgetSettings.handleStartBalanceChange,
+    handleBulkAddTransactionsToMonths: budgetSettings.handleBulkAddTransactionsToMonths,
     
     // Encryption
     handleEnableEncryptionClick: budgetSettings.handleEnableEncryptionClick,

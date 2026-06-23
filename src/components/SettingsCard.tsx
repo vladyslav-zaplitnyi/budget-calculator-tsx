@@ -11,23 +11,22 @@ import {
   resolveRegionalCurrency
 } from '../utils/currencies';
 import { User } from 'firebase/auth';
-import { Budgets, ExchangeRates, Day } from '../types';
+import { Budgets, ExchangeRates, Day, MonthSlice } from '../types';
 import { isExchangeRatePair, getBuyRate } from '../utils/typeGuards';
 import { roundToDecimals } from '../utils/rounding';
 import { sanitizeNumberInput } from '../utils/calculations';
 import ConfirmModal from './ConfirmModal';
 import CurrencyFlag from './CurrencyFlag';
 import BulkTransactionModal from './BulkTransactionModal';
+import MultiMonthBulkTransactionModal from './MultiMonthBulkTransactionModal';
+import type { ClearDaysScope } from '../hooks/useBudgetSettings';
+import type { MultiMonthBulkTransactionDraft } from '../utils/multiMonthBulkTransactions';
 
 interface SettingsCardProps {
   isUk: boolean;
   user: User | null;
   budgets: Budgets | null | undefined;
   activeBudgetId: string;
-  handleBudgetChange: (event: ChangeEvent<HTMLSelectElement>) => void;
-  handleAddBudgetClick: () => void;
-  handleEditBudgetClick?: () => void;
-  handleDeleteBudget: () => void;
   selectedCurrencies: string[];
   exchangeRates: ExchangeRates;
   handleCurrencyChange: (currencies: string[]) => void;
@@ -40,12 +39,7 @@ interface SettingsCardProps {
   handleJsonFileSelected: (event: ChangeEvent<HTMLInputElement>) => void;
   saveMessage: string;
   loadMessage: string;
-  handleClearAll: () => void;
-  handleClearAllDays: () => void;
-  handleStartNewMonth: () => void;
-  handleConfirmStartNewMonth: () => void;
-  handleCancelStartNewMonth: () => void;
-  showStartNewMonthModal: boolean;
+  handleClearAllDays: (scope: ClearDaysScope) => void;
   baseCurrency: string;
   handleUpdateNbuRates: () => Promise<void>;
   isUpdatingRates: boolean;
@@ -64,10 +58,10 @@ interface SettingsCardProps {
   days?: Day[];
   budgetYear: number;
   budgetMonth: number;
-  /** When `months`, the bulk-transaction button becomes "add planned transaction". */
   budgetViewMode?: 'days' | 'months';
-  /** Opens planned-transaction modal (12-month plan). Only used when `budgetViewMode === 'months'`. */
-  onAddPlannedTransaction?: () => void;
+  monthsByKey?: Record<string, MonthSlice>;
+  activeMonthKey?: string;
+  onBulkAddTransactionsToMonths?: (draft: MultiMonthBulkTransactionDraft) => void;
   readOnly?: boolean;
   /** When true, starting balances follow the linked-month chain and are not editable for this view. */
   startingBalancesReadOnly?: boolean;
@@ -78,10 +72,6 @@ const SettingsCard: React.FC<SettingsCardProps> = ({
   user,
   budgets = {},
   activeBudgetId,
-  handleBudgetChange,
-  handleAddBudgetClick,
-  handleEditBudgetClick,
-  handleDeleteBudget,
   selectedCurrencies = ['UAH', 'USD', 'EUR'],
   exchangeRates = {},
   handleCurrencyChange,
@@ -94,12 +84,7 @@ const SettingsCard: React.FC<SettingsCardProps> = ({
   handleJsonFileSelected,
   saveMessage,
   loadMessage,
-  handleClearAll,
   handleClearAllDays,
-  handleStartNewMonth,
-  handleConfirmStartNewMonth,
-  handleCancelStartNewMonth,
-  showStartNewMonthModal,
   baseCurrency = 'UAH',
   handleUpdateNbuRates,
   isUpdatingRates,
@@ -118,7 +103,9 @@ const SettingsCard: React.FC<SettingsCardProps> = ({
   budgetYear,
   budgetMonth,
   budgetViewMode = 'days',
-  onAddPlannedTransaction,
+  monthsByKey,
+  activeMonthKey = '',
+  onBulkAddTransactionsToMonths,
   readOnly = false,
   startingBalancesReadOnly = false
 }) => {
@@ -200,6 +187,7 @@ const SettingsCard: React.FC<SettingsCardProps> = ({
     }
   });
   const [showRecurringModal, setShowRecurringModal] = useState(false);
+  const [showMultiMonthModal, setShowMultiMonthModal] = useState(false);
   
   // Синхронізуємо displayCurrencies з selectedCurrencies, коли немає pending зміни
   React.useEffect(() => {
@@ -345,71 +333,6 @@ const SettingsCard: React.FC<SettingsCardProps> = ({
       <h2 className="text-lg sm:text-xl font-bold text-gray-800 mb-4 flex items-center">
         <span className="mr-2">⚙️</span> {t('settings.title')}
       </h2>
-
-      {/* Multi-budget selector (тільки для авторизованих користувачів) */}
-      {user && (
-        <div className="mb-4 sm:mb-6">
-          <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-2">
-            {t('settings.budget.label')}
-          </label>
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
-            <select
-              value={
-                safeBudgets && Object.keys(safeBudgets).length > 0 ? activeBudgetId : ''
-              }
-              onChange={handleBudgetChange}
-              className="flex-1 px-3 sm:px-4 py-2 sm:py-2.5 text-sm sm:text-base border-2 border-indigo-200 rounded-lg focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 bg-white"
-              disabled={!safeBudgets || Object.keys(safeBudgets).length === 0}
-            >
-              {(!safeBudgets || Object.keys(safeBudgets).length === 0) ? (
-                <option value="">
-                  {t('settings.budget.noBudgets')}
-                </option>
-              ) : (
-                Object.entries(safeBudgets).map(([id, budget]) => (
-                  <option key={id} value={id}>
-                    {budget.name || t('settings.budget.untitled')}
-                  </option>
-                ))
-              )}
-            </select>
-            <button
-              type="button"
-              onClick={handleAddBudgetClick}
-              className="inline-flex items-center justify-center px-3 py-2 sm:px-4 sm:py-2.5 rounded-lg bg-gradient-to-r from-emerald-500 to-teal-500 text-white font-bold text-sm shadow-md hover:shadow-lg hover:from-emerald-600 hover:to-teal-600 active:scale-95 transition-all"
-              title={t('settings.budget.add')}
-            >
-              [+]
-            </button>
-            {handleEditBudgetClick && (
-              <button
-                type="button"
-                onClick={handleEditBudgetClick}
-                className="inline-flex items-center justify-center px-3 py-2 sm:px-4 sm:py-2.5 rounded-lg bg-gradient-to-r from-yellow-400 to-yellow-500 text-white font-bold text-sm shadow-md hover:shadow-lg hover:from-yellow-500 hover:to-yellow-600 active:scale-95 transition-all"
-                title={t('settings.budget.edit')}
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M12 20h9"/>
-                  <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z"/>
-                </svg>
-              </button>
-            )}
-            {safeBudgets && Object.keys(safeBudgets).length > 1 && activeBudgetId !== 'default' && (
-              <button
-                type="button"
-                onClick={handleDeleteBudget}
-                className="inline-flex items-center justify-center px-3 py-2 sm:px-4 sm:py-2.5 rounded-lg bg-gradient-to-r from-red-500 to-red-600 text-white font-bold text-sm shadow-md hover:shadow-lg hover:from-red-600 hover:to-red-700 active:scale-95 transition-all"
-                title={t('settings.budget.delete')}
-              >
-                [×]
-              </button>
-            )}
-          </div>
-          <p className="mt-1 text-[10px] sm:text-xs text-gray-500">
-            {t('settings.budget.description')}
-          </p>
-        </div>
-      )}
 
       {/* Currency Selector */}
       <div className="mb-4 sm:mb-6">
@@ -825,58 +748,42 @@ const SettingsCard: React.FC<SettingsCardProps> = ({
         <div className="space-y-2 sm:space-y-4">
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-4">
             <button
-              onClick={handleClearAllDays}
+              onClick={() =>
+                handleClearAllDays(budgetViewMode === 'months' ? 'all-months' : 'current-month')
+              }
               className="w-full px-4 sm:px-6 py-3 rounded-xl font-bold transition-all text-sm sm:text-base bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white shadow-lg hover:shadow-xl active:scale-95"
             >
-              {t('settings.clearAllDays')}
-            </button>
-            <button
-              onClick={handleClearAll}
-              className="w-full px-4 sm:px-6 py-3 rounded-xl font-bold transition-all text-sm sm:text-base bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white shadow-lg hover:shadow-xl active:scale-95"
-            >
-              {t('settings.clearAll')}
-            </button>
-          </div>
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
-            <button
-              onClick={handleStartNewMonth}
-              className="w-full px-4 sm:px-6 py-3 rounded-xl font-bold transition-all text-sm sm:text-base bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white shadow-lg hover:shadow-xl active:scale-95"
-            >
-              {t('settings.startNewMonth.button')}
+              {budgetViewMode === 'months'
+                ? t('settings.clearAllDays')
+                : t('settings.clearMonthDays')}
             </button>
             <button
               type="button"
               onClick={() => {
-                if (budgetViewMode === 'months' && onAddPlannedTransaction) {
-                  onAddPlannedTransaction();
+                if (budgetViewMode === 'months') {
+                  setShowMultiMonthModal(true);
                 } else {
                   setShowRecurringModal(true);
                 }
               }}
               disabled={
                 budgetViewMode === 'months'
-                  ? !onAddPlannedTransaction
+                  ? !onBulkAddTransactionsToMonths || readOnly
                   : !updateDay || !days || days.length === 0
               }
               className={`w-full px-4 sm:px-6 py-3 rounded-xl font-bold transition-all text-sm sm:text-base text-white shadow-lg hover:shadow-xl active:scale-95 ${
                 budgetViewMode === 'months'
-                  ? onAddPlannedTransaction
+                  ? onBulkAddTransactionsToMonths && !readOnly
                     ? 'bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700'
                     : 'bg-gray-400 cursor-not-allowed'
                   : !updateDay || !days || days.length === 0
                     ? 'bg-gray-400 cursor-not-allowed'
                     : 'bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700'
               }`}
-              title={
-                budgetViewMode === 'months'
-                  ? t('monthlyPlanner.addTransaction')
-                  : t('bulkTransactions.button')
-              }
+              title={t('transaction.add')}
             >
               <span className="mr-2">➕</span>
-              {budgetViewMode === 'months'
-                ? t('monthlyPlanner.addTransaction')
-                : t('bulkTransactions.button')}
+              {t('transaction.add')}
             </button>
           </div>
         </div>
@@ -893,17 +800,6 @@ const SettingsCard: React.FC<SettingsCardProps> = ({
         cancelButtonText={t('settings.currency.changeConfirm.cancel')}
       />
 
-      {/* Модальне вікно підтвердження "Почати новий місяць" */}
-      <ConfirmModal
-        isOpen={showStartNewMonthModal}
-        onClose={handleCancelStartNewMonth}
-        onConfirm={handleConfirmStartNewMonth}
-        title={t('settings.startNewMonth.title')}
-        message={t('settings.startNewMonth.message')}
-        confirmButtonText={t('settings.startNewMonth.confirm')}
-        cancelButtonText={t('settings.startNewMonth.cancel')}
-      />
-
       <BulkTransactionModal
         isOpen={showRecurringModal && budgetViewMode === 'days'}
         onClose={() => setShowRecurringModal(false)}
@@ -913,6 +809,17 @@ const SettingsCard: React.FC<SettingsCardProps> = ({
         selectedCurrencies={selectedCurrencies}
         budgetYear={budgetYear}
         budgetMonth={budgetMonth}
+      />
+
+      <MultiMonthBulkTransactionModal
+        isOpen={showMultiMonthModal && budgetViewMode === 'months'}
+        onClose={() => setShowMultiMonthModal(false)}
+        onSave={(draft) => onBulkAddTransactionsToMonths?.(draft)}
+        monthsByKey={monthsByKey}
+        activeMonthKey={activeMonthKey}
+        activeMonthDays={days}
+        selectedCurrencies={selectedCurrencies}
+        isUk={isUk}
       />
     </div>
   );

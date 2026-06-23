@@ -38,7 +38,17 @@ interface HeaderProps {
   onBudgetBookChange?: (bookId: string) => void;
   isSwitchingBudgetBook?: boolean;
   isCurrentBookReadOnly?: boolean;
+  /** Open the "create second budget book" flow. */
+  onCreateBookClick?: () => void;
+  /** Open the "rename current book" flow. */
+  onRenameBookClick?: (bookId: string) => void;
+  /** Open the "delete current (non-default) book" flow. */
+  onDeleteBookClick?: (bookId: string) => void;
+  /** Whether a new book can still be created (under the 2-book cap). */
+  canCreateBook?: boolean;
 }
+
+const DEFAULT_BOOK_ID = 'default';
 
 const GoogleIcon = () => (
   <svg className="w-4 h-4" viewBox="0 0 24 24">
@@ -104,7 +114,11 @@ const Header: React.FC<HeaderProps> = ({
   currentBudgetBookId,
   onBudgetBookChange,
   isSwitchingBudgetBook = false,
-  isCurrentBookReadOnly = false
+  isCurrentBookReadOnly = false,
+  onCreateBookClick,
+  onRenameBookClick,
+  onDeleteBookClick,
+  canCreateBook = false
 }) => {
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
   const { t } = useTranslation();
@@ -146,26 +160,6 @@ const Header: React.FC<HeaderProps> = ({
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-300 animate-pulse" />
               <span>{syncStatus}</span>
             </div>
-
-            {user && availableBudgetBooks.length > 0 && onBudgetBookChange && (
-              <div className="flex items-center gap-1.5 text-[11px] sm:text-xs font-medium bg-black/15 px-2 py-1 rounded-full border border-white/15">
-                <span className="hidden sm:inline text-blue-100/90">{t('budgetBook.selectLabel')}</span>
-                <select
-                  value={currentBudgetBookId || availableBudgetBooks[0]?.id}
-                  onChange={(e) => onBudgetBookChange(e.target.value)}
-                  disabled={isSwitchingBudgetBook}
-                  className="max-w-[140px] sm:max-w-[200px] truncate rounded-md bg-white/95 text-slate-900 text-[11px] font-semibold px-2 py-0.5 border border-white/40 disabled:opacity-60"
-                  aria-label={t('budgetBook.selectLabel')}
-                >
-                  {availableBudgetBooks.map((b) => (
-                    <option key={b.id} value={b.id}>
-                      {b.displayLabel}
-                      {b.isReadOnly ? ` (${t('budgetBook.readOnlySuffix')})` : ''}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            )}
 
             {/* Тонка роздільна лінія */}
             <span className="hidden xl:block h-6 w-px bg-white/25" />
@@ -293,23 +287,6 @@ const Header: React.FC<HeaderProps> = ({
               <span className="truncate max-w-[140px]">{syncStatus}</span>
             </div>
 
-            {user && availableBudgetBooks.length > 0 && onBudgetBookChange && (
-              <select
-                value={currentBudgetBookId || availableBudgetBooks[0]?.id}
-                onChange={(e) => onBudgetBookChange(e.target.value)}
-                disabled={isSwitchingBudgetBook}
-                className="flex-1 min-w-0 max-w-[160px] rounded-lg bg-white/95 text-slate-900 text-[11px] font-semibold px-2 py-1 border border-white/40 disabled:opacity-60"
-                aria-label={t('budgetBook.selectLabel')}
-              >
-                {availableBudgetBooks.map((b) => (
-                  <option key={b.id} value={b.id}>
-                    {b.displayLabel}
-                    {b.isReadOnly ? ` (${t('budgetBook.readOnlySuffix')})` : ''}
-                  </option>
-                ))}
-              </select>
-            )}
-
             {/* Перемикач мови */}
             <div className="flex items-center gap-2">
               <span className="text-[11px] font-medium text-indigo-100/90">
@@ -401,6 +378,70 @@ const Header: React.FC<HeaderProps> = ({
           </div>
         </div>
       </div>
+
+      {/* Книга бюджету: окрема акуратна панель (спільна для десктопу і мобільних) */}
+      {user && availableBudgetBooks.length > 0 && onBudgetBookChange && (
+        <div className="mt-1 rounded-xl bg-white/10 backdrop-blur border border-white/20 px-3 py-2.5 flex flex-wrap items-center gap-x-3 gap-y-2">
+          <span className="inline-flex items-center gap-1.5 text-[11px] sm:text-xs font-semibold text-blue-100/90 whitespace-nowrap">
+            <span aria-hidden="true">📚</span>
+            {t('budgetBook.selectLabel')}
+          </span>
+
+          <select
+            value={currentBudgetBookId || availableBudgetBooks[0]?.id}
+            onChange={(e) => onBudgetBookChange(e.target.value)}
+            disabled={isSwitchingBudgetBook}
+            className="min-w-0 flex-1 sm:flex-none sm:min-w-[200px] max-w-full truncate rounded-lg bg-white/95 text-slate-900 text-xs sm:text-sm font-semibold px-3 py-1.5 border border-white/40 shadow-sm focus:outline-none focus:ring-2 focus:ring-white/50 disabled:opacity-60"
+            aria-label={t('budgetBook.selectLabel')}
+          >
+            {availableBudgetBooks.map((b) => (
+              <option key={b.id} value={b.id}>
+                {b.displayLabel}
+                {b.isReadOnly ? ` (${t('budgetBook.readOnlySuffix')})` : ''}
+              </option>
+            ))}
+          </select>
+
+          <div className="flex items-center gap-1.5 sm:ml-auto">
+            {onRenameBookClick && currentBudgetBookId && (
+              <button
+                type="button"
+                onClick={() => onRenameBookClick(currentBudgetBookId)}
+                disabled={isSwitchingBudgetBook}
+                className="inline-flex items-center gap-1 rounded-lg bg-white/15 hover:bg-white/25 border border-white/20 px-2.5 py-1.5 text-[11px] sm:text-xs font-semibold transition-colors disabled:opacity-60"
+                title={t('budgetBook.rename')}
+              >
+                <span aria-hidden="true">✏️</span>
+                <span className="hidden lg:inline">{t('budgetBook.rename')}</span>
+              </button>
+            )}
+            {onDeleteBookClick && currentBudgetBookId && currentBudgetBookId !== DEFAULT_BOOK_ID && (
+              <button
+                type="button"
+                onClick={() => onDeleteBookClick(currentBudgetBookId)}
+                disabled={isSwitchingBudgetBook}
+                className="inline-flex items-center gap-1 rounded-lg bg-rose-500/80 hover:bg-rose-600 border border-white/20 px-2.5 py-1.5 text-[11px] sm:text-xs font-semibold transition-colors disabled:opacity-60"
+                title={t('budgetBook.delete')}
+              >
+                <span aria-hidden="true">🗑️</span>
+                <span className="hidden lg:inline">{t('budgetBook.delete')}</span>
+              </button>
+            )}
+            {onCreateBookClick && canCreateBook && (
+              <button
+                type="button"
+                onClick={onCreateBookClick}
+                disabled={isSwitchingBudgetBook}
+                className="inline-flex items-center gap-1 rounded-lg bg-emerald-500/90 hover:bg-emerald-600 border border-white/20 px-2.5 py-1.5 text-[11px] sm:text-xs font-bold transition-colors disabled:opacity-60"
+                title={t('budgetBook.create')}
+              >
+                <span aria-hidden="true">＋</span>
+                <span className="hidden sm:inline">{t('budgetBook.create')}</span>
+              </button>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Модальне вікно налаштувань */}
       <SettingsModal

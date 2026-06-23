@@ -34,6 +34,21 @@ export const getMonthYearLabel = (locale: string, year: number, monthIndex: numb
   return capitalizeFirstLetter(formatter.format(new Date(year, monthIndex, 1)));
 };
 
+export const formatBudgetTransactionDate = (
+  locale: string,
+  year: number,
+  monthIndex: number,
+  day: number
+) => {
+  return capitalizeFirstLetter(
+    new Intl.DateTimeFormat(locale, {
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric'
+    }).format(new Date(year, monthIndex, day))
+  );
+};
+
 export const getWeekdayLabelsMondayFirst = (locale: string) => {
   // 2021-11-01 is a Monday. Use UTC to avoid DST edge cases.
   const formatter = new Intl.DateTimeFormat(locale, { weekday: 'short', timeZone: 'UTC' });

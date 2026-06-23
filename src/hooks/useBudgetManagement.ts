@@ -63,7 +63,7 @@ export function useBudgetManagement() {
 
     const currentBudgets = budgets || {};
     const count = Object.keys(currentBudgets).length;
-    if (count >= 3) {
+    if (count >= 2) {
       setAlertMessage(translate('budget.maxLimitReached'));
       setAlertType('warning');
       setShowAlertModal(true);

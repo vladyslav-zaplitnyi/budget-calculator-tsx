@@ -11,9 +11,19 @@ import {
   monthKeyFromBudgetDate,
   trimOldestMonthKeys,
   buildEmptyMonthSlice,
-  isViewingCurrentCalendarMonth
+  isViewingCurrentCalendarMonth,
+  getDefaultOverviewWindow
 } from '../utils/rollingMonthsBudget';
+import { parseMonthKey } from '../utils/monthlyPlan';
 import { applyBalanceWaterfallToBudget } from '../utils/balanceWaterfall';
+import {
+  applyMultiMonthBulkAdd,
+  validateMultiMonthBulkAdd,
+  MAX_TRANSACTIONS_PER_DAY
+} from '../utils/multiMonthBulkTransactions';
+import type { MultiMonthBulkTransactionDraft } from '../utils/multiMonthBulkTransactions';
+
+export type ClearDaysScope = 'current-month' | 'all-months';
 
 /**
  * Hook для управління налаштуваннями бюджету (валюти, курси, баланси)
@@ -57,6 +67,7 @@ export function useBudgetSettings() {
   // Стан для ConfirmModal
   const [showClearAllConfirmModal, setShowClearAllConfirmModal] = useState(false);
   const [showClearAllDaysConfirmModal, setShowClearAllDaysConfirmModal] = useState(false);
+  const [clearDaysScope, setClearDaysScope] = useState<ClearDaysScope>('current-month');
 
   const handleClearAll = useCallback(() => {
     if (user && isCurrentBookReadOnly) {
@@ -135,13 +146,14 @@ export function useBudgetSettings() {
     setShowClearAllConfirmModal(false);
   }, []);
 
-  const handleClearAllDays = useCallback(() => {
+  const handleClearAllDays = useCallback((scope: ClearDaysScope) => {
     if (user && isCurrentBookReadOnly) {
       setAlertMessage(translate('budgetBook.readOnlyActionBlocked'));
       setAlertType('warning');
       setShowAlertModal(true);
       return;
     }
+    setClearDaysScope(scope);
     setShowClearAllDaysConfirmModal(true);
   }, [user, isCurrentBookReadOnly]);
 
@@ -169,26 +181,46 @@ export function useBudgetSettings() {
         year: new Date().getFullYear(),
         month: new Date().getMonth()
       };
+
+      let monthsByKey = { ...(existingBudget.monthsByKey || {}) };
+
+      if (clearDaysScope === 'all-months') {
+        const keysToClear = new Set<string>(Object.keys(monthsByKey));
+        getDefaultOverviewWindow().forEach(({ key }) => keysToClear.add(key));
+
+        keysToClear.forEach((key) => {
+          const parsed = parseMonthKey(key);
+          if (!parsed) return;
+          monthsByKey[key] = {
+            days: createEmptyMonthDays(parsed.year, parsed.month),
+            startBalances: {
+              ...(monthsByKey[key]?.startBalances || existingBudget.startBalances || {})
+            }
+          };
+        });
+      } else {
+        const emptyDays = createEmptyMonthDays(budgetDate.year, budgetDate.month);
+        const mk = monthKeyFromBudgetDate(budgetDate.year, budgetDate.month);
+        monthsByKey = {
+          ...monthsByKey,
+          [mk]: {
+            days: emptyDays,
+            startBalances: { ...(existingBudget.startBalances || {}) }
+          }
+        };
+      }
+
+      monthsByKey = trimOldestMonthKeys(monthsByKey);
       const emptyDays = createEmptyMonthDays(budgetDate.year, budgetDate.month);
-      
-      // Очищаємо тільки дні, залишаємо все інше без змін
+
       const clearedBudget = {
         ...existingBudget,
-        days: emptyDays
+        days: emptyDays,
+        monthsByKey,
+        ...(clearDaysScope === 'all-months' ? { monthlyPlans: {} } : {})
       };
 
-      const mk = monthKeyFromBudgetDate(budgetDate.year, budgetDate.month);
-      const monthsByKey = trimOldestMonthKeys({
-        ...(clearedBudget.monthsByKey || {}),
-        [mk]: {
-          days: emptyDays,
-          startBalances: { ...(clearedBudget.startBalances || {}) }
-        }
-      });
-      const afterWaterfall = applyBalanceWaterfallToBudget({
-        ...clearedBudget,
-        monthsByKey
-      } as Budget);
+      const afterWaterfall = applyBalanceWaterfallToBudget(clearedBudget as Budget);
       
       const updatedBudgets: Budgets = {
         ...safePrev,
@@ -198,11 +230,14 @@ export function useBudgetSettings() {
       setBudgets(updatedBudgets);
       setDays(afterWaterfall.days || emptyDays);
       
-      // Оновлюємо localStorage з очищеними даними
       saveToLocalStorage(updatedBudgets, currentId);
       
-      console.log('✅ Всі дні очищено');
-  }, [activeBudgetId, budgets, setBudgets, setDays, user, isCurrentBookReadOnly]);
+      console.log(
+        clearDaysScope === 'all-months'
+          ? '✅ Усі місяці очищено'
+          : '✅ Дні обраного місяця очищено'
+      );
+  }, [activeBudgetId, budgets, setBudgets, setDays, user, isCurrentBookReadOnly, clearDaysScope]);
 
   const handleCancelClearAllDays = useCallback(() => {
     setShowClearAllDaysConfirmModal(false);
@@ -662,6 +697,82 @@ export function useBudgetSettings() {
     }
   }, [user, budgets, activeBudgetId, selectedCurrencies, exchangeRates, encryptionPassword, setEncryptionPassword, setIsEncrypted, setSyncStatus, getSyncStatusText, isCurrentBookReadOnly, currentBudgetBookId]);
 
+  const handleBulkAddTransactionsToMonths = useCallback(
+    (draft: MultiMonthBulkTransactionDraft) => {
+      if (user && isCurrentBookReadOnly) {
+        setAlertMessage(translate('budgetBook.readOnlyActionBlocked'));
+        setAlertType('warning');
+        setShowAlertModal(true);
+        return;
+      }
+
+      const currentId = activeBudgetId || 'default';
+      const safePrev = budgets || {};
+      const existingBudget = safePrev[currentId];
+      if (!existingBudget) return;
+
+      const budgetDate = existingBudget.budgetDate || {
+        year: new Date().getFullYear(),
+        month: new Date().getMonth()
+      };
+      const activeMonthKey = monthKeyFromBudgetDate(budgetDate.year, budgetDate.month);
+      const monthsByKey = existingBudget.monthsByKey || {};
+
+      const validation = validateMultiMonthBulkAdd(
+        draft.monthKeys,
+        draft.days,
+        monthsByKey,
+        activeMonthKey,
+        days,
+        MAX_TRANSACTIONS_PER_DAY
+      );
+      if (!validation.ok) return;
+
+      const { monthsByKey: nextMonthsByKey, activeMonthDays } = applyMultiMonthBulkAdd(
+        validation.plan,
+        {
+          type: draft.type,
+          amount: draft.amount,
+          currency: draft.currency,
+          description: draft.description
+        },
+        monthsByKey,
+        activeMonthKey,
+        days,
+        selectedCurrencies
+      );
+
+      const trimmedMonths = trimOldestMonthKeys(nextMonthsByKey);
+      const nextDays = activeMonthDays ?? days;
+
+      const draftBudget: Budget = {
+        ...existingBudget,
+        days: nextDays,
+        monthsByKey: trimmedMonths
+      };
+      const afterWaterfall = applyBalanceWaterfallToBudget(draftBudget);
+
+      const updatedBudgets: Budgets = {
+        ...safePrev,
+        [currentId]: { ...existingBudget, ...afterWaterfall }
+      };
+
+      setBudgets(updatedBudgets);
+      setDays(afterWaterfall.days || nextDays);
+      saveToLocalStorage(updatedBudgets, currentId);
+    },
+    [
+      user,
+      isCurrentBookReadOnly,
+      activeBudgetId,
+      budgets,
+      days,
+      selectedCurrencies,
+      setBudgets,
+      setDays
+    ]
+  );
+
   return {
     handleClearAll,
     handleClearAllDays,
@@ -692,7 +803,9 @@ export function useBudgetSettings() {
     showClearAllDaysConfirmModal,
     setShowClearAllDaysConfirmModal,
     handleConfirmClearAllDays,
-    handleCancelClearAllDays
+    handleCancelClearAllDays,
+    clearDaysScope,
+    handleBulkAddTransactionsToMonths
   };
 }
 

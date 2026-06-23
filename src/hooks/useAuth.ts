@@ -1,29 +1,49 @@
 import { useState, useEffect, useCallback } from 'react';
-import { onAuthStateChanged, signInWithPopup, signOut, User, deleteUser } from 'firebase/auth';
+import { onAuthStateChanged, signInWithPopup, signOut, User, deleteUser, reauthenticateWithPopup } from 'firebase/auth';
 import { doc, deleteDoc } from 'firebase/firestore';
 import { auth, googleProvider, db } from '../firebase';
 import { handleError } from '../utils/errorHandler';
 import { saveToLocalStorage, createEmptyDefaultBudget } from '../utils/storageHelpers';
 import { Budgets } from '../types';
-import { deleteAllBudgetBooksForUser } from '../services/budgetBooksFirestore';
+import { deleteAllBudgetBooksForUser, ensureUserDocument } from '../services/budgetBooksFirestore';
 import { ACTIVE_BUDGET_BOOK_COOKIE_KEY } from '../utils/constants';
+import { withPopupOnFocusedScreen } from '../utils/authPopup';
 
 export function useAuth() {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-      setUser(currentUser);
-      setLoading(false);
+    let isMounted = true;
+
+    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
+      try {
+        if (currentUser) {
+          await ensureUserDocument(currentUser);
+        }
+      } catch (error) {
+        handleError(
+          error instanceof Error ? error : new Error(String(error)),
+          { context: 'useAuth', action: 'ensureUserDocumentOnAuthStateChanged' }
+        );
+      } finally {
+        if (isMounted) {
+          setUser(currentUser);
+          setLoading(false);
+        }
+      }
     });
 
-    return () => unsubscribe();
+    return () => {
+      isMounted = false;
+      unsubscribe();
+    };
   }, []);
 
   const loginWithGoogle = useCallback(async () => {
     try {
-      await signInWithPopup(auth, googleProvider);
+      const result = await withPopupOnFocusedScreen(() => signInWithPopup(auth, googleProvider));
+      await ensureUserDocument(result.user);
     } catch (error: any) {
       // Обробка помилок скасування входу користувачем - не показуємо помилку
       if (error?.code === 'auth/cancelled-popup-request' || error?.code === 'auth/popup-closed-by-user') {
@@ -110,24 +130,39 @@ export function useAuth() {
     const userId = currentUser.uid; // Зберігаємо UID перед видаленням
 
     try {
-      // 1. Видаляємо всі книги бюджету з підколекції
+      // 1. Повторна авторизація ПЕРЕД будь-яким видаленням даних
+      try {
+        await withPopupOnFocusedScreen(() => reauthenticateWithPopup(currentUser, googleProvider));
+      } catch (reauthError: any) {
+        if (
+          reauthError?.code === 'auth/cancelled-popup-request' ||
+          reauthError?.code === 'auth/popup-closed-by-user'
+        ) {
+          const customError = new Error('REAUTH_CANCELLED');
+          customError.name = 'ReauthCancelledError';
+          throw customError;
+        }
+        throw reauthError;
+      }
+
+      // 2. Видаляємо всі книги бюджету з підколекції
       await deleteAllBudgetBooksForUser(userId);
 
-      // 2. Видаляємо документ користувача з Firestore
+      // 3. Видаляємо документ користувача з Firestore
       const userDocRef = doc(db, 'users', userId);
       await deleteDoc(userDocRef);
 
-      // 3. Видаляємо користувача з Authentication
+      // 4. Видаляємо користувача з Authentication
       await deleteUser(currentUser);
 
-      // 4. Обов'язково виходимо з акаунту після видалення
+      // 5. Обов'язково виходимо з акаунту після видалення
       // Це запобігає автоматичному створенню нового акаунту
       await signOut(auth);
       
-      // 5. Чекаємо трохи, щоб переконатися, що все завершилося
+      // 6. Чекаємо трохи, щоб переконатися, що все завершилося
       await new Promise(resolve => setTimeout(resolve, 200));
 
-      // 6. Очищаємо localStorage після підтвердження виходу
+      // 7. Очищаємо localStorage після підтвердження виходу
       localStorage.removeItem('budgetTrackerData');
       // НЕ видаляємо мову - це налаштування користувача, не пов'язане з акаунтом
       // localStorage.removeItem('budgetTrackerLanguage'); // ЗАЛИШАЄМО МОВУ
@@ -143,7 +178,11 @@ export function useAuth() {
       document.cookie = 'budgetTrackerActiveBudgetId=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
       document.cookie = `${ACTIVE_BUDGET_BOOK_COOKIE_KEY}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`;
     } catch (error: any) {
-      // Обробка помилки requires-recent-login
+      if (error?.name === 'ReauthCancelledError' || error?.message === 'REAUTH_CANCELLED') {
+        throw error;
+      }
+
+      // Обробка помилки requires-recent-login (запасний варіант після reauthenticateWithPopup)
       if (error?.code === 'auth/requires-recent-login') {
         const customError = new Error('REQUIRES_RECENT_LOGIN');
         customError.name = 'RequiresRecentLoginError';

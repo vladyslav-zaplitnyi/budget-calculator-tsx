@@ -37,7 +37,9 @@ const DeleteAccountModal: React.FC<DeleteAccountModalProps> = ({
         window.location.reload();
       }, 1500);
     } catch (err: any) {
-      if (err?.name === 'RequiresRecentLoginError' || err?.message === 'REQUIRES_RECENT_LOGIN') {
+      if (err?.name === 'ReauthCancelledError' || err?.message === 'REAUTH_CANCELLED') {
+        setError(t('settings.deleteAccount.reauthCancelled'));
+      } else if (err?.name === 'RequiresRecentLoginError' || err?.message === 'REQUIRES_RECENT_LOGIN') {
         setError(t('settings.deleteAccount.requiresRecentLogin'));
       } else {
         setError(t('settings.deleteAccount.error'));

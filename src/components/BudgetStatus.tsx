@@ -3,9 +3,12 @@ import { useTranslation } from 'react-i18next';
 import { getCurrencyInfo, getCurrencySymbol, AVAILABLE_CURRENCIES, getCurrencyName } from '../utils/currencies';
 import { convertCurrency, formatNumber, calculateDayAmountsFromTransactions } from '../utils/calculations';
 import { getDaysInMonth } from '../utils/dateHelpers';
-import { Day, ExchangeRates, Transaction } from '../types';
+import { Day, ExchangeRates, MonthSlice } from '../types';
 import CurrencyFlag from './CurrencyFlag';
-import { buildPlannerRows, getRollingMonths, PlannerRow } from '../utils/monthlyPlan';
+import {
+  buildTwelveMonthBalanceRows,
+  OverviewMonthBalanceRow
+} from '../utils/rollingMonthsBudget';
 import { capitalizeFirstLetter, getMonthYearLabel } from '../utils/dateHelpers';
 
 const BALANCE_CARD_COLORS = [
@@ -36,11 +39,10 @@ interface BudgetStatusProps {
   days: Day[];
   budgetYear: number;
   budgetMonth: number;
-  /** When `months`, day slider shows critical months from the 12-month plan instead. */
+  /** When `months`, month slider shows balances from the 12-month overview window. */
   budgetViewMode?: 'days' | 'months';
-  monthlyPlans?: Record<string, Transaction[]>;
-  plannerStartYear?: number;
-  plannerStartMonth?: number;
+  monthsByKey?: Record<string, MonthSlice>;
+  activeMonthKey?: string;
   /** When true, display currency cannot be changed (it is persisted with the budget). */
   readOnly?: boolean;
 }
@@ -64,9 +66,8 @@ const BudgetStatus: React.FC<BudgetStatusProps> = ({
   budgetYear,
   budgetMonth,
   budgetViewMode = 'days',
-  monthlyPlans,
-  plannerStartYear,
-  plannerStartMonth,
+  monthsByKey,
+  activeMonthKey,
   readOnly = false
 }) => {
   const { t, i18n: i18nInstance } = useTranslation();
@@ -75,8 +76,8 @@ const BudgetStatus: React.FC<BudgetStatusProps> = ({
   const daysInMonth = getDaysInMonth(budgetYear, budgetMonth);
 
   const [selectedDay, setSelectedDay] = useState<number>(daysInMonth);
-  /** 1..12 — позиція в поточному 12-місячному вікні планувальника (аналог «день» у режимі днів). */
-  const [selectedPlannerMonthSlot, setSelectedPlannerMonthSlot] = useState<number>(12);
+  /** 1..12 — позиція в 12-місячному вікні (1 = поточний календарний місяць). */
+  const [selectedPlannerMonthSlot, setSelectedPlannerMonthSlot] = useState<number>(1);
 
   const [isCriticalExpanded, setIsCriticalExpanded] = useState<boolean>(() => {
     try {
@@ -122,43 +123,41 @@ const BudgetStatus: React.FC<BudgetStatusProps> = ({
 
   // Compute cumulative balance in display currency for each day (days mode),
   // або рядки 12-місячного плану + критичні місяці (months mode).
-  const { dailyBalances, criticalDays, criticalMonths, monthlyPlannerRows } = useMemo(() => {
-    const emptyPlannerRows: PlannerRow[] = [];
-    if (budgetViewMode === 'months' && typeof plannerStartYear === 'number' && typeof plannerStartMonth === 'number') {
-      const months = getRollingMonths(plannerStartYear, plannerStartMonth, 12);
-      const rows = buildPlannerRows({
-        months,
-        monthlyPlans: monthlyPlans || {},
-        startingBalance: totalInDisplayCurrency ?? 0,
+  const { dailyBalances, criticalDays, criticalMonths, monthlyBalanceRows } = useMemo(() => {
+    const emptyMonthRows: OverviewMonthBalanceRow[] = [];
+    if (budgetViewMode === 'months') {
+      const rows = buildTwelveMonthBalanceRows({
+        monthsByKey,
+        selectedCurrencies,
         displayCurrency,
         exchangeRates,
-        budgetYear,
-        budgetMonth
+        activeMonthKey,
+        activeDays: days,
+        activeStartBalances: startBalances
       });
-      const withCum = rows.filter((r) => r.cumulative !== null);
-      if (withCum.length === 0) {
+      if (rows.length === 0) {
         return {
           dailyBalances: [] as number[],
           criticalDays: [] as { day: number; balance: number }[],
           criticalMonths: [] as { key: string; year: number; month: number; balance: number }[],
-          monthlyPlannerRows: rows
+          monthlyBalanceRows: rows
         };
       }
-      const minBalance = Math.min(...withCum.map((r) => r.cumulative as number));
-      const criticalMonthsList = withCum
-        .filter((r) => (r.cumulative as number) === minBalance)
+      const minBalance = Math.min(...rows.map((r) => r.balance));
+      const criticalMonthsList = rows
+        .filter((r) => r.balance === minBalance)
         .slice(0, 5)
         .map((r) => ({
           key: r.key,
           year: r.year,
           month: r.month,
-          balance: r.cumulative as number
+          balance: r.balance
         }));
       return {
         dailyBalances: [],
         criticalDays: [],
         criticalMonths: criticalMonthsList,
-        monthlyPlannerRows: rows
+        monthlyBalanceRows: rows
       };
     }
 
@@ -186,7 +185,7 @@ const BudgetStatus: React.FC<BudgetStatusProps> = ({
     }
 
     if (balances.length === 0) {
-      return { dailyBalances: [], criticalDays: [], criticalMonths: [], monthlyPlannerRows: emptyPlannerRows };
+      return { dailyBalances: [], criticalDays: [], criticalMonths: [], monthlyBalanceRows: emptyMonthRows };
     }
 
     const minBalance = Math.min(...balances);
@@ -195,14 +194,14 @@ const BudgetStatus: React.FC<BudgetStatusProps> = ({
       .filter(d => d.balance === minBalance)
       .slice(0, 5);
 
-    return { dailyBalances: balances, criticalDays: critical, criticalMonths: [], monthlyPlannerRows: emptyPlannerRows };
-  }, [budgetViewMode, plannerStartYear, plannerStartMonth, monthlyPlans, totalInDisplayCurrency, displayCurrency, exchangeRates, budgetYear, budgetMonth, days, daysInMonth, selectedCurrencies, startBalances]);
+    return { dailyBalances: balances, criticalDays: critical, criticalMonths: [], monthlyBalanceRows: emptyMonthRows };
+  }, [budgetViewMode, monthsByKey, activeMonthKey, displayCurrency, exchangeRates, days, daysInMonth, selectedCurrencies, startBalances]);
 
   useEffect(() => {
     if (budgetViewMode === 'months') {
-      setSelectedPlannerMonthSlot(12);
+      setSelectedPlannerMonthSlot(1);
     }
-  }, [budgetViewMode, plannerStartYear, plannerStartMonth, budgetYear, budgetMonth]);
+  }, [budgetViewMode]);
 
   // Balance as of the selected day
   const selectedDayBalance = dailyBalances.length > 0 && selectedDay >= 1 && selectedDay <= dailyBalances.length
@@ -212,17 +211,17 @@ const BudgetStatus: React.FC<BudgetStatusProps> = ({
   const isEndOfMonth = selectedDay === daysInMonth;
   const displaySymbol = getCurrencySymbol(displayCurrency);
 
-  const plannerMonthCount = monthlyPlannerRows.length;
+  const plannerMonthCount = monthlyBalanceRows.length;
   const selectedPlannerRow =
     plannerMonthCount > 0 && selectedPlannerMonthSlot >= 1 && selectedPlannerMonthSlot <= plannerMonthCount
-      ? monthlyPlannerRows[selectedPlannerMonthSlot - 1]
+      ? monthlyBalanceRows[selectedPlannerMonthSlot - 1]
       : undefined;
   const selectedPlannerMonthLabel = selectedPlannerRow
     ? capitalizeFirstLetter(
         getMonthYearLabel(i18nInstance.language || 'en', selectedPlannerRow.year, selectedPlannerRow.month)
       )
     : '';
-  const selectedPlannerBalance = selectedPlannerRow?.cumulative ?? null;
+  const selectedPlannerBalance = selectedPlannerRow?.balance ?? null;
   const isEndOfPlannerWindow = plannerMonthCount > 0 && selectedPlannerMonthSlot === plannerMonthCount;
 
   return (

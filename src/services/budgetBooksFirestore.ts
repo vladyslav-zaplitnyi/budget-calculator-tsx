@@ -23,7 +23,9 @@ import { ACTIVE_BUDGET_BOOK_COOKIE_KEY } from '../utils/constants';
 export const BUDGET_BOOKS_SUBCOLLECTION = 'budgetBooks';
 export const USER_DATA_LAYOUT_VERSION = 2;
 export const DEFAULT_BUDGET_BOOK_ID = 'default';
-export const MAX_USER_BUDGET_BOOKS = 3;
+export const SECONDARY_BUDGET_BOOK_ID = 'secondary';
+/** Free product cap: a user may keep at most two budget books (e.g. Personal + Family). */
+export const MAX_USER_BUDGET_BOOKS = 2;
 
 export class ReadOnlyBudgetBookError extends Error {
   constructor() {
@@ -47,6 +49,49 @@ const convertTimestampToString = (value: unknown): string | undefined => {
 };
 
 export const deepSanitizeUndefined = <T,>(data: T): T => JSON.parse(JSON.stringify(data)) as T;
+
+const sanitizeExchangeRatesForFirestore = (rates: Budget['exchangeRates'] | undefined): Budget['exchangeRates'] => {
+  const out: Budget['exchangeRates'] = {};
+  if (!rates || typeof rates !== 'object') return out;
+
+  Object.entries(rates).forEach(([key, value]) => {
+    if (typeof value === 'number') {
+      if (Number.isFinite(value) && value > 0) {
+        out[key] = value;
+      }
+      return;
+    }
+
+    if (value && typeof value === 'object') {
+      const buy = (value as { buy?: unknown }).buy;
+      const sell = (value as { sell?: unknown }).sell;
+      if (
+        typeof buy === 'number' &&
+        typeof sell === 'number' &&
+        Number.isFinite(buy) &&
+        Number.isFinite(sell) &&
+        buy > 0 &&
+        sell > 0
+      ) {
+        out[key] = { buy, sell };
+      }
+    }
+  });
+
+  return out;
+};
+
+const sanitizeBudgetsForFirestore = (input: Budgets): Budgets => {
+  const sanitized: Budgets = {};
+  Object.entries(input || {}).forEach(([id, budget]) => {
+    if (!budget) return;
+    sanitized[id] = {
+      ...budget,
+      exchangeRates: sanitizeExchangeRatesForFirestore(budget.exchangeRates)
+    };
+  });
+  return deepSanitizeUndefined(sanitized);
+};
 
 const syncDisplayCurrencyToLocalStorage = (activeBudget: Budget | undefined) => {
   if (activeBudget?.displayCurrency) {
@@ -115,6 +160,29 @@ const deriveDisplayLabel = (budgets: Budgets, activeBudgetId: string): string =>
 const userDocRef = (uid: string) => doc(db, 'users', uid);
 const budgetBookRef = (uid: string, bookId: string) =>
   doc(db, 'users', uid, BUDGET_BOOKS_SUBCOLLECTION, bookId);
+
+/**
+ * Ensures Auth has a matching Firestore user document.
+ * Google Auth creates only the Authentication account; Firestore documents must be created by the app.
+ */
+export async function ensureUserDocument(user: User): Promise<void> {
+  const uRef = userDocRef(user.uid);
+  const snap = await getDoc(uRef);
+  await setDoc(
+    uRef,
+    {
+      uid: user.uid,
+      email: user.email ?? null,
+      displayName: user.displayName ?? null,
+      photoURL: user.photoURL ?? null,
+      dataLayoutVersion: USER_DATA_LAYOUT_VERSION,
+      currentBudgetBookId: DEFAULT_BUDGET_BOOK_ID,
+      ...(snap.exists() ? {} : { createdAt: serverTimestamp() }),
+      updatedAt: serverTimestamp()
+    },
+    { merge: true }
+  );
+}
 
 export type LoadUserBudgetFirestoreResult =
   | { kind: 'needsPassword' }
@@ -399,8 +467,10 @@ export async function saveBudgetBookToFirestore(params: SaveBudgetBookParams): P
     throw new ReadOnlyBudgetBookError();
   }
 
+  const budgetsForFirestore = sanitizeBudgetsForFirestore(budgets);
+
   try {
-    validateBudgets(deepSanitizeUndefined(budgets));
+    validateBudgets(budgetsForFirestore);
   } catch (validationError) {
     handleError(
       validationError instanceof Error ? validationError : new Error(String(validationError)),
@@ -438,15 +508,12 @@ export async function saveBudgetBookToFirestore(params: SaveBudgetBookParams): P
   const isReadOnlyPersisted = existing?.isReadOnly === true ? true : false;
 
   if (encryptionPassword) {
-    const sanitized = deepSanitizeUndefined(budgets);
-    const encryptedData = encryptData({ activeBudgetId: safeActive, budgets: sanitized }, encryptionPassword);
+    const encryptedData = encryptData({ activeBudgetId: safeActive, budgets: budgetsForFirestore }, encryptionPassword);
     await setDoc(bRef, {
       isReadOnly: isReadOnlyPersisted,
       isEncrypted: true,
       encryptedData,
       displayLabel,
-      budgets: deleteField(),
-      activeBudgetId: deleteField(),
       updatedAt: serverTimestamp()
     });
   } else {
@@ -454,9 +521,8 @@ export async function saveBudgetBookToFirestore(params: SaveBudgetBookParams): P
       isReadOnly: isReadOnlyPersisted,
       isEncrypted: false,
       activeBudgetId: safeActive,
-      budgets: deepSanitizeUndefined(budgets),
+      budgets: budgetsForFirestore,
       displayLabel,
-      encryptedData: deleteField(),
       updatedAt: serverTimestamp()
     });
   }
@@ -481,4 +547,111 @@ export async function deleteAllBudgetBooksForUser(userId: string): Promise<void>
   if (!snap.empty) {
     await batch.commit();
   }
+}
+
+/** Lists the user's budget books (sorted, capped at MAX_USER_BUDGET_BOOKS). */
+export async function listBudgetBookSummaries(user: User): Promise<BudgetBookSummary[]> {
+  const snap = await getDocs(collection(db, 'users', user.uid, BUDGET_BOOKS_SUBCOLLECTION));
+  const summaries = snap.docs.map((d) =>
+    mapBookDocToSummary(d.id, d.data() as Record<string, unknown>)
+  );
+  summaries.sort((a, b) => {
+    // Keep the primary "default" book first, then alphabetical.
+    if (a.id === DEFAULT_BUDGET_BOOK_ID) return -1;
+    if (b.id === DEFAULT_BUDGET_BOOK_ID) return 1;
+    return a.id.localeCompare(b.id);
+  });
+  return summaries.slice(0, MAX_USER_BUDGET_BOOKS);
+}
+
+/** Builds a stable, unique book id from a human label. */
+const buildBookId = (label: string, existingIds: string[]): string => {
+  const base =
+    label
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '') || SECONDARY_BUDGET_BOOK_ID;
+  if (!existingIds.includes(base)) return base;
+  let suffix = 2;
+  let candidate = `${base}-${suffix}`;
+  while (existingIds.includes(candidate)) {
+    suffix += 1;
+    candidate = `${base}-${suffix}`;
+  }
+  return candidate;
+};
+
+/**
+ * Creates a new budget book document for the user, enforcing MAX_USER_BUDGET_BOOKS.
+ * `initialBudgets` should contain a single `default` budget (built by the caller).
+ * Returns the new book id, or throws if the cap is reached.
+ */
+export async function createBudgetBook(
+  user: User,
+  displayLabel: string,
+  initialBudgets: Budgets,
+  encryptionPassword?: string | null
+): Promise<string> {
+  const existing = await listBudgetBookSummaries(user);
+  if (existing.length >= MAX_USER_BUDGET_BOOKS) {
+    throw new Error('MAX_BUDGET_BOOKS_REACHED');
+  }
+  const label = (displayLabel || '').trim() || SECONDARY_BUDGET_BOOK_ID;
+  const newId = buildBookId(
+    label,
+    existing.map((b) => b.id)
+  );
+
+  // Stamp the provided label onto the single budget so deriveDisplayLabel resolves to it.
+  const budgetsToSave: Budgets = {};
+  Object.entries(initialBudgets).forEach(([id, b]) => {
+    budgetsToSave[id] = { ...b, name: label };
+  });
+
+  await saveBudgetBookToFirestore({
+    user,
+    budgetBookId: newId,
+    budgets: budgetsToSave,
+    activeBudgetId: DEFAULT_BUDGET_BOOK_ID,
+    encryptionPassword: encryptionPassword ?? null,
+    clientClaimsWritable: true
+  });
+
+  return newId;
+}
+
+/** Renames a budget book (updates the displayLabel field). */
+export async function renameBudgetBook(
+  user: User,
+  bookId: string,
+  displayLabel: string
+): Promise<void> {
+  const label = (displayLabel || '').trim();
+  if (!label) return;
+  await setDoc(
+    budgetBookRef(user.uid, bookId),
+    {
+      displayLabel: label,
+      updatedAt: serverTimestamp()
+    },
+    { merge: true }
+  );
+}
+
+/** Deletes a budget book. The primary `default` book cannot be deleted. */
+export async function deleteBudgetBook(user: User, bookId: string): Promise<void> {
+  if (bookId === DEFAULT_BUDGET_BOOK_ID) {
+    throw new Error('CANNOT_DELETE_DEFAULT_BOOK');
+  }
+  const batch = writeBatch(db);
+  batch.delete(budgetBookRef(user.uid, bookId));
+  batch.set(
+    userDocRef(user.uid),
+    {
+      currentBudgetBookId: DEFAULT_BUDGET_BOOK_ID,
+      updatedAt: serverTimestamp()
+    },
+    { merge: true }
+  );
+  await batch.commit();
 }

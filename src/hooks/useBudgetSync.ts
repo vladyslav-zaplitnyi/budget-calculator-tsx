@@ -1,5 +1,5 @@
-import { useEffect, useRef } from 'react';
-import { saveToLocalStorage } from '../utils/storageHelpers';
+import { useEffect, useMemo, useRef } from 'react';
+import { saveToLocalStorage, FirestoreBudgetContext } from '../utils/storageHelpers';
 import { BudgetStateWithSync } from '../contexts/BudgetContext';
 import { User } from 'firebase/auth';
 import { Budgets } from '../types';
@@ -140,6 +140,14 @@ export function useBudgetSync(
     }
   }, [days, selectedCurrencies, exchangeRates, budgets, activeBudgetId, isInitialLoad, authLoading, user, setSyncStatus, getSyncStatusText]);
 
+  // ВАЖЛИВО: Мемоізуємо контекст книги бюджету.
+  // Інакше новий об'єкт на кожен рендер скидав би 2-секундний таймер debounce,
+  // через що збереження в Firestore ніколи не відбувалося ("вічна синхронізація").
+  const firestoreBudgetContext = useMemo<FirestoreBudgetContext | null>(
+    () => (user ? { budgetBookId: currentBudgetBookId, isReadOnly: isCurrentBookReadOnly } : null),
+    [user, currentBudgetBookId, isCurrentBookReadOnly]
+  );
+
   // Debounce збереження в Firestore
   useSyncDebounce({
     budgets,
@@ -156,9 +164,7 @@ export function useBudgetSync(
     isRemoteDataEncrypted: passwordModal.isRemoteDataEncrypted,
     // 🔒 FETCH-FIRST: Передаємо стан завантаження даних
     isDataLoaded: passwordModal.isDataLoaded,
-    firestoreBudgetContext: user
-      ? { budgetBookId: currentBudgetBookId, isReadOnly: isCurrentBookReadOnly }
-      : null
+    firestoreBudgetContext
   });
 
   return {

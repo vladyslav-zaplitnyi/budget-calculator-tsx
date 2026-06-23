@@ -1,4 +1,5 @@
-import type { Budget, Budgets, MonthSlice } from '../types';
+import type { Budget, Budgets, Day, ExchangeRates, MonthSlice } from '../types';
+import { calculateFinalBalances, calculateTotals, convertCurrency } from './calculations';
 import { DEFAULT_CURRENCIES } from './currencies';
 import { createEmptyMonthDays, normalizeDaysArray } from './dayHelpers';
 import { formatMonthKey, shiftMonths } from './monthlyPlan';
@@ -190,6 +191,89 @@ export function getTwelveMonthWindowStartingAt(startYear: number, startMonth: nu
 export function getDefaultOverviewWindow() {
   const { year, month } = getCurrentCalendarBudgetDate();
   return getTwelveMonthWindowStartingAt(year, month);
+}
+
+export interface OverviewMonthBalanceRow {
+  key: string;
+  year: number;
+  month: number;
+  balance: number;
+}
+
+function sumFinalBalancesInDisplayCurrency(
+  finalBalances: Record<string, number>,
+  selectedCurrencies: string[],
+  displayCurrency: string,
+  exchangeRates: ExchangeRates
+): number {
+  let total = 0;
+  selectedCurrencies.forEach((code) => {
+    const bal = finalBalances[`finalBalance${code}`] || 0;
+    total += convertCurrency(bal, code, displayCurrency, exchangeRates);
+  });
+  return total;
+}
+
+/** End-of-month total in display currency for one stored month slice. */
+export function computeSliceEndBalanceDisplay(
+  slice: MonthSlice | undefined,
+  year: number,
+  month: number,
+  selectedCurrencies: string[],
+  displayCurrency: string,
+  exchangeRates: ExchangeRates
+): number {
+  const currencies = selectedCurrencies.length ? selectedCurrencies : DEFAULT_CURRENCIES;
+  const days = slice?.days?.length ? slice.days : createEmptyMonthDays(year, month);
+  const startBalances = slice?.startBalances ?? {};
+  const totals = calculateTotals(days, currencies);
+  const finals = calculateFinalBalances(days, currencies, startBalances, totals);
+  return sumFinalBalancesInDisplayCurrency(finals, currencies, displayCurrency, exchangeRates);
+}
+
+/**
+ * Projected end-of-month balances for the default 12-month window
+ * (current calendar month first, then 11 future months).
+ */
+export function buildTwelveMonthBalanceRows(args: {
+  monthsByKey: Record<string, MonthSlice> | undefined;
+  selectedCurrencies: string[];
+  displayCurrency: string;
+  exchangeRates: ExchangeRates;
+  /** When the active UI month matches a window slot, use live days/startBalances. */
+  activeMonthKey?: string;
+  activeDays?: Day[];
+  activeStartBalances?: Record<string, number | null>;
+}): OverviewMonthBalanceRow[] {
+  const {
+    monthsByKey,
+    selectedCurrencies,
+    displayCurrency,
+    exchangeRates,
+    activeMonthKey,
+    activeDays,
+    activeStartBalances
+  } = args;
+
+  return getDefaultOverviewWindow().map(({ year, month, key }) => {
+    let slice = monthsByKey?.[key];
+    if (activeMonthKey === key && activeDays) {
+      slice = { days: activeDays, startBalances: activeStartBalances ?? {} };
+    }
+    return {
+      key,
+      year,
+      month,
+      balance: computeSliceEndBalanceDisplay(
+        slice,
+        year,
+        month,
+        selectedCurrencies,
+        displayCurrency,
+        exchangeRates
+      )
+    };
+  });
 }
 
 export function mergeMonthSliceIntoBudget(

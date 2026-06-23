@@ -23,7 +23,36 @@
     "readOnlyBanner": "Read-only mode: this budget book is historical. You cannot edit transactions or settings here.",
     "selectLabel": "Budget book",
     "readOnlySuffix": "read-only",
-    "readOnlyActionBlocked": "This budget book is read-only. Switch to an editable book to make changes."
+    "readOnlyActionBlocked": "This budget book is read-only. Switch to an editable book to make changes.",
+    "personalLabel": "Personal",
+    "create": "Create a second budget book",
+    "rename": "Rename book",
+    "delete": "Delete book",
+    "createTitle": "New budget book",
+    "renameTitle": "Rename budget book",
+    "namePlaceholder": "e.g. Family",
+    "deleteConfirmTitle": "Delete budget book?",
+    "deleteConfirmMessage": "All data in this budget book will be permanently deleted. Continue?",
+    "limitReached": "You can keep at most 2 budget books."
+  },
+  "onboarding": {
+    "title": "Welcome!",
+    "intro": "Three simple steps to start managing your budget.",
+    "days": {
+      "title": "By days",
+      "text": "Track income and expenses day by day within a single month and see your balance for every day."
+    },
+    "plan": {
+      "title": "12 months",
+      "text": "See income and expenses for each month and jump to the day-by-day view with one tap."
+    },
+    "sync": {
+      "title": "Sign in & sync",
+      "text": "Sign in with Google to save your data in the cloud and keep up to 2 separate budgets (e.g. Personal and Family)."
+    },
+    "signInCta": "Sign in with Google",
+    "getStarted": "Get started",
+    "dismiss": "Close"
   },
   "settings": {
     "title": "Settings",
@@ -97,9 +126,16 @@
     },
     "clearAllDays": "🗑️ Clear all days",
     "clearAllDaysConfirm": {
-      "title": "Are you sure?",
-      "message": "This will clear all data for all days (transactions, descriptions), but will keep starting balances and settings!",
-      "confirm": "Yes, clear days",
+      "title": "Clear all 12 months?",
+      "message": "This will clear transactions and descriptions for all 12 months in the overview. Starting balances and settings will be kept.",
+      "confirm": "Yes, clear all months",
+      "cancel": "Cancel"
+    },
+    "clearMonthDays": "🗑️ Clear all days in month",
+    "clearMonthDaysConfirm": {
+      "title": "Clear days in selected month?",
+      "message": "This will clear all transactions and descriptions in the selected month. Starting balances and settings will be kept.",
+      "confirm": "Yes, clear month days",
       "cancel": "Cancel"
     },
     "startNewMonth": {
@@ -112,7 +148,7 @@
     "budgetMonth": {
       "label": "Budget Month",
       "currentMonth": "Current Month",
-      "tooltip": "Budget month. When importing a file, the date is set from the file. When clicking \"Start new month\", the date automatically changes to the next month."
+      "tooltip": "Budget month. When importing a file, the date is set from the file."
     },
     "security": {
       "title": "Security",
@@ -132,7 +168,8 @@
       "deleting": "Deleting...",
       "success": "✅ Account successfully deleted",
       "error": "❌ Error deleting account. Please try again.",
-      "requiresRecentLogin": "⚠️ For security, recent login is required. Please log out and log in again, then try to delete the account."
+      "reauthCancelled": "Deletion cancelled. Confirm sign-in with Google to delete your account.",
+      "requiresRecentLogin": "⚠️ Could not verify your identity. Please try again — a Google sign-in window will appear."
     }
   },
   "budgetStatus": {
@@ -153,10 +190,18 @@
     "dayLabel": "Day"
   },
   "bulkTransactions": {
-    "button": "Add transactions",
-    "title": "Add transactions",
+    "button": "Add Transaction",
+    "title": "Add Transaction",
     "selectDays": "Select Days",
     "errorMaxTransactions": "Days: {{days}} have max transactions"
+  },
+  "multiMonthBulk": {
+    "selectMonths": "Select months",
+    "selectAtLeastOneMonth": "Select at least one month",
+    "monthHint": "The transaction will be added on the selected days in each chosen month. If a month has fewer days (e.g. day 31 → 30 or 28/29), it lands on the last day of that month.",
+    "dayHint": "Pick day numbers (1–31). In shorter months the day is shifted to the month's last day.",
+    "willCreateCount": "Will create {{count}} transactions.",
+    "errorDayLimit": "{{month}}, day {{day}}: already {{existing}}, adding {{adding}} (max {{max}})"
   },
   "transaction": {
     "add": "Add Transaction",
@@ -306,6 +351,16 @@
     "emptyTitle": "No transactions found",
     "emptyDescription": "Try changing the filters or add transactions in the daily table."
   },
+  "multiMonthTransactionExplorer": {
+    "title": "Transaction search",
+    "subtitle": "Find transactions across all overview months. Each match shows the exact date — day and month.",
+    "month": "Month",
+    "allMonths": "All months",
+    "dateLabel": "Date",
+    "searchPlaceholder": "Description, amount, currency, day...",
+    "emptyDescription": "Try changing the filters or add transactions in the daily view.",
+    "monthMatches": "{{count}} matches"
+  },
   "footer": {
     "copyright": "© 2026 Budget Tracker. All rights reserved.",
     "cookie": "🍪 Buy me a cookie",
@@ -399,8 +454,10 @@
     "ariaLabel": "Budget view mode",
     "days": "By days",
     "daysHint": "Day-by-day for the current month",
-    "months": "12-month plan",
-    "monthsHint": "Plan transactions for upcoming months"
+    "months": "12 months",
+    "monthsHint": "Income and expenses per month — tap a month to open the daily view",
+    "monthsReadOnlyHint": "Each month shows its own transactions from saved data. Tap a month to open the day-by-day view.",
+    "emptyMonthTap": "No data yet — opens empty month"
   },
   "monthlyPlanner": {
     "title": "12-month plan",
@@ -417,7 +474,7 @@
     "actions": "Actions",
     "details": "Details",
     "add": "Add",
-    "addTransaction": "Add planned transaction",
+    "addTransaction": "Add Transaction",
     "empty": "No planned transactions for this month yet.",
     "clearMonth": "Clear month",
     "pastBadge": "Past",
@@ -440,7 +497,7 @@
       "confirm": "Yes, continue"
     },
     "modal": {
-      "addTitle": "Add planned transaction",
+      "addTitle": "Add Transaction",
       "forMonth": "For month",
       "forMonths": "Apply to months",
       "selectAll": "Select all",

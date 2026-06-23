@@ -25,6 +25,10 @@ export interface FirestoreBudgetContext {
   isReadOnly: boolean;
 }
 
+export interface SaveToFirestoreOptions {
+  throwOnError?: boolean;
+}
+
 /** Result of loading signed-in user data from Firestore (multi-book layout). */
 export interface LoadedFirestoreBundle extends LoadedUserData {
   budgetBooks: BudgetBookSummary[];
@@ -190,7 +194,8 @@ export const saveToFirestore = async (
   getSyncStatusText?: (key: string) => string,
   encryptionPassword?: string | null,
   setIsEncrypted?: (encrypted: boolean) => void,
-  budgetContext?: FirestoreBudgetContext | null
+  budgetContext?: FirestoreBudgetContext | null,
+  options?: SaveToFirestoreOptions
 ): Promise<void> => {
   if (!user) return;
 
@@ -239,6 +244,9 @@ export const saveToFirestore = async (
     );
     if (setSyncStatus && getSyncStatusText) {
       setSyncStatus(getSyncStatusText('error'));
+    }
+    if (options?.throwOnError) {
+      throw error;
     }
   }
 };

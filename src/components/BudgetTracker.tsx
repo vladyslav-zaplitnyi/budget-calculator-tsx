@@ -1,5 +1,4 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { useTranslation } from 'react-i18next';
 import Footer from './Footer';
 import Header from './Header';
 import SettingsCard from './SettingsCard';
@@ -11,7 +10,9 @@ import Analytics from './Analytics';
 import AppTabs, { BudgetAppTab } from './AppTabs';
 import OverviewDashboard from './OverviewDashboard';
 import TransactionExplorer from './TransactionExplorer';
+import MultiMonthTransactionExplorer from './MultiMonthTransactionExplorer';
 import TwelveMonthOverview from './TwelveMonthOverview';
+import OnboardingCard from './OnboardingCard';
 import BudgetMonthSection from './BudgetMonthSection';
 import AlertModal from './AlertModal';
 import PromptModal from './PromptModal';
@@ -22,9 +23,10 @@ import { useBudgetHandlers } from '../hooks/useBudgetHandlers';
 import { calculateTotals, calculateFinalBalances, convertCurrency } from '../utils/calculations';
 import { translate } from '../i18n/config';
 import { BUDGET_VIEW_MODE_IMPORT_EVENT } from '../hooks/useBudgetImportExport';
-import { getDefaultPlannerStart } from '../utils/monthlyPlan';
-import { isViewingCurrentCalendarMonth } from '../utils/rollingMonthsBudget';
+import { isViewingCurrentCalendarMonth, monthKeyFromBudgetDate } from '../utils/rollingMonthsBudget';
 import { simulateMonthsAfterNavigation } from '../utils/balanceWaterfall';
+
+const MAX_BUDGET_BOOKS = 2;
 
 const APP_TAB_STORAGE_KEY = 'budget_tracker_active_tab';
 const BUDGET_VIEW_MODE_STORAGE_KEY = 'budget_tracker_budget_view_mode';
@@ -49,7 +51,6 @@ const normalizeStoredTab = (value: string | null): BudgetAppTab => {
 export default function BudgetTracker() {
   const context = useBudgetContext();
   const handlers = useBudgetHandlers();
-  const { t } = useTranslation();
 
   const {
     language,
@@ -88,23 +89,23 @@ export default function BudgetTracker() {
     isCurrentBookReadOnly,
     currentBudgetBookId,
     switchBudgetBook,
-    isSwitchingBudgetBook
+    isSwitchingBudgetBook,
+    availableBudgetBooks,
+    createBook,
+    renameBook,
+    deleteBook
   } = context;
 
   const {
-    handleClearAll,
     handleClearAllDays,
-    handleStartNewMonth,
-    handleConfirmStartNewMonth,
-    handleCancelStartNewMonth,
-    showStartNewMonthModal,
-    handleBudgetChange,
-    handleAddBudgetClick,
-    handleEditBudgetClick,
-    handleDeleteBudget,
+    showClearAllDaysConfirmModal,
+    handleConfirmClearAllDays,
+    handleCancelClearAllDays,
+    clearDaysScope,
     handleCurrencyChange,
     handleExchangeRateChange,
     handleStartBalanceChange,
+    handleBulkAddTransactionsToMonths,
     handleExportToJsonFile,
     handleImportFromJsonFile,
     handleJsonFileSelected,
@@ -128,12 +129,6 @@ export default function BudgetTracker() {
     setShowSettingsAlertModal,
     settingsAlertMessage,
     settingsAlertType,
-    showClearAllConfirmModal,
-    handleConfirmClearAll,
-    handleCancelClearAll,
-    showClearAllDaysConfirmModal,
-    handleConfirmClearAllDays,
-    handleCancelClearAllDays,
     showDeleteBudgetConfirmModal,
     handleConfirmDeleteBudget,
     handleCancelDeleteBudget,
@@ -206,13 +201,7 @@ export default function BudgetTracker() {
 
   const activeBudgetIdSafe = activeBudgetId || 'default';
   const activeBudgetData = budgets && budgets[activeBudgetIdSafe];
-  const monthlyPlans = activeBudgetData?.monthlyPlans || {};
-  const plannerFallback = useMemo(
-    () => getDefaultPlannerStart(budgetDate.year, budgetDate.month),
-    [budgetDate.year, budgetDate.month]
-  );
-  const plannerStartYear = activeBudgetData?.plannerStartYear ?? plannerFallback.year;
-  const plannerStartMonth = activeBudgetData?.plannerStartMonth ?? plannerFallback.month;
+  const activeMonthKey = monthKeyFromBudgetDate(budgetDate.year, budgetDate.month);
 
   const startingBalancesReadOnly = !isViewingCurrentCalendarMonth(
     budgetDate.year,
@@ -281,6 +270,35 @@ export default function BudgetTracker() {
   const handleOverviewMonthTrimCancel = useCallback(() => {
     setOverviewMonthTrimConfirm(null);
   }, []);
+
+  // Budget book (max 2) management modals
+  const canCreateBook = !!user && availableBudgetBooks.length < MAX_BUDGET_BOOKS;
+  const [bookModal, setBookModal] = useState<{ mode: 'create' | 'rename'; bookId?: string } | null>(null);
+  const [deleteBookId, setDeleteBookId] = useState<string | null>(null);
+
+  const handleBookModalConfirm = useCallback(
+    (name: string) => {
+      const trimmed = (name || '').trim();
+      if (!trimmed || !bookModal) {
+        setBookModal(null);
+        return;
+      }
+      if (bookModal.mode === 'create') {
+        void createBook(trimmed);
+      } else if (bookModal.bookId) {
+        void renameBook(bookModal.bookId, trimmed);
+      }
+      setBookModal(null);
+    },
+    [bookModal, createBook, renameBook]
+  );
+
+  const handleConfirmDeleteBook = useCallback(() => {
+    if (deleteBookId) {
+      void deleteBook(deleteBookId);
+    }
+    setDeleteBookId(null);
+  }, [deleteBookId, deleteBook]);
 
   // Створюємо об'єкт початкових балансів для вибраних валют
   const startBalances = useMemo(() => {
@@ -380,16 +398,22 @@ export default function BudgetTracker() {
             showDisableEncryptionModal={showDisableEncryptionModal}
             setShowEnableEncryptionModal={setShowEnableEncryptionModal}
             setShowDisableEncryptionModal={setShowDisableEncryptionModal}
-            availableBudgetBooks={[]}
+            availableBudgetBooks={availableBudgetBooks}
             currentBudgetBookId={currentBudgetBookId}
             onBudgetBookChange={(id) => void switchBudgetBook(id)}
             isSwitchingBudgetBook={isSwitchingBudgetBook}
             isCurrentBookReadOnly={isCurrentBookReadOnly}
+            onCreateBookClick={() => setBookModal({ mode: 'create' })}
+            onRenameBookClick={(id) => setBookModal({ mode: 'rename', bookId: id })}
+            onDeleteBookClick={(id) => setDeleteBookId(id)}
+            canCreateBook={canCreateBook}
           />
 
           {/* Приховуємо весь контент між Header і Footer, якщо потрібен пароль */}
           {!(showPasswordModal && user) && (
             <>
+              <OnboardingCard isSignedIn={!!user} onSignIn={loginWithGoogle} />
+
               <AppTabs activeTab={activeTab} onChange={handleTabChange} />
 
               {activeTab === 'overview' && (
@@ -448,10 +472,6 @@ export default function BudgetTracker() {
                     user={user}
                     budgets={budgets}
                     activeBudgetId={activeBudgetId}
-                    handleBudgetChange={handleBudgetChange}
-                    handleAddBudgetClick={handleAddBudgetClick}
-                    handleEditBudgetClick={handleEditBudgetClick}
-                    handleDeleteBudget={handleDeleteBudget}
                     selectedCurrencies={selectedCurrencies}
                     exchangeRates={exchangeRates}
                     handleCurrencyChange={handleCurrencyChange}
@@ -464,12 +484,7 @@ export default function BudgetTracker() {
                     handleJsonFileSelected={handleJsonFileSelected}
                     saveMessage={saveMessage}
                     loadMessage={loadMessage}
-                    handleClearAll={handleClearAll}
                     handleClearAllDays={handleClearAllDays}
-                    handleStartNewMonth={handleStartNewMonth}
-                    handleConfirmStartNewMonth={handleConfirmStartNewMonth}
-                    handleCancelStartNewMonth={handleCancelStartNewMonth}
-                    showStartNewMonthModal={showStartNewMonthModal}
                     baseCurrency={baseCurrency}
                     handleUpdateNbuRates={handleUpdateNbuRates}
                     isUpdatingRates={isUpdatingRates}
@@ -488,6 +503,9 @@ export default function BudgetTracker() {
                     budgetYear={budgetDate.year}
                     budgetMonth={budgetDate.month}
                     budgetViewMode={budgetViewMode}
+                    monthsByKey={activeBudgetData?.monthsByKey}
+                    activeMonthKey={monthKeyFromBudgetDate(budgetDate.year, budgetDate.month)}
+                    onBulkAddTransactionsToMonths={handleBulkAddTransactionsToMonths}
                     readOnly={isCurrentBookReadOnly}
                     startingBalancesReadOnly={startingBalancesReadOnly}
                   />
@@ -508,9 +526,8 @@ export default function BudgetTracker() {
                     budgetYear={budgetDate.year}
                     budgetMonth={budgetDate.month}
                     budgetViewMode={budgetViewMode}
-                    monthlyPlans={monthlyPlans}
-                    plannerStartYear={plannerStartYear}
-                    plannerStartMonth={plannerStartMonth}
+                    activeMonthKey={activeMonthKey}
+                    monthsByKey={activeBudgetData?.monthsByKey}
                     readOnly={isCurrentBookReadOnly}
                   />
 
@@ -562,13 +579,22 @@ export default function BudgetTracker() {
                   )}
 
                   {budgetViewMode === 'months' && (
-                    <TwelveMonthOverview
-                      activeBudget={activeBudgetData}
-                      selectedCurrencies={selectedCurrencies}
-                      displayCurrency={displayCurrency}
-                      exchangeRates={exchangeRates}
-                      onSelectMonth={handleSelectMonthFromOverview}
-                    />
+                    <>
+                      <TwelveMonthOverview
+                        activeBudget={activeBudgetData}
+                        selectedCurrencies={selectedCurrencies}
+                        displayCurrency={displayCurrency}
+                        exchangeRates={exchangeRates}
+                        onSelectMonth={handleSelectMonthFromOverview}
+                      />
+
+                      <MultiMonthTransactionExplorer
+                        monthsByKey={activeBudgetData?.monthsByKey}
+                        selectedCurrencies={selectedCurrencies}
+                        displayCurrency={displayCurrency}
+                        exchangeRates={exchangeRates}
+                      />
+                    </>
                   )}
                 </>
               )}
@@ -627,40 +653,77 @@ export default function BudgetTracker() {
         buttonText={translate('common.ok')}
       />
       
+      {/* Підтвердження обрізання rolling months при переході з 12-місячного огляду */}
       <ConfirmModal
         isOpen={overviewMonthTrimConfirm !== null}
         onClose={handleOverviewMonthTrimCancel}
         onConfirm={handleOverviewMonthTrimConfirm}
-        title={t('monthYearPicker.overflow.title')}
+        title={translate('monthYearPicker.overflow.title')}
         message={
           overviewMonthTrimConfirm?.forward === true
-            ? t('monthYearPicker.overflow.forwardMessage')
-            : t('monthYearPicker.overflow.backwardMessage')
+            ? translate('monthYearPicker.overflow.forwardMessage')
+            : translate('monthYearPicker.overflow.backwardMessage')
         }
-        confirmButtonText={t('monthYearPicker.overflow.proceed')}
-        cancelButtonText={t('monthYearPicker.overflow.cancel')}
+        confirmButtonText={translate('monthYearPicker.overflow.proceed')}
+        cancelButtonText={translate('monthYearPicker.overflow.cancel')}
       />
 
-      {/* ConfirmModal для очищення всіх полів */}
-      <ConfirmModal
-        isOpen={showClearAllConfirmModal}
-        onClose={handleCancelClearAll}
-        onConfirm={handleConfirmClearAll}
-        title={translate('settings.clearAllConfirm.title')}
-        message={translate('settings.clearAllConfirm.message')}
-        confirmButtonText={translate('settings.clearAllConfirm.confirm')}
-        cancelButtonText={translate('settings.clearAllConfirm.cancel')}
+      {/* Створення / перейменування книги бюджету */}
+      <PromptModal
+        isOpen={bookModal !== null}
+        onClose={() => setBookModal(null)}
+        onConfirm={handleBookModalConfirm}
+        title={
+          bookModal?.mode === 'create'
+            ? translate('budgetBook.createTitle')
+            : translate('budgetBook.renameTitle')
+        }
+        placeholder={translate('budgetBook.namePlaceholder')}
+        defaultValue={
+          bookModal?.mode === 'rename'
+            ? availableBudgetBooks.find((b) => b.id === bookModal.bookId)?.displayLabel || ''
+            : ''
+        }
+        confirmButtonText={translate('common.save')}
+        cancelButtonText={translate('common.cancel')}
       />
-      
-      {/* ConfirmModal для очищення всіх днів */}
+
+      {/* Видалення книги бюджету */}
+      <ConfirmModal
+        isOpen={deleteBookId !== null}
+        onClose={() => setDeleteBookId(null)}
+        onConfirm={handleConfirmDeleteBook}
+        title={translate('budgetBook.deleteConfirmTitle')}
+        message={translate('budgetBook.deleteConfirmMessage')}
+        confirmButtonText={translate('budgetBook.delete')}
+        cancelButtonText={translate('common.cancel')}
+      />
+
+      {/* ConfirmModal для очищення днів */}
       <ConfirmModal
         isOpen={showClearAllDaysConfirmModal}
         onClose={handleCancelClearAllDays}
         onConfirm={handleConfirmClearAllDays}
-        title={translate('settings.clearAllDaysConfirm.title')}
-        message={translate('settings.clearAllDaysConfirm.message')}
-        confirmButtonText={translate('settings.clearAllDaysConfirm.confirm')}
-        cancelButtonText={translate('settings.clearAllDaysConfirm.cancel')}
+        title={translate(
+          clearDaysScope === 'all-months'
+            ? 'settings.clearAllDaysConfirm.title'
+            : 'settings.clearMonthDaysConfirm.title'
+        )}
+        message={translate(
+          clearDaysScope === 'all-months'
+            ? 'settings.clearAllDaysConfirm.message'
+            : 'settings.clearMonthDaysConfirm.message'
+        )}
+        confirmButtonText={translate(
+          clearDaysScope === 'all-months'
+            ? 'settings.clearAllDaysConfirm.confirm'
+            : 'settings.clearMonthDaysConfirm.confirm'
+        )}
+        cancelButtonText={translate(
+          clearDaysScope === 'all-months'
+            ? 'settings.clearAllDaysConfirm.cancel'
+            : 'settings.clearMonthDaysConfirm.cancel'
+        )}
       />
       
       {/* ConfirmModal для видалення бюджету */}
@@ -682,7 +745,7 @@ export default function BudgetTracker() {
         onOverwrite={() => resolveImport('overwrite')}
         savedAt={pendingImport?.savedAt || null}
         budgetName={pendingImport?.budgetName || pendingImport?.settings?.name || translate('budget.main')}
-        canCreateNew={Object.keys(budgets).length < 3}
+        canCreateNew={Object.keys(budgets).length < MAX_BUDGET_BOOKS}
         currentBudgetsCount={Object.keys(budgets).length}
       />
 

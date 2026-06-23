@@ -14,7 +14,12 @@ import { roundToDecimals } from '../utils/rounding';
 import {
   loadBudgetBookDocumentForUser,
   persistUserCurrentBudgetBookId,
-  DEFAULT_BUDGET_BOOK_ID
+  listBudgetBookSummaries,
+  createBudgetBook,
+  renameBudgetBook,
+  deleteBudgetBook,
+  DEFAULT_BUDGET_BOOK_ID,
+  MAX_USER_BUDGET_BOOKS
 } from '../services/budgetBooksFirestore';
 import { applyRollingBootToAllBudgets } from '../utils/rollingMonthsBudget';
 
@@ -162,7 +167,7 @@ export function useFirestoreSync(
   };
 
   // Допоміжна функція для ініціалізації порожнього бюджету
-  const initializeEmptyBudget = () => {
+  const initializeEmptyBudget = (statusKey: 'saved' | 'local' | 'error' | 'syncing' = user ? 'saved' : 'local'): Budgets => {
     // Створюємо дефолтний бюджет з локалізованою назвою
     const emptyBudget = createEmptyDefaultBudget();
     const defaultBudget = emptyBudget['default'];
@@ -173,14 +178,27 @@ export function useFirestoreSync(
     setBudgets(emptyBudget);
     loadedBudgetsRef.current = emptyBudget;
     setActiveBudgetId('default');
-    setSyncStatus(getSyncStatusText('local'));
+    setSyncStatus(getSyncStatusText(statusKey));
 
-    setAvailableBudgetBooks([]);
+    // Для авторизованого користувача показуємо стандартну книгу (Особистий),
+    // щоб селектор книг та кнопка "створити другу книгу" працювали одразу.
+    if (user) {
+      setAvailableBudgetBooks([
+        {
+          id: DEFAULT_BUDGET_BOOK_ID,
+          displayLabel: translate('budgetBook.personalLabel'),
+          isReadOnly: false
+        }
+      ]);
+    } else {
+      setAvailableBudgetBooks([]);
+    }
     setCurrentBudgetBookId(DEFAULT_BUDGET_BOOK_ID);
 
     // 🔒 FETCH-FIRST: Новий користувач без даних, дозволяємо запис
     setIsDataLoaded(true);
     console.log('✅ Новий користувач, створено порожній бюджет. Запис розблоковано.');
+    return emptyBudget;
   };
 
   // Функція для обробки даних з Firestore
@@ -324,6 +342,130 @@ export function useFirestoreSync(
     isReadOnly: false
   };
 
+  /**
+   * Extracts a single usable budget object out of a localStorage backup string.
+   * Handles the current `{ budgets, activeBudgetId }` layout and the legacy flat layout.
+   */
+  const extractBudgetFromBackup = (backup: string | null): Budget | null => {
+    if (!backup) return null;
+    let parsed: any = null;
+    try {
+      parsed = JSON.parse(backup);
+    } catch (e) {
+      console.error('⚠️ Помилка парсингу localStorage backup:', e);
+      return null;
+    }
+    if (!parsed) return null;
+
+    let source: any = null;
+    if (parsed.budgets && typeof parsed.budgets === 'object') {
+      const activeId = parsed.activeBudgetId || 'default';
+      source = parsed.budgets[activeId];
+      if (!source) {
+        const firstKey = Object.keys(parsed.budgets)[0];
+        source = firstKey ? parsed.budgets[firstKey] : null;
+      }
+    }
+    // Legacy flat layout (no budgets map)
+    if (!source && (parsed.days || parsed.startBalances || parsed.selectedCurrencies)) {
+      source = parsed;
+    }
+    if (!source) return null;
+
+    return {
+      name: translate('budget.defaultBudgetName'),
+      startBalances: source.startBalances || {},
+      selectedCurrencies: validateSelectedCurrencies(source.selectedCurrencies || DEFAULT_CURRENCIES),
+      exchangeRates: source.exchangeRates || {},
+      days: normalizeDaysArray(
+        source.days || [],
+        source.budgetDate?.year,
+        source.budgetDate?.month
+      ),
+      displayCurrency: source.displayCurrency || 'RON',
+      displayCurrencyIndex: source.displayCurrencyIndex ?? 0,
+      budgetDate: source.budgetDate,
+      monthsByKey: source.monthsByKey,
+      monthlyPlans: source.monthlyPlans
+    };
+  };
+
+  /**
+   * New-user sign-in path: migrate any pre-login localStorage budget into the
+   * `default` book once, otherwise start an empty book. ALWAYS resolves the
+   * loading guards (`isDataLoaded`, sync status) so the UI never hangs on "syncing".
+   */
+  const handleNewUserSignIn = async (localStorageBackup: string | null): Promise<void> => {
+    // Очищаємо cookies від попереднього користувача
+    document.cookie = 'budgetTrackerActiveBudgetId=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
+    document.cookie = `${ACTIVE_BUDGET_BOOK_COOKIE_KEY}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`;
+    document.cookie = 'budgetTrackerLanguage=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
+
+    const recovered = extractBudgetFromBackup(localStorageBackup);
+
+    if (!recovered) {
+      console.log('📦 Новий користувач без локальних даних — створюємо порожню книгу в Firestore.');
+      try {
+        const emptyBudget = initializeEmptyBudget('syncing');
+        await saveToFirestore(
+          user,
+          emptyBudget,
+          DEFAULT_BUDGET_BOOK_ID,
+          false,
+          setSyncStatus,
+          getSyncStatusText,
+          null,
+          setIsEncrypted,
+          defaultFirestoreSaveContext,
+          { throwOnError: true }
+        );
+
+        const savedData = await loadFromFirestore(user, null);
+        if (savedData && !('isEncrypted' in savedData && 'needsPassword' in savedData)) {
+          processFirestoreData(savedData);
+          setIsDataLoaded(true);
+          console.log('✅ Порожню книгу нового користувача створено та завантажено.');
+        } else {
+          initializeEmptyBudget('error');
+        }
+      } catch (error) {
+        console.error('Помилка створення порожньої книги нового користувача:', error);
+        initializeEmptyBudget('error');
+      }
+      return;
+    }
+
+    console.log('📦 Міграція локального бюджету нового користувача у книгу "default".');
+    try {
+      const budgetsToSave: Budgets = { default: recovered };
+      await saveToFirestore(
+        user,
+        budgetsToSave,
+        'default',
+        false,
+        setSyncStatus,
+        getSyncStatusText,
+        null,
+        setIsEncrypted,
+        defaultFirestoreSaveContext,
+        { throwOnError: true }
+      );
+
+      const savedData = await loadFromFirestore(user, null);
+      if (savedData && !('isEncrypted' in savedData && 'needsPassword' in savedData)) {
+        processFirestoreData(savedData);
+        setIsDataLoaded(true);
+        console.log('✅ Дані нового користувача збережені та завантажені. Запис розблоковано.');
+      } else {
+        // Збереження не повернуло валідних даних — не залишаємо UI у "syncing".
+        initializeEmptyBudget('error');
+      }
+    } catch (error) {
+      console.error('Помилка міграції локального бюджету нового користувача:', error);
+      initializeEmptyBudget('error');
+    }
+  };
+
   const switchBudgetBook = async (bookId: string) => {
     if (!user || bookId === currentBudgetBookId) return;
     setIsSwitchingBudgetBook(true);
@@ -346,6 +488,94 @@ export function useFirestoreSync(
       setCookie(ACTIVE_BUDGET_BOOK_COOKIE_KEY, bookId, 365);
     } catch (err) {
       console.error('switchBudgetBook', err);
+    } finally {
+      setIsSwitchingBudgetBook(false);
+    }
+  };
+
+  /** Loads a book document and makes it the active book (used after create/delete). */
+  const loadAndActivateBook = async (bookId: string) => {
+    if (!user) return;
+    const res = await loadBudgetBookDocumentForUser(user, bookId, encryptionPassword ?? null);
+    if (res === 'needsPassword') {
+      setIsRemoteDataEncrypted(true);
+      setShowPasswordModal(true);
+      return;
+    }
+    if (!res) return;
+    processFirestoreData(res.data);
+    setCurrentBudgetBookId(bookId);
+    await persistUserCurrentBudgetBookId(user, bookId);
+    setCookie(ACTIVE_BUDGET_BOOK_COOKIE_KEY, bookId, 365);
+  };
+
+  /** Creates a second budget book (max MAX_USER_BUDGET_BOOKS) and switches to it. */
+  const createBook = async (displayLabel: string) => {
+    if (!user) return;
+    const label = (displayLabel || '').trim();
+    if (!label) return;
+    setIsSwitchingBudgetBook(true);
+    try {
+      // Переконуємось, що поточна (default) книга збережена, перш ніж відгалужувати нову.
+      await saveToFirestore(
+        user,
+        budgets,
+        'default',
+        false,
+        setSyncStatus,
+        getSyncStatusText,
+        encryptionPassword ?? null,
+        setIsEncrypted,
+        { budgetBookId: currentBudgetBookId, isReadOnly: false }
+      );
+
+      const existing = await listBudgetBookSummaries(user);
+      if (existing.length >= MAX_USER_BUDGET_BOOKS) {
+        console.warn('⛔ Досягнуто ліміт книг бюджету.');
+        return;
+      }
+
+      const emptyBudgets = createEmptyDefaultBudget();
+      const newId = await createBudgetBook(user, label, emptyBudgets, encryptionPassword ?? null);
+
+      const refreshed = await listBudgetBookSummaries(user);
+      setAvailableBudgetBooks(refreshed);
+      await loadAndActivateBook(newId);
+    } catch (err) {
+      console.error('createBook', err);
+    } finally {
+      setIsSwitchingBudgetBook(false);
+    }
+  };
+
+  /** Renames a budget book label. */
+  const renameBook = async (bookId: string, displayLabel: string) => {
+    if (!user) return;
+    const label = (displayLabel || '').trim();
+    if (!label) return;
+    try {
+      await renameBudgetBook(user, bookId, label);
+      setAvailableBudgetBooks(
+        availableBudgetBooks.map((b) => (b.id === bookId ? { ...b, displayLabel: label } : b))
+      );
+    } catch (err) {
+      console.error('renameBook', err);
+    }
+  };
+
+  /** Deletes a non-default budget book and falls back to the default book. */
+  const deleteBook = async (bookId: string) => {
+    if (!user || bookId === DEFAULT_BUDGET_BOOK_ID) return;
+    setIsSwitchingBudgetBook(true);
+    try {
+      await deleteBudgetBook(user, bookId);
+      const refreshed = await listBudgetBookSummaries(user);
+      setAvailableBudgetBooks(refreshed);
+      if (currentBudgetBookId === bookId) {
+        await loadAndActivateBook(DEFAULT_BUDGET_BOOK_ID);
+      }
+    } catch (err) {
+      console.error('deleteBook', err);
     } finally {
       setIsSwitchingBudgetBook(false);
     }
@@ -427,239 +657,8 @@ export function useFirestoreSync(
             setIsDataLoaded(true);
             console.log('✅ Дані завантажені з Firestore. Запис розблоковано.');
           } else {
-            // Новий користувач - перевіряємо чи є дані в localStorage backup для збереження
-            console.log('📦 Новий користувач - перевірка localStorage backup');
-            
-            // Очищаємо cookies від попереднього користувача
-            document.cookie = 'budgetTrackerActiveBudgetId=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
-            document.cookie = `${ACTIVE_BUDGET_BOOK_COOKIE_KEY}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`;
-            document.cookie = 'budgetTrackerLanguage=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
-            
-            // Використовуємо збережену копію localStorage (до очищення)
-            console.log('📦 Перевірка localStorage backup:', localStorageBackup ? 'Є дані' : 'Немає даних');
-            
-            // Додаткова діагностика: виводимо вміст backup
-            if (localStorageBackup) {
-              try {
-                const parsed = JSON.parse(localStorageBackup);
-                console.log('📦 Вміст localStorage backup:', {
-                  hasBudgets: !!parsed.budgets,
-                  budgetsCount: parsed.budgets ? Object.keys(parsed.budgets).length : 0,
-                  activeBudgetId: parsed.activeBudgetId,
-                  budgetKeys: parsed.budgets ? Object.keys(parsed.budgets) : []
-                });
-              } catch (e) {
-                console.error('⚠️ Помилка парсингу localStorage backup:', e);
-              }
-            }
-            
-            if (localStorageBackup) {
-              // Є дані в localStorage backup - спробуємо завантажити їх
-              // ВАЖЛИВО: Парсимо вручну, бо loadFromLocalStorage() читає з localStorage, який вже очищений
-              let localData: any = null;
-              try {
-                localData = JSON.parse(localStorageBackup);
-              } catch (e) {
-                console.error('⚠️ Помилка парсингу backup:', e);
-              }
-              console.log('📦 Результат парсингу backup:', localData ? `Знайдено ${Object.keys(localData.budgets || {}).length} бюджетів` : 'null');
-              
-              if (localData && localData.budgets && Object.keys(localData.budgets).length > 0) {
-                // Є валідні дані в localStorage - зберігаємо їх як "Основний"/"Main" бюджет з id 'default'
-                console.log('📦 Збереження поточного бюджету з localStorage як Основний/Main');
-                
-                const currentBudgets = localData.budgets;
-                const currentActiveId = localData.activeBudgetId || 'default';
-                const currentBudget = currentBudgets[currentActiveId];
-                
-                if (currentBudget) {
-                  // Оновлюємо назву бюджету залежно від мови та використовуємо id 'default'
-                  const budgetName = translate('budget.defaultBudgetName');
-                  const budgetsToSave: Budgets = {
-                    'default': {
-                      ...currentBudget,
-                      name: budgetName,
-                      // Переконаємося, що всі обов'язкові поля присутні
-                      startBalances: currentBudget.startBalances || {},
-                      selectedCurrencies: currentBudget.selectedCurrencies || DEFAULT_CURRENCIES,
-                      exchangeRates: currentBudget.exchangeRates || {},
-                      days: currentBudget.days || [],
-                      displayCurrency: currentBudget.displayCurrency || 'RON',
-                      displayCurrencyIndex: currentBudget.displayCurrencyIndex ?? 0
-                    }
-                  };
-                  
-                  // Зберігаємо в Firestore з activeBudgetId = 'default'
-                  saveToFirestore(
-                    user,
-                    budgetsToSave,
-                    'default',
-                    false,
-                    setSyncStatus,
-                    getSyncStatusText,
-                    null,
-                    setIsEncrypted,
-                    defaultFirestoreSaveContext
-                  ).then(() => {
-                    // Після збереження, завантажуємо дані назад
-                    loadFromFirestore(user, null).then((savedData) => {
-                      if (savedData && !('isEncrypted' in savedData && 'needsPassword' in savedData)) {
-                        processFirestoreData(savedData);
-                        // 🔒 FETCH-FIRST: Дані нового користувача збережені та завантажені, розблоковуємо запис
-                        setIsDataLoaded(true);
-                        console.log('✅ Дані нового користувача збережені в Firestore. Запис розблоковано.');
-                      }
-                    });
-                  }).catch((error) => {
-                    console.error('Помилка при збереженні бюджету:', error);
-                    initializeEmptyBudget();
-                  });
-                } else {
-                  // Немає поточного бюджету - спробуємо знайти будь-який бюджет
-                  console.log('⚠️ Активний бюджет не знайдено, шукаємо будь-який бюджет...');
-                  const budgetKeys = Object.keys(currentBudgets);
-                  if (budgetKeys.length > 0) {
-                    const firstBudgetKey = budgetKeys[0];
-                    const firstBudget = currentBudgets[firstBudgetKey];
-                    console.log(`📦 Використовуємо перший знайдений бюджет: ${firstBudgetKey}`);
-                    
-                    if (firstBudget) {
-                      const budgetName = translate('budget.defaultBudgetName');
-                      const budgetsToSave: Budgets = {
-                        'default': {
-                          ...firstBudget,
-                          name: budgetName,
-                          startBalances: firstBudget.startBalances || {},
-                          selectedCurrencies: firstBudget.selectedCurrencies || DEFAULT_CURRENCIES,
-                          exchangeRates: firstBudget.exchangeRates || {},
-                          days: firstBudget.days || [],
-                          displayCurrency: firstBudget.displayCurrency || 'RON',
-                          displayCurrencyIndex: firstBudget.displayCurrencyIndex ?? 0
-                        }
-                      };
-                      
-                      saveToFirestore(
-                        user,
-                        budgetsToSave,
-                        'default',
-                        false,
-                        setSyncStatus,
-                        getSyncStatusText,
-                        null,
-                        setIsEncrypted,
-                        defaultFirestoreSaveContext
-                      ).then(() => {
-                        loadFromFirestore(user, null).then((savedData) => {
-                          if (savedData && !('isEncrypted' in savedData && 'needsPassword' in savedData)) {
-                            processFirestoreData(savedData);
-                            // 🔒 FETCH-FIRST: Дані нового користувача збережені та завантажені, розблоковуємо запис
-                            setIsDataLoaded(true);
-                            console.log('✅ Дані нового користувача збережені в Firestore. Запис розблоковано.');
-                          }
-                        });
-                      }).catch((error) => {
-                        console.error('Помилка при збереженні бюджету:', error);
-                        initializeEmptyBudget();
-                      });
-                    } else {
-                      initializeEmptyBudget();
-                    }
-                  } else {
-                    // Немає поточного бюджету - створюємо порожній
-                    initializeEmptyBudget();
-                  }
-                }
-              } else {
-                // Є backup дані, але структура не валідна - спробуємо відновити дані
-                console.log('📦 Дані в localStorage backup є, але структура не валідна. Спробуємо відновити...');
-                try {
-                  const parsedData = JSON.parse(localStorageBackup);
-                  
-                  // Перевіряємо чи є дані в старій структурі (без budgets)
-                  // або в budgets, але без валідного активного бюджету
-                  let recoveredData: any = null;
-                  
-                  // Спочатку перевіряємо чи є budgets з даними
-                  if (parsedData.budgets && typeof parsedData.budgets === 'object') {
-                    // Знаходимо перший бюджет з даними
-                    const budgetKeys = Object.keys(parsedData.budgets);
-                    for (const key of budgetKeys) {
-                      const budget = parsedData.budgets[key];
-                      if (budget && (budget.days || budget.startBalances || budget.selectedCurrencies)) {
-                        recoveredData = budget;
-                        break;
-                      }
-                    }
-                  }
-                  
-                  // Якщо не знайшли в budgets, перевіряємо старі поля на верхньому рівні
-                  if (!recoveredData && (parsedData.days || parsedData.startBalances || parsedData.selectedCurrencies)) {
-                    recoveredData = parsedData;
-                  }
-                  
-                  if (recoveredData) {
-                    // Спробуємо створити бюджет з наявних даних
-                    const budgetName = translate('budget.defaultBudgetName');
-                    const recoveredBudget: Budget = {
-                      name: budgetName,
-                      startBalances: recoveredData.startBalances || {},
-                      selectedCurrencies: validateSelectedCurrencies(recoveredData.selectedCurrencies || DEFAULT_CURRENCIES),
-                      exchangeRates: recoveredData.exchangeRates || {},
-                      days: recoveredData.days
-                        ? normalizeDaysArray(
-                            recoveredData.days,
-                            recoveredData.budgetDate?.year,
-                            recoveredData.budgetDate?.month
-                          )
-                        : [],
-                      displayCurrency: recoveredData.displayCurrency || 'RON',
-                      displayCurrencyIndex: recoveredData.displayCurrencyIndex ?? 0
-                    };
-                    
-                    const budgetsToSave: Budgets = {
-                      'default': recoveredBudget
-                    };
-                    
-                    // Зберігаємо в Firestore
-                    saveToFirestore(
-                      user,
-                      budgetsToSave,
-                      'default',
-                      false,
-                      setSyncStatus,
-                      getSyncStatusText,
-                      null,
-                      setIsEncrypted,
-                      defaultFirestoreSaveContext
-                    ).then(() => {
-                      // Після збереження, завантажуємо дані назад
-                      loadFromFirestore(user, null).then((savedData) => {
-                        if (savedData && !('isEncrypted' in savedData && 'needsPassword' in savedData)) {
-                          processFirestoreData(savedData);
-                          // 🔒 FETCH-FIRST: Відновлені дані збережені та завантажені, розблоковуємо запис
-                          setIsDataLoaded(true);
-                          console.log('✅ Відновлені дані збережені в Firestore. Запис розблоковано.');
-                        }
-                      });
-                    }).catch((error) => {
-                      console.error('Помилка при збереженні відновленого бюджету:', error);
-                      initializeEmptyBudget();
-                    });
-                  } else {
-                    // Немає даних для відновлення - створюємо порожній бюджет
-                    console.log('📦 Немає даних для відновлення, створюємо порожній бюджет');
-                    initializeEmptyBudget();
-                  }
-                } catch (parseError) {
-                  console.error('Помилка при парсингу даних з localStorage:', parseError);
-                  // Якщо не вдалося відновити - створюємо порожній бюджет
-                  initializeEmptyBudget();
-                }
-              }
-            } else {
-              // Немає даних в localStorage - створюємо порожній бюджет
-              initializeEmptyBudget();
-            }
+            // Новий користувач (книг ще немає) — мігруємо локальні дані або стартуємо чисту книгу.
+            await handleNewUserSignIn(localStorageBackup);
           }
         } catch (error) {
           console.error('Помилка при завантаженні даних з Firestore:', error);
@@ -890,6 +889,9 @@ export function useFirestoreSync(
     isRemoteDataEncrypted,
     isDataLoaded,
     switchBudgetBook,
-    isSwitchingBudgetBook
+    isSwitchingBudgetBook,
+    createBook,
+    renameBook,
+    deleteBook
   };
 }

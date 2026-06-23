@@ -74,7 +74,10 @@ export function BudgetProvider({ children }: BudgetProviderProps) {
     handlePasswordSubmit,
     handlePasswordCancel: originalHandlePasswordCancel,
     switchBudgetBook,
-    isSwitchingBudgetBook
+    isSwitchingBudgetBook,
+    createBook,
+    renameBook,
+    deleteBook
   } = useBudgetSync(budgetStateWithSync, getSyncStatusText, user, authLoading);
   
   // Обгортка для handlePasswordCancel з автоматичним виходом
@@ -174,10 +177,13 @@ export function BudgetProvider({ children }: BudgetProviderProps) {
     deleteUserAccount,
     switchBudgetBook,
     isSwitchingBudgetBook,
+    createBook,
+    renameBook,
+    deleteBook,
     showPasswordModal,
     handlePasswordSubmit,
     passwordError
-  }), [budgetStateWithSync, currencyRates, authLoading, loginWithGoogle, logout, deleteUserAccount, switchBudgetBook, isSwitchingBudgetBook, showPasswordModal, handlePasswordSubmit, passwordError]);
+  }), [budgetStateWithSync, currencyRates, authLoading, loginWithGoogle, logout, deleteUserAccount, switchBudgetBook, isSwitchingBudgetBook, createBook, renameBook, deleteBook, showPasswordModal, handlePasswordSubmit, passwordError]);
 
   return (
     <BudgetContext.Provider value={value}>

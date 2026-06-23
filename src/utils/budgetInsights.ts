@@ -1,4 +1,4 @@
-import { Day, ExchangeRates, Transaction } from '../types';
+import { Day, ExchangeRates, MonthSlice, Transaction } from '../types';
 import {
   calculateDayAmountsFromTransactions,
   convertCurrency
@@ -49,6 +49,22 @@ export interface TransactionFilters {
   day?: number | 'all';
 }
 
+export interface OverviewTransaction extends MonthlyTransaction {
+  year: number;
+  month: number;
+  monthKey: string;
+}
+
+export interface OverviewMonthRef {
+  year: number;
+  month: number;
+  key: string;
+}
+
+export interface OverviewTransactionFilters extends TransactionFilters {
+  month?: string | 'all';
+}
+
 export const getVisibleMonthDays = (
   days: Day[],
   budgetYear: number,
@@ -95,6 +111,81 @@ export const flattenMonthlyTransactions = ({
       )
     }));
   });
+};
+
+export const flattenOverviewTransactions = ({
+  monthsByKey,
+  windowMonths,
+  displayCurrency,
+  exchangeRates
+}: {
+  monthsByKey: Record<string, MonthSlice> | undefined;
+  windowMonths: OverviewMonthRef[];
+  displayCurrency: string;
+  exchangeRates: ExchangeRates;
+}): OverviewTransaction[] => {
+  const result: OverviewTransaction[] = [];
+
+  windowMonths.forEach(({ year, month, key }) => {
+    const slice = monthsByKey?.[key];
+    const days = slice?.days || [];
+    const monthly = flattenMonthlyTransactions({
+      days,
+      displayCurrency,
+      exchangeRates,
+      budgetYear: year,
+      budgetMonth: month
+    });
+
+    monthly.forEach((transaction) => {
+      result.push({
+        ...transaction,
+        year,
+        month,
+        monthKey: key
+      });
+    });
+  });
+
+  return result.sort((a, b) => {
+    if (a.year !== b.year) return a.year - b.year;
+    if (a.month !== b.month) return a.month - b.month;
+    return a.day - b.day;
+  });
+};
+
+export const filterOverviewTransactions = (
+  transactions: OverviewTransaction[],
+  filters: OverviewTransactionFilters
+): OverviewTransaction[] => {
+  const month = filters.month || 'all';
+  const search = (filters.search || '').trim().toLowerCase();
+
+  const filtered = transactions.filter((transaction) => {
+    const type = filters.type || 'all';
+    const currency = filters.currency || 'all';
+    const day = filters.day || 'all';
+
+    if (type !== 'all' && transaction.type !== type) return false;
+    if (currency !== 'all' && transaction.currency !== currency) return false;
+    if (day !== 'all' && transaction.day !== day) return false;
+    if (month !== 'all' && transaction.monthKey !== month) return false;
+
+    if (!search) return true;
+    const haystack = [
+      transaction.description,
+      transaction.currency,
+      String(transaction.amount),
+      String(transaction.day),
+      transaction.monthKey
+    ]
+      .join(' ')
+      .toLowerCase();
+
+    return haystack.includes(search);
+  });
+
+  return filtered;
 };
 
 export const filterMonthlyTransactions = (
