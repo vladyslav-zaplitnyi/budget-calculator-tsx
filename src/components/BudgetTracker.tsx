@@ -102,6 +102,7 @@ export default function BudgetTracker() {
     handleConfirmClearAllDays,
     handleCancelClearAllDays,
     clearDaysScope,
+    handleClearStartBalances,
     handleCurrencyChange,
     handleExchangeRateChange,
     handleStartBalanceChange,
@@ -473,6 +474,7 @@ export default function BudgetTracker() {
                     saveMessage={saveMessage}
                     loadMessage={loadMessage}
                     handleClearAllDays={handleClearAllDays}
+                    handleClearStartBalances={handleClearStartBalances}
                     baseCurrency={baseCurrency}
                     handleUpdateNbuRates={handleUpdateNbuRates}
                     isUpdatingRates={isUpdatingRates}

@@ -40,6 +40,7 @@ interface SettingsCardProps {
   saveMessage: string;
   loadMessage: string;
   handleClearAllDays: (scope: ClearDaysScope) => void;
+  handleClearStartBalances: () => void;
   baseCurrency: string;
   handleUpdateNbuRates: () => Promise<void>;
   isUpdatingRates: boolean;
@@ -85,6 +86,7 @@ const SettingsCard: React.FC<SettingsCardProps> = ({
   saveMessage,
   loadMessage,
   handleClearAllDays,
+  handleClearStartBalances,
   baseCurrency = 'UAH',
   handleUpdateNbuRates,
   isUpdatingRates,
@@ -375,9 +377,32 @@ const SettingsCard: React.FC<SettingsCardProps> = ({
 
       {/* Initial Balances */}
       <div className="mb-4 sm:mb-6">
-        <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-2">
-          {t('settings.balances.title')}
-        </label>
+        <div className="flex items-center justify-between gap-2 mb-2">
+          <label className="text-xs sm:text-sm font-semibold text-gray-700">
+            {t('settings.balances.title')}
+          </label>
+          <button
+            type="button"
+            onClick={() => {
+              setStartBalanceFocusCode(null);
+              setStartBalanceDraftByCode({});
+              handleClearStartBalances();
+            }}
+            disabled={readOnly || startingBalancesReadOnly}
+            title={
+              startingBalancesReadOnly && !readOnly
+                ? t('settings.balances.linkedReadOnlyHint')
+                : undefined
+            }
+            className={`shrink-0 px-2.5 sm:px-3 py-1 sm:py-1.5 text-xs sm:text-sm font-bold rounded-lg transition-all ${
+              readOnly || startingBalancesReadOnly
+                ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                : 'bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white border border-orange-500 shadow-md hover:shadow-lg active:scale-95'
+            }`}
+          >
+            {t('settings.balances.clear')}
+          </button>
+        </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
           {selectedCurrencies.map((currencyCode, index) => {
             const currency = AVAILABLE_CURRENCIES[currencyCode];

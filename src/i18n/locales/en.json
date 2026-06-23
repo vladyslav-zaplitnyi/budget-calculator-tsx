@@ -95,7 +95,8 @@
     "balances": {
       "title": "💰 Starting Balances",
       "startingBudget": "Starting budget",
-      "linkedReadOnlyHint": "Starting budget can only be edited in the current calendar month. For other months, the opening balance comes from the previous month or is kept as historical data."
+      "linkedReadOnlyHint": "Starting budget can only be edited in the current calendar month. For other months, the opening balance comes from the previous month or is kept as historical data.",
+      "clear": "Clear"
     },
     "exchangeRates": {
       "title": "💱 Exchange Rates",

@@ -243,6 +243,62 @@ export function useBudgetSettings() {
     setShowClearAllDaysConfirmModal(false);
   }, []);
 
+  const handleClearStartBalances = useCallback(() => {
+    if (user && isCurrentBookReadOnly) {
+      setAlertMessage(translate('budgetBook.readOnlyActionBlocked'));
+      setAlertType('warning');
+      setShowAlertModal(true);
+      return;
+    }
+
+    const currentId = activeBudgetId || 'default';
+    const safePrev = budgets || {};
+    const existingBudget = safePrev[currentId];
+    if (!existingBudget) return;
+
+    const budgetDate = existingBudget.budgetDate || {
+      year: new Date().getFullYear(),
+      month: new Date().getMonth()
+    };
+    if (!isViewingCurrentCalendarMonth(budgetDate.year, budgetDate.month)) return;
+
+    const clearedStartBalances: Record<string, number | null> = {};
+    (existingBudget.selectedCurrencies || selectedCurrencies || DEFAULT_CURRENCIES).forEach(
+      (currencyCode) => {
+        clearedStartBalances[currencyCode] = null;
+      }
+    );
+
+    const mk = monthKeyFromBudgetDate(budgetDate.year, budgetDate.month);
+    const monthsByKey = trimOldestMonthKeys({
+      ...(existingBudget.monthsByKey || {}),
+      [mk]: {
+        days: existingBudget.days || [],
+        startBalances: { ...clearedStartBalances }
+      }
+    });
+
+    const draft: Budget = {
+      ...existingBudget,
+      startBalances: clearedStartBalances,
+      monthsByKey,
+      selectedCurrencies: existingBudget.selectedCurrencies || selectedCurrencies || DEFAULT_CURRENCIES,
+      days: existingBudget.days || [],
+      budgetDate: existingBudget.budgetDate,
+      exchangeRates: existingBudget.exchangeRates || {}
+    };
+    const afterWaterfall = applyBalanceWaterfallToBudget(draft);
+
+    const updatedBudgets: Budgets = {
+      ...safePrev,
+      [currentId]: { ...existingBudget, ...afterWaterfall }
+    };
+
+    setBudgets(updatedBudgets);
+    setDays(afterWaterfall.days);
+    saveToLocalStorage(updatedBudgets, currentId);
+  }, [activeBudgetId, budgets, selectedCurrencies, setBudgets, setDays, user, isCurrentBookReadOnly]);
+
   const handleStartNewMonth = useCallback(() => {
     if (user && isCurrentBookReadOnly) {
       setAlertMessage(translate('budgetBook.readOnlyActionBlocked'));
@@ -805,6 +861,7 @@ export function useBudgetSettings() {
     handleConfirmClearAllDays,
     handleCancelClearAllDays,
     clearDaysScope,
+    handleClearStartBalances,
     handleBulkAddTransactionsToMonths
   };
 }

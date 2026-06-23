@@ -43,6 +43,7 @@ export function useBudgetHandlers() {
     handleConfirmClearAllDays: budgetSettings.handleConfirmClearAllDays,
     handleCancelClearAllDays: budgetSettings.handleCancelClearAllDays,
     clearDaysScope: budgetSettings.clearDaysScope,
+    handleClearStartBalances: budgetSettings.handleClearStartBalances,
     handleCurrencyChange: budgetSettings.handleCurrencyChange,
     handleExchangeRateChange: budgetSettings.handleExchangeRateChange,
     handleStartBalanceChange: budgetSettings.handleStartBalanceChange,
