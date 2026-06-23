@@ -9,6 +9,7 @@ import Statistics from './Statistics';
 import Analytics from './Analytics';
 import AppTabs, { BudgetAppTab } from './AppTabs';
 import OverviewDashboard from './OverviewDashboard';
+import BudgetViewToggle, { BudgetViewMode } from './BudgetViewToggle';
 import TransactionExplorer from './TransactionExplorer';
 import MultiMonthTransactionExplorer from './MultiMonthTransactionExplorer';
 import TwelveMonthOverview from './TwelveMonthOverview';
@@ -21,6 +22,7 @@ import ImportModal from './ImportModal';
 import { useBudgetContext } from '../contexts/BudgetContext';
 import { useBudgetHandlers } from '../hooks/useBudgetHandlers';
 import { calculateTotals, calculateFinalBalances, convertCurrency } from '../utils/calculations';
+import { aggregateTotalsForOverviewWindow } from '../utils/budgetInsights';
 import { translate } from '../i18n/config';
 import { BUDGET_VIEW_MODE_IMPORT_EVENT } from '../hooks/useBudgetImportExport';
 import { isViewingCurrentCalendarMonth, monthKeyFromBudgetDate } from '../utils/rollingMonthsBudget';
@@ -30,8 +32,6 @@ const MAX_BUDGET_BOOKS = 2;
 
 const APP_TAB_STORAGE_KEY = 'budget_tracker_active_tab';
 const BUDGET_VIEW_MODE_STORAGE_KEY = 'budget_tracker_budget_view_mode';
-
-type BudgetViewMode = 'days' | 'months';
 
 const isBudgetViewMode = (value: string | null): value is BudgetViewMode => (
   value === 'days' || value === 'months'
@@ -318,6 +318,19 @@ export default function BudgetTracker() {
     [days, selectedCurrencies]
   );
 
+  const twelveMonthTotals = useMemo(
+    () =>
+      aggregateTotalsForOverviewWindow({
+        monthsByKey: activeBudgetData?.monthsByKey,
+        selectedCurrencies,
+        activeMonthKey,
+        activeDays: days
+      }),
+    [activeBudgetData?.monthsByKey, selectedCurrencies, activeMonthKey, days]
+  );
+
+  const insightsTotals = budgetViewMode === 'months' ? twelveMonthTotals : totals;
+
   const finalBalances = useMemo(
     () => calculateFinalBalances(days, selectedCurrencies, startBalances, totals),
     [days, selectedCurrencies, startBalances, totals]
@@ -416,6 +429,13 @@ export default function BudgetTracker() {
 
               <AppTabs activeTab={activeTab} onChange={handleTabChange} />
 
+              {(activeTab === 'budget' || activeTab === 'overview' || activeTab === 'insights') && (
+                <BudgetViewToggle
+                  mode={budgetViewMode}
+                  onChange={handleBudgetViewModeChange}
+                />
+              )}
+
               {activeTab === 'overview' && (
                 <>
                   <OverviewDashboard
@@ -426,47 +446,15 @@ export default function BudgetTracker() {
                     startBalances={startBalances}
                     budgetYear={budgetDate.year}
                     budgetMonth={budgetDate.month}
+                    budgetViewMode={budgetViewMode}
+                    monthsByKey={activeBudgetData?.monthsByKey}
+                    activeMonthKey={activeMonthKey}
                   />
                 </>
               )}
 
               {activeTab === 'budget' && (
                 <>
-                  <div className="rounded-2xl bg-white shadow-md border border-slate-200 p-1.5 mb-4 sm:mb-6">
-                    <div
-                      className="grid grid-cols-2 gap-1.5"
-                      role="tablist"
-                      aria-label={translate('budgetView.ariaLabel')}
-                    >
-                      {(['days', 'months'] as BudgetViewMode[]).map((mode) => {
-                        const isActive = budgetViewMode === mode;
-                        return (
-                          <button
-                            key={mode}
-                            type="button"
-                            role="tab"
-                            aria-selected={isActive}
-                            onClick={() => handleBudgetViewModeChange(mode)}
-                            className={`appearance-none px-3 sm:px-4 py-2.5 rounded-xl text-sm sm:text-base font-bold transition-all focus:outline-none focus:ring-2 focus:ring-indigo-400 ${
-                              isActive
-                                ? 'bg-gradient-to-r from-indigo-600 via-blue-600 to-violet-600 text-white shadow-md'
-                                : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
-                            }`}
-                          >
-                            <span className="block truncate">
-                              {translate(`budgetView.${mode}`)}
-                            </span>
-                            <span className={`hidden sm:block text-[11px] font-medium mt-0.5 ${
-                              isActive ? 'text-blue-100' : 'text-slate-500'
-                            }`}>
-                              {translate(`budgetView.${mode}Hint`)}
-                            </span>
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-
                   <SettingsCard
                     isUk={language === 'uk'}
                     user={user}
@@ -603,7 +591,7 @@ export default function BudgetTracker() {
                 <>
                   <Statistics
                     isUk={language === 'uk'}
-                    totals={totals}
+                    totals={insightsTotals}
                     selectedCurrencies={selectedCurrencies}
                     displayCurrency={displayCurrency}
                     exchangeRates={exchangeRates}
@@ -617,6 +605,9 @@ export default function BudgetTracker() {
                     startBalances={startBalances}
                     budgetYear={budgetDate.year}
                     budgetMonth={budgetDate.month}
+                    budgetViewMode={budgetViewMode}
+                    monthsByKey={activeBudgetData?.monthsByKey}
+                    activeMonthKey={activeMonthKey}
                   />
                 </>
               )}

@@ -5,6 +5,7 @@ import { translate } from '../i18n/config';
 import i18n from '../i18n/config';
 import SettingsModal from './SettingsModal';
 import CurrencyFlag from './CurrencyFlag';
+import { useTheme } from '../contexts/ThemeContext';
 
 interface HeaderProps {
   isUk: boolean;
@@ -70,6 +71,40 @@ const GoogleIcon = () => (
     />
   </svg>
 );
+
+const SunIcon = () => (
+  <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="12" cy="12" r="4" />
+    <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41" />
+  </svg>
+);
+
+const MoonIcon = () => (
+  <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+  </svg>
+);
+
+const ThemeToggle: React.FC = () => {
+  const { isNeon, toggleTheme } = useTheme();
+  const { t } = useTranslation();
+  return (
+    <button
+      type="button"
+      onClick={toggleTheme}
+      role="switch"
+      aria-checked={isNeon}
+      aria-label={isNeon ? t('header.theme.toLight') : t('header.theme.toNeon')}
+      title={isNeon ? t('header.theme.toLight') : t('header.theme.toNeon')}
+      className="theme-toggle-btn inline-flex items-center gap-1.5 rounded-full bg-slate-900/40 hover:bg-slate-900/60 border border-white/15 px-2.5 py-1.5 text-[11px] font-semibold text-white shadow-inner transition-all"
+    >
+      <span className="inline-flex items-center justify-center text-amber-200">
+        {isNeon ? <SunIcon /> : <MoonIcon />}
+      </span>
+      <span className="hidden sm:inline">{t('header.theme.label')}</span>
+    </button>
+  );
+};
 
 const getSyncStatusTitle = (syncStatus: string) => {
   // Використовуємо емодзі для визначення типу статусу (не залежить від мови)
@@ -220,6 +255,12 @@ const Header: React.FC<HeaderProps> = ({
             {/* Тонка роздільна лінія */}
             <span className="hidden xl:block h-6 w-px bg-white/25" />
 
+            {/* Перемикач теми */}
+            <ThemeToggle />
+
+            {/* Тонка роздільна лінія */}
+            <span className="hidden xl:block h-6 w-px bg-white/25" />
+
             {/* Перемикач мови */}
             <div className="flex items-center gap-2 whitespace-nowrap">
               <span className="hidden xl:inline text-[11px] font-medium text-blue-100/90">
@@ -286,6 +327,9 @@ const Header: React.FC<HeaderProps> = ({
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-300 animate-pulse" />
               <span className="truncate max-w-[140px]">{syncStatus}</span>
             </div>
+
+            {/* Перемикач теми */}
+            <ThemeToggle />
 
             {/* Перемикач мови */}
             <div className="flex items-center gap-2">

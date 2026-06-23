@@ -1,9 +1,15 @@
 import { Day, ExchangeRates, MonthSlice, Transaction } from '../types';
 import {
   calculateDayAmountsFromTransactions,
-  convertCurrency
+  calculateTotals,
+  convertCurrency,
+  Totals
 } from './calculations';
 import { getDaysInMonth } from './dateHelpers';
+import {
+  buildTwelveMonthBalanceRows,
+  getDefaultOverviewWindow
+} from './rollingMonthsBudget';
 
 export interface MonthlyTransaction extends Transaction {
   day: number;
@@ -61,6 +67,80 @@ export interface OverviewMonthRef {
   key: string;
 }
 
+export interface OverviewMonthDaysContext {
+  monthsByKey: Record<string, MonthSlice> | undefined;
+  activeMonthKey?: string;
+  activeDays?: Day[];
+}
+
+export const resolveOverviewMonthDays = ({
+  monthsByKey,
+  windowMonth,
+  activeMonthKey,
+  activeDays
+}: OverviewMonthDaysContext & {
+  windowMonth: OverviewMonthRef;
+}): Day[] => {
+  if (activeMonthKey === windowMonth.key && activeDays) {
+    return getVisibleMonthDays(activeDays, windowMonth.year, windowMonth.month);
+  }
+  const slice = monthsByKey?.[windowMonth.key];
+  return getVisibleMonthDays(slice?.days || [], windowMonth.year, windowMonth.month);
+};
+
+/** Month counts as filled when it has at least one transaction. */
+export const overviewMonthHasTransactions = (
+  windowMonth: OverviewMonthRef,
+  context: OverviewMonthDaysContext
+): boolean => {
+  const monthDays = resolveOverviewMonthDays({ ...context, windowMonth });
+  return monthDays.some(
+    (day) => Array.isArray(day?.transactions) && day.transactions.length > 0
+  );
+};
+
+/** 12-month window slots that contain transaction data (empty future months are skipped). */
+export const getFilledOverviewMonths = (
+  context: OverviewMonthDaysContext,
+  windowMonths: OverviewMonthRef[] = getDefaultOverviewWindow()
+): OverviewMonthRef[] =>
+  windowMonths.filter((windowMonth) => overviewMonthHasTransactions(windowMonth, context));
+
+export const aggregateTotalsForOverviewWindow = ({
+  monthsByKey,
+  selectedCurrencies,
+  activeMonthKey,
+  activeDays,
+  windowMonths = getFilledOverviewMonths({ monthsByKey, activeMonthKey, activeDays })
+}: OverviewMonthDaysContext & {
+  selectedCurrencies: string[];
+  windowMonths?: OverviewMonthRef[];
+}): Totals => {
+  const aggregated: Totals = {};
+  selectedCurrencies.forEach((code) => {
+    aggregated[`totalIncome${code}`] = 0;
+    aggregated[`totalExpense${code}`] = 0;
+  });
+
+  windowMonths.forEach((windowMonth) => {
+    const monthDays = resolveOverviewMonthDays({
+      monthsByKey,
+      windowMonth,
+      activeMonthKey,
+      activeDays
+    });
+    const monthTotals = calculateTotals(monthDays, selectedCurrencies);
+    selectedCurrencies.forEach((code) => {
+      aggregated[`totalIncome${code}`] =
+        (aggregated[`totalIncome${code}`] || 0) + (monthTotals[`totalIncome${code}`] || 0);
+      aggregated[`totalExpense${code}`] =
+        (aggregated[`totalExpense${code}`] || 0) + (monthTotals[`totalExpense${code}`] || 0);
+    });
+  });
+
+  return aggregated;
+};
+
 export interface OverviewTransactionFilters extends TransactionFilters {
   month?: string | 'all';
 }
@@ -117,18 +197,27 @@ export const flattenOverviewTransactions = ({
   monthsByKey,
   windowMonths,
   displayCurrency,
-  exchangeRates
+  exchangeRates,
+  activeMonthKey,
+  activeDays
 }: {
   monthsByKey: Record<string, MonthSlice> | undefined;
   windowMonths: OverviewMonthRef[];
   displayCurrency: string;
   exchangeRates: ExchangeRates;
+  activeMonthKey?: string;
+  activeDays?: Day[];
 }): OverviewTransaction[] => {
   const result: OverviewTransaction[] = [];
 
-  windowMonths.forEach(({ year, month, key }) => {
-    const slice = monthsByKey?.[key];
-    const days = slice?.days || [];
+  windowMonths.forEach((windowMonth) => {
+    const { year, month, key } = windowMonth;
+    const days = resolveOverviewMonthDays({
+      monthsByKey,
+      windowMonth,
+      activeMonthKey,
+      activeDays
+    });
     const monthly = flattenMonthlyTransactions({
       days,
       displayCurrency,
@@ -293,6 +382,136 @@ export const calculateBudgetInsights = ({
     elapsedDays,
     remainingDays,
     daysInMonth,
+    monthProgress,
+    savingsRate,
+    topExpenses: transactions
+      .filter((transaction) => transaction.type === 'expense')
+      .sort((a, b) => b.convertedAmount - a.convertedAmount)
+      .slice(0, 5),
+    transactions
+  };
+};
+
+export interface TwelveMonthInsightParams extends OverviewMonthDaysContext {
+  selectedCurrencies: string[];
+  displayCurrency: string;
+  exchangeRates: ExchangeRates;
+  startBalances: Record<string, number | null>;
+  activeStartBalances?: Record<string, number | null>;
+  today?: Date;
+}
+
+export const calculateTwelveMonthBudgetInsights = ({
+  monthsByKey,
+  selectedCurrencies,
+  displayCurrency,
+  exchangeRates,
+  startBalances,
+  activeMonthKey,
+  activeDays,
+  activeStartBalances,
+  today = new Date()
+}: TwelveMonthInsightParams): BudgetInsights => {
+  const monthContext = { monthsByKey, activeMonthKey, activeDays };
+  const filledMonths = getFilledOverviewMonths(monthContext);
+  let totalIncome = 0;
+  let totalExpense = 0;
+  let noSpendDays = 0;
+  let daysWithTransactions = 0;
+  let totalDaysInWindow = 0;
+  let elapsedDaysInWindow = 0;
+
+  filledMonths.forEach((windowMonth) => {
+    const { year, month } = windowMonth;
+    const visibleDays = resolveOverviewMonthDays({
+      monthsByKey,
+      windowMonth,
+      activeMonthKey,
+      activeDays
+    });
+    const daysInMonth = getDaysInMonth(year, month);
+    const elapsedDays = getElapsedDaysInBudgetMonth(year, month, daysInMonth, today);
+    totalDaysInWindow += daysInMonth;
+    elapsedDaysInWindow += elapsedDays;
+
+    visibleDays.forEach((day, index) => {
+      const amounts = calculateDayAmountsFromTransactions(day, selectedCurrencies);
+      const transactionsForDay = Array.isArray(day?.transactions) ? day.transactions : [];
+      let dayExpense = 0;
+
+      selectedCurrencies.forEach((currencyCode) => {
+        const income = amounts[`income${currencyCode}`] || 0;
+        const expense = amounts[`expense${currencyCode}`] || 0;
+
+        totalIncome += convertCurrency(income, currencyCode, displayCurrency, exchangeRates);
+        totalExpense += convertCurrency(expense, currencyCode, displayCurrency, exchangeRates);
+        dayExpense += expense;
+      });
+
+      if (transactionsForDay.length > 0) {
+        daysWithTransactions++;
+      }
+
+      if (index < elapsedDays && dayExpense === 0) {
+        noSpendDays++;
+      }
+    });
+  });
+
+  const transactions = flattenOverviewTransactions({
+    monthsByKey,
+    windowMonths: filledMonths,
+    displayCurrency,
+    exchangeRates,
+    activeMonthKey,
+    activeDays
+  });
+
+  const totalStartBalance = selectedCurrencies.reduce((sum, currencyCode) => {
+    const balance = Number(startBalances[currencyCode]) || 0;
+    return sum + convertCurrency(balance, currencyCode, displayCurrency, exchangeRates);
+  }, 0);
+
+  const balanceRows = buildTwelveMonthBalanceRows({
+    monthsByKey,
+    selectedCurrencies,
+    displayCurrency,
+    exchangeRates,
+    activeMonthKey,
+    activeDays,
+    activeStartBalances
+  });
+  const filledMonthKeys = new Set(filledMonths.map((month) => month.key));
+  const lastFilledBalanceRow = [...balanceRows]
+    .reverse()
+    .find((row) => filledMonthKeys.has(row.key));
+  const projectedEndBalance = lastFilledBalanceRow?.balance ?? totalStartBalance;
+
+  const netCashFlow = totalIncome - totalExpense;
+  const remainingDays = Math.max(totalDaysInWindow - elapsedDaysInWindow, 0);
+  const currentAvailableBalance = totalStartBalance + netCashFlow;
+  const remainingDailyBudget =
+    remainingDays > 0 ? currentAvailableBalance / remainingDays : currentAvailableBalance;
+  const averageDailyExpense = elapsedDaysInWindow > 0 ? totalExpense / elapsedDaysInWindow : 0;
+  const projectedExpense = averageDailyExpense * totalDaysInWindow;
+  const monthProgress =
+    totalDaysInWindow > 0 ? (elapsedDaysInWindow / totalDaysInWindow) * 100 : 0;
+  const savingsRate = totalIncome > 0 ? (netCashFlow / totalIncome) * 100 : 0;
+
+  return {
+    totalIncome,
+    totalExpense,
+    netCashFlow,
+    totalStartBalance,
+    projectedEndBalance,
+    projectedExpense,
+    averageDailyExpense,
+    remainingDailyBudget,
+    noSpendDays,
+    daysWithTransactions,
+    elapsedDays: elapsedDaysInWindow,
+    remainingDays,
+    daysInMonth: totalDaysInWindow,
     monthProgress,
     savingsRate,
     topExpenses: transactions

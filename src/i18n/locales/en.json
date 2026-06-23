@@ -12,6 +12,11 @@
     "signIn": "Sign in with Google",
     "language": "Language",
     "languageShort": "Lang",
+    "theme": {
+      "label": "Theme",
+      "toLight": "Switch to light theme",
+      "toNeon": "Switch to dark green theme"
+    },
     "syncStatus": {
       "local": "Data is saved locally in the browser. Sign in with Google to sync to the cloud.",
       "saved": "Data saved to the cloud. It will be available on all your devices.",
@@ -288,6 +293,9 @@
     "week": "Week",
     "weekShort": "Wk",
     "weeklyAvg": "Avg per week",
+    "monthlyBreakdown": "Monthly expense breakdown",
+    "monthlyAvg": "Avg per month",
+    "endOfPeriod": "forecast at the end of 12 months",
     "weeklyTotal": "Total",
     "savingsStreak": "Savings Streak",
     "streakDays": "days in a row",
@@ -330,7 +338,13 @@
     "noSpendDays": "No-spend days",
     "noSpendDaysHelper": "within {{days}} elapsed days",
     "savingsRate": "Savings rate",
-    "savingsRateHelper": "net cash flow as a share of income"
+    "savingsRateHelper": "net cash flow as a share of income",
+    "titleTwelveMonths": "12-month overview",
+    "subtitleTwelveMonths": "A combined snapshot for months with transactions only (empty months are skipped).",
+    "periodProgress": "Period progress",
+    "elapsedDaysInPeriod": "{{elapsed}}/{{total}} days elapsed in the window",
+    "dayWithMonth": "Day {{day}}, {{month}}",
+    "forecastHelperTwelveMonths": "projected balance at the end of the 12-month window"
   },
   "transactionExplorer": {
     "title": "Transaction explorer",

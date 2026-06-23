@@ -1,10 +1,16 @@
 import React, { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Day, ExchangeRates } from '../types';
-import { calculateBudgetInsights } from '../utils/budgetInsights';
+import { Day, ExchangeRates, MonthSlice } from '../types';
+import {
+  calculateBudgetInsights,
+  calculateTwelveMonthBudgetInsights,
+  OverviewTransaction
+} from '../utils/budgetInsights';
 import { formatNumber } from '../utils/calculations';
 import { getCurrencySymbol } from '../utils/currencies';
+import { capitalizeFirstLetter, getMonthYearLabel } from '../utils/dateHelpers';
 import CurrencyFlag from './CurrencyFlag';
+import type { BudgetViewMode } from './BudgetViewToggle';
 
 interface OverviewDashboardProps {
   days: Day[];
@@ -14,6 +20,9 @@ interface OverviewDashboardProps {
   startBalances: Record<string, number | null>;
   budgetYear: number;
   budgetMonth: number;
+  budgetViewMode?: BudgetViewMode;
+  monthsByKey?: Record<string, MonthSlice>;
+  activeMonthKey?: string;
 }
 
 interface MetricCardProps {
@@ -39,6 +48,10 @@ const MetricCard: React.FC<MetricCardProps> = ({ label, value, helper, tone }) =
   </div>
 );
 
+const isOverviewTransaction = (
+  transaction: OverviewTransaction | { day: number }
+): transaction is OverviewTransaction => 'month' in transaction && 'year' in transaction;
+
 const OverviewDashboard: React.FC<OverviewDashboardProps> = ({
   days,
   selectedCurrencies,
@@ -46,12 +59,31 @@ const OverviewDashboard: React.FC<OverviewDashboardProps> = ({
   exchangeRates,
   startBalances,
   budgetYear,
-  budgetMonth
+  budgetMonth,
+  budgetViewMode = 'days',
+  monthsByKey,
+  activeMonthKey
 }) => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const locale = i18n.language || 'en';
   const symbol = getCurrencySymbol(displayCurrency);
-  const insights = useMemo(
-    () => calculateBudgetInsights({
+  const isTwelveMonthView = budgetViewMode === 'months';
+
+  const insights = useMemo(() => {
+    if (isTwelveMonthView) {
+      return calculateTwelveMonthBudgetInsights({
+        monthsByKey,
+        selectedCurrencies,
+        displayCurrency,
+        exchangeRates,
+        startBalances,
+        activeMonthKey,
+        activeDays: days,
+        activeStartBalances: startBalances
+      });
+    }
+
+    return calculateBudgetInsights({
       days,
       selectedCurrencies,
       displayCurrency,
@@ -59,24 +91,43 @@ const OverviewDashboard: React.FC<OverviewDashboardProps> = ({
       startBalances,
       budgetYear,
       budgetMonth
-    }),
-    [days, selectedCurrencies, displayCurrency, exchangeRates, startBalances, budgetYear, budgetMonth]
-  );
+    });
+  }, [
+    isTwelveMonthView,
+    monthsByKey,
+    days,
+    selectedCurrencies,
+    displayCurrency,
+    exchangeRates,
+    startBalances,
+    activeMonthKey,
+    budgetYear,
+    budgetMonth
+  ]);
 
   const netTone = insights.netCashFlow >= 0 ? 'green' : 'red';
   const forecastTone = insights.projectedEndBalance >= 0 ? 'purple' : 'red';
   const dailyBudgetTone = insights.remainingDailyBudget >= 0 ? 'blue' : 'red';
   const topExpense = insights.topExpenses[0];
 
+  const topExpenseDateLabel = topExpense && isOverviewTransaction(topExpense) && isTwelveMonthView
+    ? t('overviewDashboard.dayWithMonth', {
+        day: topExpense.day,
+        month: capitalizeFirstLetter(getMonthYearLabel(locale, topExpense.year, topExpense.month))
+      })
+    : topExpense
+      ? t('overviewDashboard.day', { day: topExpense.day })
+      : '';
+
   return (
     <div className="bg-white/90 backdrop-blur rounded-2xl shadow-xl p-4 sm:p-6 border border-gray-100 mb-4 sm:mb-6">
       <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3 mb-4">
         <div>
           <h2 className="text-lg sm:text-xl font-bold text-gray-800 font-display">
-            {t('overviewDashboard.title')}
+            {t(isTwelveMonthView ? 'overviewDashboard.titleTwelveMonths' : 'overviewDashboard.title')}
           </h2>
           <p className="text-sm text-gray-500 mt-1">
-            {t('overviewDashboard.subtitle')}
+            {t(isTwelveMonthView ? 'overviewDashboard.subtitleTwelveMonths' : 'overviewDashboard.subtitle')}
           </p>
         </div>
         <div className="inline-flex items-center gap-2 bg-indigo-50 text-indigo-700 px-3 py-2 rounded-full text-sm font-bold border border-indigo-100 w-fit">
@@ -87,12 +138,17 @@ const OverviewDashboard: React.FC<OverviewDashboardProps> = ({
 
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3 mb-4">
         <MetricCard
-          label={t('overviewDashboard.monthProgress')}
+          label={t(isTwelveMonthView ? 'overviewDashboard.periodProgress' : 'overviewDashboard.monthProgress')}
           value={`${formatNumber(insights.monthProgress, 0)}%`}
-          helper={t('overviewDashboard.elapsedDays', {
-            elapsed: insights.elapsedDays,
-            total: insights.daysInMonth
-          })}
+          helper={t(
+            isTwelveMonthView
+              ? 'overviewDashboard.elapsedDaysInPeriod'
+              : 'overviewDashboard.elapsedDays',
+            {
+              elapsed: insights.elapsedDays,
+              total: insights.daysInMonth
+            }
+          )}
           tone="blue"
         />
         <MetricCard
@@ -112,7 +168,11 @@ const OverviewDashboard: React.FC<OverviewDashboardProps> = ({
         <MetricCard
           label={t('overviewDashboard.projectedEndBalance')}
           value={`${symbol}${formatNumber(insights.projectedEndBalance, 2)}`}
-          helper={t('overviewDashboard.forecastHelper')}
+          helper={t(
+            isTwelveMonthView
+              ? 'overviewDashboard.forecastHelperTwelveMonths'
+              : 'overviewDashboard.forecastHelper'
+          )}
           tone={forecastTone}
         />
       </div>
@@ -130,7 +190,7 @@ const OverviewDashboard: React.FC<OverviewDashboardProps> = ({
               <p className="text-sm text-rose-600 font-semibold tabular-nums mt-1">
                 {symbol}{formatNumber(topExpense.convertedAmount, 2)}
                 <span className="text-gray-400 font-medium ml-2">
-                  {t('overviewDashboard.day', { day: topExpense.day })}
+                  {topExpenseDateLabel}
                 </span>
               </p>
             </>

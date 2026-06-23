@@ -2,9 +2,16 @@ import React, { useCallback, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { convertCurrency, formatNumber, calculateDayAmountsFromTransactions } from '../utils/calculations';
 import { getCurrencySymbol } from '../utils/currencies';
-import { getDaysInMonth } from '../utils/dateHelpers';
-import { Day, ExchangeRates, Transaction } from '../types';
+import { capitalizeFirstLetter, getDaysInMonth, getMonthYearLabel } from '../utils/dateHelpers';
+import { Day, ExchangeRates, MonthSlice, Transaction } from '../types';
+import {
+  getElapsedDaysInBudgetMonth,
+  getFilledOverviewMonths,
+  resolveOverviewMonthDays
+} from '../utils/budgetInsights';
+import { buildTwelveMonthBalanceRows } from '../utils/rollingMonthsBudget';
 import CurrencyFlag from './CurrencyFlag';
+import type { BudgetViewMode } from './BudgetViewToggle';
 
 interface AnalyticsProps {
   days: Day[];
@@ -14,6 +21,9 @@ interface AnalyticsProps {
   startBalances: Record<string, number | null>;
   budgetYear: number;
   budgetMonth: number;
+  budgetViewMode?: BudgetViewMode;
+  monthsByKey?: Record<string, MonthSlice>;
+  activeMonthKey?: string;
 }
 
 interface TopExpense {
@@ -22,6 +32,7 @@ interface TopExpense {
   currency: string;
   convertedAmount: number;
   day: number;
+  monthLabel?: string;
 }
 
 interface CategoryData {
@@ -36,6 +47,7 @@ interface WeekData {
   totalExpense: number;
   totalIncome: number;
   daysRange: string;
+  periodLabel?: string;
 }
 
 const Analytics: React.FC<AnalyticsProps> = ({
@@ -45,12 +57,26 @@ const Analytics: React.FC<AnalyticsProps> = ({
   exchangeRates,
   startBalances,
   budgetYear,
-  budgetMonth
+  budgetMonth,
+  budgetViewMode = 'days',
+  monthsByKey,
+  activeMonthKey
 }) => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const locale = i18n.language || 'en';
   const displaySymbol = getCurrencySymbol(displayCurrency);
+  const isTwelveMonthView = budgetViewMode === 'months';
   const daysInMonth = getDaysInMonth(budgetYear, budgetMonth);
   const visibleDays = days.slice(0, daysInMonth);
+  const filledOverviewMonths = useMemo(
+    () =>
+      getFilledOverviewMonths({
+        monthsByKey,
+        activeMonthKey,
+        activeDays: days
+      }),
+    [monthsByKey, activeMonthKey, days]
+  );
 
   const analyticsExpandedStorageKey = 'budget_analytics_expanded';
   const [isExpanded, setIsExpanded] = useState<boolean>(() => {
@@ -87,7 +113,36 @@ const Analytics: React.FC<AnalyticsProps> = ({
     let daysWithTransactions = 0;
     const allExpenses: TopExpense[] = [];
 
-    visibleDays.forEach((day) => {
+    const dayEntries: Array<{ day: Day; elapsed: boolean; monthLabel?: string }> = [];
+
+    if (isTwelveMonthView) {
+      filledOverviewMonths.forEach((windowMonth) => {
+        const monthDays = resolveOverviewMonthDays({
+          monthsByKey,
+          windowMonth,
+          activeMonthKey,
+          activeDays: days
+        });
+        const monthDaysCount = getDaysInMonth(windowMonth.year, windowMonth.month);
+        const elapsed = getElapsedDaysInBudgetMonth(
+          windowMonth.year,
+          windowMonth.month,
+          monthDaysCount
+        );
+        const monthLabel = capitalizeFirstLetter(
+          getMonthYearLabel(locale, windowMonth.year, windowMonth.month)
+        );
+        monthDays.forEach((day, index) => {
+          dayEntries.push({ day, elapsed: index < elapsed, monthLabel });
+        });
+      });
+    } else {
+      visibleDays.forEach((day) => {
+        if (day) dayEntries.push({ day, elapsed: true });
+      });
+    }
+
+    dayEntries.forEach(({ day, elapsed, monthLabel }) => {
       if (!day) return;
       const amounts = calculateDayAmountsFromTransactions(day, selectedCurrencies);
       const transactions = Array.isArray(day.transactions) ? day.transactions : [];
@@ -116,7 +171,8 @@ const Analytics: React.FC<AnalyticsProps> = ({
             amount: tx.amount,
             currency: tx.currency,
             convertedAmount: converted,
-            day: day.day
+            day: day.day,
+            monthLabel
           });
         }
       });
@@ -125,7 +181,7 @@ const Analytics: React.FC<AnalyticsProps> = ({
         daysWithTransactions++;
       }
 
-      if (!dayHasExpense) {
+      if (elapsed && !dayHasExpense) {
         noSpendDayCount++;
       }
     });
@@ -139,17 +195,41 @@ const Analytics: React.FC<AnalyticsProps> = ({
     const activeDaysCount = daysWithTransactions || 1;
     const avgDailyExpense = totalExpenseConverted / activeDaysCount;
 
-    // Прогнозована загальна витрата до кінця місяця
-    const projectedTotalExpense = avgDailyExpense * daysInMonth;
+    const periodDaysCount = isTwelveMonthView
+      ? filledOverviewMonths.reduce(
+          (sum, windowMonth) => sum + getDaysInMonth(windowMonth.year, windowMonth.month),
+          0
+        )
+      : daysInMonth;
 
-    // Прогнозований баланс на кінець місяця
+    // Прогнозована загальна витрата до кінця періоду
+    const projectedTotalExpense = avgDailyExpense * periodDaysCount;
+
+    // Прогнозований баланс на кінець періоду
     let totalStartBalance = 0;
     selectedCurrencies.forEach((code) => {
       const balance = parseFloat(String(startBalances[code])) || 0;
       totalStartBalance += convertCurrency(balance, code, displayCurrency, exchangeRates);
     });
-    const projectedEndBalance =
-      totalStartBalance + totalIncomeConverted - projectedTotalExpense;
+
+    const projectedEndBalance = isTwelveMonthView
+      ? (() => {
+          const balanceRows = buildTwelveMonthBalanceRows({
+            monthsByKey,
+            selectedCurrencies,
+            displayCurrency,
+            exchangeRates,
+            activeMonthKey,
+            activeDays: days,
+            activeStartBalances: startBalances
+          });
+          const filledMonthKeys = new Set(filledOverviewMonths.map((month) => month.key));
+          const lastFilledBalanceRow = [...balanceRows]
+            .reverse()
+            .find((row) => filledMonthKeys.has(row.key));
+          return lastFilledBalanceRow?.balance ?? totalStartBalance;
+        })()
+      : totalStartBalance + totalIncomeConverted - projectedTotalExpense;
 
     // Рівень заощаджень
     const savingsRate =
@@ -211,35 +291,63 @@ const Analytics: React.FC<AnalyticsProps> = ({
       name: c.name === '__other__' ? '__other__' : c.name === '—' ? '—' : c.name.charAt(0).toUpperCase() + c.name.slice(1)
     }));
 
-    // ---------- Тижневий розподіл ----------
+    // ---------- Тижневий / місячний розподіл ----------
     const weeks: WeekData[] = [];
-    // Розбиваємо дні на тижні (Пн-Нд)
-    let weekNum = 1;
-    let weekStart = 1;
 
-    for (let d = 1; d <= daysInMonth; d++) {
-      const dayOfWeek = new Date(budgetYear, budgetMonth, d).getDay();
-      // Кінець тижня (неділя) або останній день місяця
-      if (dayOfWeek === 0 || d === daysInMonth) {
-        let weekExpense = 0;
-        let weekIncome = 0;
-        for (let wd = weekStart - 1; wd < d && wd < visibleDays.length; wd++) {
-          const dayData = visibleDays[wd];
-          if (!dayData) continue;
+    if (isTwelveMonthView) {
+      filledOverviewMonths.forEach((windowMonth, index) => {
+        const monthDays = resolveOverviewMonthDays({
+          monthsByKey,
+          windowMonth,
+          activeMonthKey,
+          activeDays: days
+        });
+        let monthExpense = 0;
+        let monthIncome = 0;
+        monthDays.forEach((dayData) => {
+          if (!dayData) return;
           const amounts = calculateDayAmountsFromTransactions(dayData, selectedCurrencies);
           for (const code of selectedCurrencies) {
-            weekExpense += convertCurrency(amounts[`expense${code}`] || 0, code, displayCurrency, exchangeRates);
-            weekIncome += convertCurrency(amounts[`income${code}`] || 0, code, displayCurrency, exchangeRates);
+            monthExpense += convertCurrency(amounts[`expense${code}`] || 0, code, displayCurrency, exchangeRates);
+            monthIncome += convertCurrency(amounts[`income${code}`] || 0, code, displayCurrency, exchangeRates);
           }
-        }
-        weeks.push({
-          weekNumber: weekNum,
-          totalExpense: weekExpense,
-          totalIncome: weekIncome,
-          daysRange: `${weekStart}–${d}`
         });
-        weekNum++;
-        weekStart = d + 1;
+        weeks.push({
+          weekNumber: index + 1,
+          totalExpense: monthExpense,
+          totalIncome: monthIncome,
+          daysRange: '',
+          periodLabel: capitalizeFirstLetter(getMonthYearLabel(locale, windowMonth.year, windowMonth.month))
+        });
+      });
+    } else {
+      // Розбиваємо дні на тижні (Пн-Нд)
+      let weekNum = 1;
+      let weekStart = 1;
+
+      for (let d = 1; d <= daysInMonth; d++) {
+        const dayOfWeek = new Date(budgetYear, budgetMonth, d).getDay();
+        if (dayOfWeek === 0 || d === daysInMonth) {
+          let weekExpense = 0;
+          let weekIncome = 0;
+          for (let wd = weekStart - 1; wd < d && wd < visibleDays.length; wd++) {
+            const dayData = visibleDays[wd];
+            if (!dayData) continue;
+            const amounts = calculateDayAmountsFromTransactions(dayData, selectedCurrencies);
+            for (const code of selectedCurrencies) {
+              weekExpense += convertCurrency(amounts[`expense${code}`] || 0, code, displayCurrency, exchangeRates);
+              weekIncome += convertCurrency(amounts[`income${code}`] || 0, code, displayCurrency, exchangeRates);
+            }
+          }
+          weeks.push({
+            weekNumber: weekNum,
+            totalExpense: weekExpense,
+            totalIncome: weekIncome,
+            daysRange: `${weekStart}–${d}`
+          });
+          weekNum++;
+          weekStart = d + 1;
+        }
       }
     }
 
@@ -251,12 +359,14 @@ const Analytics: React.FC<AnalyticsProps> = ({
     let bestStreak = 0;
     let tempStreak = 0;
 
+    const streakDays = dayEntries.map((entry) => entry.day);
+
     // Проходимо по днях з транзакціями
-    for (let i = 0; i < visibleDays.length; i++) {
-      const dayData = visibleDays[i];
+    for (let i = 0; i < streakDays.length; i++) {
+      const dayData = streakDays[i];
       if (!dayData) continue;
       const transactions = Array.isArray(dayData.transactions) ? dayData.transactions : [];
-      if (transactions.length === 0) continue; // Пропускаємо дні без транзакцій
+      if (transactions.length === 0) continue;
 
       let dayExpenseConverted = 0;
       const amounts = calculateDayAmountsFromTransactions(dayData, selectedCurrencies);
@@ -285,14 +395,30 @@ const Analytics: React.FC<AnalyticsProps> = ({
       savingsRate,
       spendingProgress,
       daysWithTransactions,
-      daysInMonth,
+      daysInMonth: periodDaysCount,
       categories,
       weeks,
       maxWeekExpense,
       currentStreak,
-      bestStreak
+      bestStreak,
+      isTwelveMonthView
     };
-  }, [visibleDays, selectedCurrencies, displayCurrency, exchangeRates, startBalances, daysInMonth, budgetYear, budgetMonth]);
+  }, [
+    visibleDays,
+    selectedCurrencies,
+    displayCurrency,
+    exchangeRates,
+    startBalances,
+    daysInMonth,
+    budgetYear,
+    budgetMonth,
+    isTwelveMonthView,
+    filledOverviewMonths,
+    monthsByKey,
+    activeMonthKey,
+    days,
+    locale
+  ]);
 
   // ---------- Рендер ----------
 
@@ -344,7 +470,7 @@ const Analytics: React.FC<AnalyticsProps> = ({
             {displaySymbol}{formatNumber(analytics.projectedEndBalance, 2)}
           </p>
           <p className="text-[10px] text-gray-500">
-            {t('analytics.endOfMonth')}
+            {t(analytics.isTwelveMonthView ? 'analytics.endOfPeriod' : 'analytics.endOfMonth')}
           </p>
         </div>
 
@@ -439,7 +565,9 @@ const Analytics: React.FC<AnalyticsProps> = ({
                           {expense.description}
                         </p>
                         <p className="text-[10px] text-gray-500">
-                          {t('analytics.dayLabel')} {expense.day} • {expense.amount} {expense.currency}
+                          {analytics.isTwelveMonthView && expense.monthLabel
+                            ? `${expense.monthLabel}, ${t('analytics.dayLabel')} ${expense.day}`
+                            : `${t('analytics.dayLabel')} ${expense.day}`} • {expense.amount} {expense.currency}
                           {expense.currency !== displayCurrency && (
                             <> <CurrencyFlag currencyCode={expense.currency} size={10} className="inline-block mx-0.5" /></>
                           )}
@@ -526,7 +654,8 @@ const Analytics: React.FC<AnalyticsProps> = ({
       {analytics.weeks.length > 0 && analytics.totalExpenseConverted > 0 && (
         <div className="bg-gradient-to-br from-sky-50 to-blue-100/70 p-4 rounded-xl border border-sky-200 shadow-sm mt-4">
           <h3 className="text-xs sm:text-sm font-bold text-gray-800 mb-3 flex items-center">
-            <span className="mr-2">📅</span> {t('analytics.weeklyBreakdown')}
+            <span className="mr-2">📅</span>{' '}
+            {t(analytics.isTwelveMonthView ? 'analytics.monthlyBreakdown' : 'analytics.weeklyBreakdown')}
           </h3>
           <div className="space-y-3">
             {analytics.weeks.map((week, idx) => {
@@ -538,11 +667,14 @@ const Analytics: React.FC<AnalyticsProps> = ({
                   <div className="flex items-center justify-between mb-1">
                     <div className="flex items-center gap-2">
                       <span className="text-xs font-bold text-sky-700">
-                        {t('analytics.weekShort')} {week.weekNumber}
+                        {week.periodLabel
+                          || `${t('analytics.weekShort')} ${week.weekNumber}`}
                       </span>
-                      <span className="text-[10px] text-gray-400">
-                        ({t('analytics.dayLabel').toLowerCase()} {week.daysRange})
-                      </span>
+                      {!analytics.isTwelveMonthView && (
+                        <span className="text-[10px] text-gray-400">
+                          ({t('analytics.dayLabel').toLowerCase()} {week.daysRange})
+                        </span>
+                      )}
                     </div>
                     <div className="flex items-center gap-3">
                       {week.totalIncome > 0 && (
@@ -572,7 +704,7 @@ const Analytics: React.FC<AnalyticsProps> = ({
           {/* Середнє за тиждень */}
           <div className="mt-3 pt-3 border-t border-sky-200 flex items-center justify-between">
             <span className="text-xs text-gray-600 font-medium">
-              {t('analytics.weeklyAvg')}
+              {t(analytics.isTwelveMonthView ? 'analytics.monthlyAvg' : 'analytics.weeklyAvg')}
             </span>
             <span className="text-sm font-bold text-sky-700 tabular-nums">
               {displaySymbol}{formatNumber(analytics.totalExpenseConverted / (analytics.weeks.length || 1), 2)}
@@ -628,7 +760,8 @@ const Analytics: React.FC<AnalyticsProps> = ({
             </div>
           </div>
 
-          {/* Візуальна стрічка днів */}
+          {/* Візуальна стрічка днів — лише для місячного режиму */}
+          {!analytics.isTwelveMonthView && (
           <div className="mt-3 flex flex-wrap gap-1">
             {visibleDays.map((day, idx) => {
               if (!day) return null;
@@ -661,6 +794,8 @@ const Analytics: React.FC<AnalyticsProps> = ({
               );
             })}
           </div>
+          )}
+          {!analytics.isTwelveMonthView && (
           <div className="mt-2 flex items-center gap-3 text-[10px] text-gray-500">
             <span className="flex items-center gap-1">
               <span className="w-3 h-3 rounded-sm bg-lime-400 border border-lime-500 inline-block" /> ≤ {t('analytics.avgDailyExpense').toLowerCase()}
@@ -672,6 +807,7 @@ const Analytics: React.FC<AnalyticsProps> = ({
               <span className="w-3 h-3 rounded-sm bg-gray-100 border border-gray-200 inline-block" /> —
             </span>
           </div>
+          )}
         </div>
       )}
         </>

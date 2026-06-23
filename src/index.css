@@ -410,6 +410,1065 @@ td {
   /* Залишаємо світлу тему, але підготовка до dark mode */
 }
 
+/* ============================================================= */
+/* ===============  ЗАГАЛЬНЕ ПОКРАЩЕННЯ UI  ===================== */
+/* ============================================================= */
+
+/* Чіткіші, приємніші кнопки у будь-якій темі */
+button {
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+
+button:not(:disabled):active {
+  transform: translateY(0.5px) scale(0.985);
+}
+
+/* М'якша, сучасніша обводка для інпутів/селектів */
+input,
+select,
+textarea {
+  border-radius: 0.625rem;
+}
+
+/* Тонше, чіткіше фокус-кільце */
+*:focus-visible {
+  outline-offset: 2px;
+}
+
+/* ============================================================= */
+/* ============  ТЕМНА ЗЕЛЕНА НЕОНОВА ТЕМА  ==================== */
+/* ============================================================= */
+
+html.theme-neon {
+  --neon-bg: #03120b;
+  --neon-bg-2: #051a10;
+  --neon-surface: #0a2014;
+  --neon-surface-2: #0e2c1c;
+  --neon-surface-3: #123826;
+  --neon-border: rgba(57, 255, 20, 0.22);
+  --neon-border-strong: rgba(57, 255, 20, 0.55);
+  --neon-green: #39ff14;
+  --neon-green-soft: #34d399;
+  --neon-text: #daffe9;
+  --neon-text-muted: #7fcfa6;
+  --neon-glow: 0 0 0 1px rgba(57, 255, 20, 0.25), 0 0 14px rgba(57, 255, 20, 0.22);
+  color-scheme: dark;
+}
+
+html.theme-neon,
+html.theme-neon body {
+  background-color: var(--neon-bg) !important;
+  color: var(--neon-text);
+}
+
+/* Основний фон сторінки (градієнт у BudgetTracker) */
+html.theme-neon .from-slate-100 { --tw-gradient-from: #03120b var(--tw-gradient-from-position) !important; }
+html.theme-neon .via-blue-50 {
+  --tw-gradient-stops: var(--tw-gradient-from), #051a10 var(--tw-gradient-via-position, 50%), var(--tw-gradient-to) !important;
+}
+html.theme-neon .to-indigo-50 { --tw-gradient-to: #02150c var(--tw-gradient-to-position) !important; }
+
+/* --- Поверхні (картки, панелі) --- */
+html.theme-neon .bg-white,
+html.theme-neon .bg-slate-50,
+html.theme-neon .bg-gray-50,
+html.theme-neon .bg-slate-100,
+html.theme-neon .bg-gray-100 {
+  background-color: var(--neon-surface) !important;
+}
+
+html.theme-neon .bg-slate-200,
+html.theme-neon .bg-gray-200,
+html.theme-neon .bg-gray-300,
+html.theme-neon .bg-gray-400 {
+  background-color: var(--neon-surface-2) !important;
+}
+
+/* М'які акцентні фони → напівпрозорий неон */
+html.theme-neon .bg-indigo-50,
+html.theme-neon .bg-indigo-100,
+html.theme-neon .bg-indigo-200,
+html.theme-neon .bg-blue-50,
+html.theme-neon .bg-blue-100,
+html.theme-neon .bg-violet-50,
+html.theme-neon .bg-sky-50 {
+  background-color: rgba(57, 255, 20, 0.1) !important;
+}
+
+html.theme-neon .bg-emerald-50,
+html.theme-neon .bg-green-50,
+html.theme-neon .bg-teal-50 {
+  background-color: rgba(52, 211, 153, 0.12) !important;
+}
+
+html.theme-neon .bg-rose-50,
+html.theme-neon .bg-red-50,
+html.theme-neon .bg-red-100,
+html.theme-neon .bg-rose-100 {
+  background-color: rgba(244, 63, 94, 0.14) !important;
+}
+
+html.theme-neon .bg-amber-50,
+html.theme-neon .bg-yellow-50,
+html.theme-neon .bg-amber-100 {
+  background-color: rgba(245, 200, 80, 0.14) !important;
+}
+
+/* --- Текст: робимо світлим/неоновим --- */
+html.theme-neon .text-slate-900,
+html.theme-neon .text-slate-800,
+html.theme-neon .text-slate-700,
+html.theme-neon .text-gray-900,
+html.theme-neon .text-gray-800,
+html.theme-neon .text-gray-700,
+html.theme-neon .text-zinc-900,
+html.theme-neon .text-zinc-800,
+html.theme-neon .text-neutral-900,
+html.theme-neon .text-black {
+  color: var(--neon-text) !important;
+}
+
+html.theme-neon .text-slate-600,
+html.theme-neon .text-slate-500,
+html.theme-neon .text-slate-400,
+html.theme-neon .text-gray-600,
+html.theme-neon .text-gray-500,
+html.theme-neon .text-gray-400 {
+  color: var(--neon-text-muted) !important;
+}
+
+/* Індиго/синій акцентний текст → неон-зелений */
+html.theme-neon .text-indigo-700,
+html.theme-neon .text-indigo-600,
+html.theme-neon .text-indigo-500,
+html.theme-neon .text-blue-700,
+html.theme-neon .text-blue-600,
+html.theme-neon .text-violet-600 {
+  color: var(--neon-green) !important;
+  text-shadow: 0 0 10px rgba(57, 255, 20, 0.35);
+}
+
+/* Семантичні кольори: трохи яскравіші для темного фону */
+html.theme-neon .text-emerald-700,
+html.theme-neon .text-emerald-600,
+html.theme-neon .text-green-700,
+html.theme-neon .text-green-600 {
+  color: #4ade80 !important;
+}
+
+html.theme-neon .text-rose-700,
+html.theme-neon .text-rose-600,
+html.theme-neon .text-red-700,
+html.theme-neon .text-red-600 {
+  color: #ff7a90 !important;
+}
+
+html.theme-neon .text-amber-700,
+html.theme-neon .text-amber-600,
+html.theme-neon .text-yellow-600 {
+  color: #ffd166 !important;
+}
+
+/* --- Обводки --- */
+html.theme-neon .border,
+html.theme-neon .border-2,
+html.theme-neon [class*="border-slate-"],
+html.theme-neon [class*="border-gray-"],
+html.theme-neon [class*="border-zinc-"],
+html.theme-neon [class*="border-blue-"],
+html.theme-neon [class*="border-indigo-"],
+html.theme-neon [class*="border-violet-"] {
+  border-color: var(--neon-border) !important;
+}
+
+html.theme-neon .border-indigo-400,
+html.theme-neon .border-indigo-700,
+html.theme-neon .border-indigo-600,
+html.theme-neon .border-blue-600 {
+  border-color: var(--neon-border-strong) !important;
+}
+
+/* --- Інпути, селекти, текстові поля --- */
+html.theme-neon input,
+html.theme-neon select,
+html.theme-neon textarea {
+  background-color: var(--neon-surface-2) !important;
+  color: var(--neon-text) !important;
+  border-color: var(--neon-border) !important;
+}
+
+html.theme-neon input::placeholder,
+html.theme-neon textarea::placeholder {
+  color: rgba(127, 207, 166, 0.6) !important;
+}
+
+html.theme-neon input:focus,
+html.theme-neon select:focus,
+html.theme-neon textarea:focus {
+  border-color: var(--neon-green) !important;
+  box-shadow: var(--neon-glow) !important;
+}
+
+html.theme-neon select option {
+  background-color: var(--neon-surface-2);
+  color: var(--neon-text);
+}
+
+/* --- Акцентні градієнти (хедер, активні кнопки, заголовок таблиці) --- */
+html.theme-neon .from-indigo-600,
+html.theme-neon .from-indigo-700,
+html.theme-neon .from-blue-600,
+html.theme-neon .from-violet-600 {
+  --tw-gradient-from: #0a3d1e var(--tw-gradient-from-position) !important;
+  --tw-gradient-to: rgb(10 61 30 / 0) var(--tw-gradient-to-position) !important;
+  --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to) !important;
+}
+
+html.theme-neon .via-blue-600,
+html.theme-neon .via-indigo-600,
+html.theme-neon .via-violet-600 {
+  --tw-gradient-stops: var(--tw-gradient-from), #0f7a37 var(--tw-gradient-via-position, 50%), var(--tw-gradient-to) !important;
+}
+
+html.theme-neon .to-violet-600,
+html.theme-neon .to-indigo-700,
+html.theme-neon .to-indigo-600,
+html.theme-neon .to-blue-600 {
+  --tw-gradient-to: #18a04a var(--tw-gradient-to-position) !important;
+}
+
+/* Суцільні акцентні кнопки */
+html.theme-neon .bg-indigo-600,
+html.theme-neon .bg-blue-600,
+html.theme-neon .bg-violet-600 {
+  background-color: #0f7a37 !important;
+  box-shadow: var(--neon-glow);
+}
+
+html.theme-neon .bg-emerald-600,
+html.theme-neon .bg-green-600 {
+  background-color: #0f9d52 !important;
+}
+
+html.theme-neon .bg-rose-600,
+html.theme-neon .bg-red-600,
+html.theme-neon .bg-rose-500 {
+  background-color: #c2334a !important;
+}
+
+/* Неонове підсвічування для головних карток та хедера */
+html.theme-neon .shadow-2xl,
+html.theme-neon .shadow-xl {
+  box-shadow: 0 0 0 1px var(--neon-border), 0 18px 40px -12px rgba(0, 0, 0, 0.8), 0 0 32px rgba(57, 255, 20, 0.12) !important;
+}
+
+/* Акцентний неоновий бордер на головних панелях */
+html.theme-neon .rounded-2xl.shadow-md,
+html.theme-neon .rounded-2xl.shadow-lg,
+html.theme-neon .rounded-2xl.shadow-xl,
+html.theme-neon .rounded-2xl.shadow-2xl {
+  border: 1px solid var(--neon-border) !important;
+}
+
+/* Заголовок таблиці, що "прилипає" */
+html.theme-neon .sticky-table-header {
+  background: linear-gradient(to right, #0a3d1e, #0f7a37, #0a3d1e) !important;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.6), 0 0 18px rgba(57, 255, 20, 0.15);
+}
+
+/* Фіксовані колонки таблиці */
+html.theme-neon .table-fixed-col,
+html.theme-neon .table-fixed-col-2 {
+  background: var(--neon-surface) !important;
+}
+
+html.theme-neon .table-fixed-col::after,
+html.theme-neon .table-fixed-col-2::after {
+  background: linear-gradient(to right, rgba(0, 0, 0, 0.45), transparent) !important;
+}
+
+/* Градієнтний текст → неоновий */
+html.theme-neon .gradient-text {
+  background: linear-gradient(135deg, #6bff5a, #39ff14, #34d399, #18a04a) !important;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  filter: drop-shadow(0 0 8px rgba(57, 255, 20, 0.4));
+}
+
+/* Кнопка перемикача теми */
+html.theme-neon .theme-toggle-btn {
+  border-color: var(--neon-border-strong) !important;
+  box-shadow: var(--neon-glow);
+}
+
+/* Неонова смуга прокрутки */
+html.theme-neon * {
+  scrollbar-color: var(--neon-green) var(--neon-bg-2);
+}
+html.theme-neon ::-webkit-scrollbar-track {
+  background: var(--neon-bg-2);
+}
+html.theme-neon ::-webkit-scrollbar-thumb {
+  background: linear-gradient(135deg, #39ff14, #18a04a);
+  border: 2px solid var(--neon-bg-2);
+  box-shadow: 0 0 8px rgba(57, 255, 20, 0.4);
+}
+html.theme-neon ::-webkit-scrollbar-corner {
+  background: var(--neon-bg-2);
+}
+
+/* Фокус-кільце у неоновій темі */
+html.theme-neon *:focus-visible {
+  outline-color: var(--neon-green);
+  box-shadow: 0 0 0 4px rgba(57, 255, 20, 0.18);
+}
+
+/* Дрібні дільники/лінії */
+html.theme-neon .divide-slate-200 > * + *,
+html.theme-neon .divide-gray-200 > * + *,
+html.theme-neon .divide-gray-100 > * + * {
+  border-color: var(--neon-border) !important;
+}
+
+/* Прибираємо "білий" хак для Samsung у неоновій темі — текст і так світлий */
+html.theme-neon .samsung-white-text {
+  mix-blend-mode: normal;
+  filter: none;
+}
+
+/* ============================================================= */
+/* =======  СПОКІЙНА ТЕМНО-ЗЕЛЕНА ТЕМА: ПОВНИЙ ПЕРЕХІД  ======= */
+/* ============================================================= */
+
+html.theme-neon {
+  --neon-bg: #07140f;
+  --neon-bg-2: #0b1b14;
+  --neon-surface: #10241a;
+  --neon-surface-2: #163123;
+  --neon-surface-3: #1e3d2d;
+  --neon-border: rgba(134, 239, 172, 0.18);
+  --neon-border-strong: rgba(134, 239, 172, 0.38);
+  --neon-green: #86efac;
+  --neon-green-soft: #6ee7b7;
+  --neon-text: #eefcf3;
+  --neon-text-muted: #a7cbb4;
+  --neon-shadow: 0 18px 44px -26px rgba(0, 0, 0, 0.9);
+  --neon-glow: 0 0 0 1px rgba(134, 239, 172, 0.16), var(--neon-shadow);
+}
+
+html.theme-neon,
+html.theme-neon body {
+  background:
+    radial-gradient(circle at top left, rgba(34, 197, 94, 0.12), transparent 34rem),
+    linear-gradient(135deg, #06110c 0%, #0b1f15 48%, #07140f 100%) !important;
+  color: var(--neon-text);
+}
+
+html.theme-neon .from-slate-100,
+html.theme-neon .from-gray-50,
+html.theme-neon .from-indigo-50,
+html.theme-neon .from-blue-50,
+html.theme-neon .from-emerald-50,
+html.theme-neon .from-green-50 {
+  --tw-gradient-from: #07140f var(--tw-gradient-from-position) !important;
+  --tw-gradient-to: rgb(7 20 15 / 0) var(--tw-gradient-to-position) !important;
+  --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to) !important;
+}
+
+html.theme-neon .via-blue-50,
+html.theme-neon .via-indigo-50,
+html.theme-neon .via-slate-50,
+html.theme-neon .via-emerald-50 {
+  --tw-gradient-stops: var(--tw-gradient-from), #0d2118 var(--tw-gradient-via-position, 50%), var(--tw-gradient-to) !important;
+}
+
+html.theme-neon .to-indigo-50,
+html.theme-neon .to-blue-50,
+html.theme-neon .to-violet-50,
+html.theme-neon .to-green-100,
+html.theme-neon .to-emerald-50 {
+  --tw-gradient-to: #06130e var(--tw-gradient-to-position) !important;
+}
+
+/* Поверхні: картки, налаштування, вибір місяця, модалки, таблиці */
+html.theme-neon .bg-white,
+html.theme-neon .bg-white\/90,
+html.theme-neon .bg-white\/95,
+html.theme-neon [class*="bg-white/"],
+html.theme-neon [class*="bg-slate-"],
+html.theme-neon [class*="bg-gray-"],
+html.theme-neon [class*="bg-zinc-"],
+html.theme-neon [class*="bg-neutral-"] {
+  background-color: var(--neon-surface) !important;
+  color: var(--neon-text) !important;
+}
+
+html.theme-neon .bg-slate-200,
+html.theme-neon .bg-slate-300,
+html.theme-neon .bg-gray-200,
+html.theme-neon .bg-gray-300,
+html.theme-neon .bg-gray-400,
+html.theme-neon .hover\:bg-slate-200:hover,
+html.theme-neon .hover\:bg-gray-200:hover,
+html.theme-neon .hover\:bg-slate-100:hover,
+html.theme-neon .hover\:bg-gray-100:hover {
+  background-color: var(--neon-surface-2) !important;
+}
+
+html.theme-neon .bg-indigo-50,
+html.theme-neon .bg-indigo-100,
+html.theme-neon .bg-indigo-200,
+html.theme-neon .bg-blue-50,
+html.theme-neon .bg-blue-100,
+html.theme-neon .bg-violet-50,
+html.theme-neon .bg-purple-50,
+html.theme-neon .bg-sky-50,
+html.theme-neon .bg-cyan-50 {
+  background-color: rgba(110, 231, 183, 0.1) !important;
+}
+
+html.theme-neon .bg-emerald-50,
+html.theme-neon .bg-emerald-100,
+html.theme-neon .bg-green-50,
+html.theme-neon .bg-green-100,
+html.theme-neon .bg-teal-50,
+html.theme-neon .bg-teal-100 {
+  background-color: rgba(74, 222, 128, 0.12) !important;
+}
+
+html.theme-neon .bg-rose-50,
+html.theme-neon .bg-rose-100,
+html.theme-neon .bg-red-50,
+html.theme-neon .bg-red-100 {
+  background-color: rgba(190, 18, 60, 0.16) !important;
+}
+
+html.theme-neon .bg-amber-50,
+html.theme-neon .bg-amber-100,
+html.theme-neon .bg-yellow-50,
+html.theme-neon .bg-yellow-100 {
+  background-color: rgba(180, 83, 9, 0.16) !important;
+}
+
+/* Текст */
+html.theme-neon [class*="text-slate-"],
+html.theme-neon [class*="text-gray-"],
+html.theme-neon [class*="text-zinc-"],
+html.theme-neon [class*="text-neutral-"] {
+  color: var(--neon-text-muted) !important;
+}
+
+html.theme-neon .text-slate-900,
+html.theme-neon .text-slate-800,
+html.theme-neon .text-slate-700,
+html.theme-neon .text-gray-900,
+html.theme-neon .text-gray-800,
+html.theme-neon .text-gray-700,
+html.theme-neon .text-black {
+  color: var(--neon-text) !important;
+}
+
+html.theme-neon .text-indigo-700,
+html.theme-neon .text-indigo-600,
+html.theme-neon .text-indigo-500,
+html.theme-neon .text-blue-700,
+html.theme-neon .text-blue-600,
+html.theme-neon .text-violet-700,
+html.theme-neon .text-violet-600 {
+  color: var(--neon-green) !important;
+  text-shadow: none !important;
+}
+
+html.theme-neon .text-emerald-700,
+html.theme-neon .text-emerald-600,
+html.theme-neon .text-green-700,
+html.theme-neon .text-green-600 {
+  color: #86efac !important;
+}
+
+html.theme-neon .text-rose-700,
+html.theme-neon .text-rose-600,
+html.theme-neon .text-red-700,
+html.theme-neon .text-red-600 {
+  color: #fda4af !important;
+}
+
+html.theme-neon .text-amber-700,
+html.theme-neon .text-amber-600,
+html.theme-neon .text-yellow-700,
+html.theme-neon .text-yellow-600 {
+  color: #fcd34d !important;
+}
+
+/* Обводки та дільники */
+html.theme-neon .border,
+html.theme-neon .border-2,
+html.theme-neon [class*="border-slate-"],
+html.theme-neon [class*="border-gray-"],
+html.theme-neon [class*="border-zinc-"],
+html.theme-neon [class*="border-neutral-"],
+html.theme-neon [class*="border-indigo-"],
+html.theme-neon [class*="border-blue-"],
+html.theme-neon [class*="border-violet-"],
+html.theme-neon [class*="divide-slate-"] > * + *,
+html.theme-neon [class*="divide-gray-"] > * + * {
+  border-color: var(--neon-border) !important;
+}
+
+/* Форми: селекти налаштувань, "Обрати місяць і рік", інпути в модалках */
+html.theme-neon input,
+html.theme-neon select,
+html.theme-neon textarea {
+  background-color: #0c1f16 !important;
+  color: var(--neon-text) !important;
+  border-color: var(--neon-border-strong) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.035) !important;
+}
+
+html.theme-neon input::placeholder,
+html.theme-neon textarea::placeholder {
+  color: rgba(167, 203, 180, 0.65) !important;
+}
+
+html.theme-neon input:focus,
+html.theme-neon select:focus,
+html.theme-neon textarea:focus {
+  border-color: #86efac !important;
+  box-shadow: 0 0 0 3px rgba(134, 239, 172, 0.16) !important;
+}
+
+html.theme-neon select option {
+  background-color: #0c1f16;
+  color: var(--neon-text);
+}
+
+html.theme-neon input:disabled,
+html.theme-neon select:disabled,
+html.theme-neon textarea:disabled,
+html.theme-neon button:disabled {
+  opacity: 0.55;
+}
+
+/* Спокійні темно-зелені акценти замість яскравого неону */
+html.theme-neon .from-indigo-600,
+html.theme-neon .from-indigo-700,
+html.theme-neon .from-blue-600,
+html.theme-neon .from-violet-600,
+html.theme-neon .from-purple-600 {
+  --tw-gradient-from: #14532d var(--tw-gradient-from-position) !important;
+  --tw-gradient-to: rgb(20 83 45 / 0) var(--tw-gradient-to-position) !important;
+  --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to) !important;
+}
+
+html.theme-neon .via-blue-600,
+html.theme-neon .via-indigo-600,
+html.theme-neon .via-violet-600 {
+  --tw-gradient-stops: var(--tw-gradient-from), #166534 var(--tw-gradient-via-position, 50%), var(--tw-gradient-to) !important;
+}
+
+html.theme-neon .to-blue-600,
+html.theme-neon .to-indigo-600,
+html.theme-neon .to-indigo-700,
+html.theme-neon .to-violet-600,
+html.theme-neon .to-purple-600 {
+  --tw-gradient-to: #15803d var(--tw-gradient-to-position) !important;
+}
+
+html.theme-neon .bg-indigo-600,
+html.theme-neon .bg-blue-600,
+html.theme-neon .bg-violet-600,
+html.theme-neon .bg-purple-600 {
+  background-color: #166534 !important;
+  box-shadow: none !important;
+}
+
+html.theme-neon .hover\:from-indigo-700:hover,
+html.theme-neon .hover\:from-blue-700:hover {
+  --tw-gradient-from: #166534 var(--tw-gradient-from-position) !important;
+}
+
+html.theme-neon .hover\:to-blue-700:hover,
+html.theme-neon .hover\:to-indigo-700:hover {
+  --tw-gradient-to: #16a34a var(--tw-gradient-to-position) !important;
+}
+
+html.theme-neon .hover\:bg-indigo-700:hover,
+html.theme-neon .hover\:bg-blue-700:hover,
+html.theme-neon .hover\:bg-violet-700:hover {
+  background-color: #15803d !important;
+}
+
+html.theme-neon .ring-indigo-50,
+html.theme-neon .ring-blue-50,
+html.theme-neon .ring-indigo-400,
+html.theme-neon .ring-blue-400,
+html.theme-neon .focus\:ring-indigo-500:focus,
+html.theme-neon .focus\:ring-indigo-400:focus,
+html.theme-neon .focus\:ring-blue-500:focus {
+  --tw-ring-color: rgba(134, 239, 172, 0.35) !important;
+}
+
+/* Тіні без кислотного світіння */
+html.theme-neon .shadow-sm,
+html.theme-neon .shadow,
+html.theme-neon .shadow-md,
+html.theme-neon .shadow-lg,
+html.theme-neon .shadow-xl,
+html.theme-neon .shadow-2xl {
+  box-shadow: var(--neon-shadow) !important;
+}
+
+html.theme-neon .rounded-xl,
+html.theme-neon .rounded-2xl,
+html.theme-neon .rounded-3xl {
+  border-color: var(--neon-border) !important;
+}
+
+/* Таблиці та sticky-колонки */
+html.theme-neon table,
+html.theme-neon thead,
+html.theme-neon tbody,
+html.theme-neon tr,
+html.theme-neon th,
+html.theme-neon td {
+  border-color: var(--neon-border) !important;
+}
+
+html.theme-neon tr:hover td,
+html.theme-neon tr:hover th {
+  background-color: rgba(34, 197, 94, 0.08) !important;
+}
+
+html.theme-neon .sticky-table-header {
+  background: linear-gradient(to right, #14532d, #166534, #14532d) !important;
+  box-shadow: 0 10px 24px -18px rgba(0, 0, 0, 0.85) !important;
+}
+
+html.theme-neon .table-fixed-col,
+html.theme-neon .table-fixed-col-2 {
+  background: var(--neon-surface) !important;
+}
+
+html.theme-neon .table-fixed-col::after,
+html.theme-neon .table-fixed-col-2::after {
+  background: linear-gradient(to right, rgba(7, 20, 15, 0.55), transparent) !important;
+}
+
+/* Модальні оверлеї та внутрішні панелі */
+html.theme-neon [class*="bg-black/"],
+html.theme-neon [class*="bg-slate-900/"] {
+  background-color: rgba(2, 8, 6, 0.78) !important;
+}
+
+html.theme-neon .backdrop-blur,
+html.theme-neon .backdrop-blur-xl {
+  border-color: var(--neon-border) !important;
+}
+
+/* Градієнтний текст без кислотного glow */
+html.theme-neon .gradient-text {
+  background: linear-gradient(135deg, #bbf7d0, #86efac, #6ee7b7) !important;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  filter: none !important;
+}
+
+html.theme-neon .theme-toggle-btn {
+  background-color: rgba(12, 31, 22, 0.82) !important;
+  border-color: var(--neon-border-strong) !important;
+  box-shadow: none !important;
+}
+
+html.theme-neon * {
+  scrollbar-color: #4ade80 #0b1b14;
+}
+
+html.theme-neon ::-webkit-scrollbar-track {
+  background: #0b1b14;
+}
+
+html.theme-neon ::-webkit-scrollbar-thumb {
+  background: linear-gradient(135deg, #4ade80, #15803d);
+  border: 2px solid #0b1b14;
+  box-shadow: none;
+}
+
+html.theme-neon *:focus-visible {
+  outline-color: #86efac;
+  box-shadow: 0 0 0 4px rgba(134, 239, 172, 0.18);
+}
+
+/* ============================================================= */
+/* =====  ТОЧКОВІ ВИПРАВЛЕННЯ ТЕМНОЇ ТЕМИ (UI-БЛОКИ)  ========= */
+/* ============================================================= */
+
+/* Пастельні градієнти → темно-зелені поверхні */
+html.theme-neon .from-slate-50,
+html.theme-neon .from-gray-50 {
+  --tw-gradient-from: #0c1a14 var(--tw-gradient-from-position) !important;
+  --tw-gradient-to: rgb(12 26 20 / 0) var(--tw-gradient-to-position) !important;
+  --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to) !important;
+}
+
+html.theme-neon .from-blue-50 {
+  --tw-gradient-from: #102a22 var(--tw-gradient-from-position) !important;
+  --tw-gradient-to: rgb(16 42 34 / 0) var(--tw-gradient-to-position) !important;
+  --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to) !important;
+}
+
+html.theme-neon .from-emerald-50,
+html.theme-neon .from-green-50 {
+  --tw-gradient-from: #0f2419 var(--tw-gradient-from-position) !important;
+  --tw-gradient-to: rgb(15 36 25 / 0) var(--tw-gradient-to-position) !important;
+  --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to) !important;
+}
+
+html.theme-neon .from-amber-50,
+html.theme-neon .from-yellow-50,
+html.theme-neon .from-orange-50 {
+  --tw-gradient-from: #241f10 var(--tw-gradient-from-position) !important;
+  --tw-gradient-to: rgb(36 31 16 / 0) var(--tw-gradient-to-position) !important;
+  --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to) !important;
+}
+
+html.theme-neon .from-rose-50,
+html.theme-neon .from-pink-50 {
+  --tw-gradient-from: #3a1018 var(--tw-gradient-from-position) !important;
+  --tw-gradient-to: rgb(58 16 24 / 0) var(--tw-gradient-to-position) !important;
+  --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to) !important;
+}
+
+html.theme-neon [class*="from-white"] {
+  --tw-gradient-from: #0a1812 var(--tw-gradient-from-position) !important;
+  --tw-gradient-to: rgb(10 24 18 / 0) var(--tw-gradient-to-position) !important;
+  --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to) !important;
+}
+
+html.theme-neon [class*="to-blue-100"],
+html.theme-neon .to-blue-100 {
+  --tw-gradient-to: #123325 var(--tw-gradient-to-position) !important;
+}
+
+html.theme-neon [class*="to-green-100"],
+html.theme-neon [class*="to-emerald-100"],
+html.theme-neon .to-green-100 {
+  --tw-gradient-to: #143628 var(--tw-gradient-to-position) !important;
+}
+
+html.theme-neon [class*="to-yellow-100"],
+html.theme-neon .to-yellow-100 {
+  --tw-gradient-to: #2b2612 var(--tw-gradient-to-position) !important;
+}
+
+html.theme-neon [class*="to-pink-100"],
+html.theme-neon [class*="to-red-100"] {
+  --tw-gradient-to: #3f1218 var(--tw-gradient-to-position) !important;
+}
+
+html.theme-neon .to-orange-50,
+html.theme-neon [class*="to-orange-50"] {
+  --tw-gradient-to: #3a1710 var(--tw-gradient-to-position) !important;
+}
+
+html.theme-neon [class*="via-indigo-50"],
+html.theme-neon [class*="via-yellow-50"] {
+  --tw-gradient-stops: var(--tw-gradient-from), #10281d var(--tw-gradient-via-position, 50%), var(--tw-gradient-to) !important;
+}
+
+/* «Поточний стан бюджету» та «Для локальної взаємодії» */
+html.theme-neon .bg-gradient-to-br.from-slate-50,
+html.theme-neon .bg-gradient-to-br.from-blue-50,
+html.theme-neon .bg-gradient-to-br.from-emerald-50,
+html.theme-neon .bg-gradient-to-br.from-amber-50,
+html.theme-neon .bg-gradient-to-r.from-slate-50,
+html.theme-neon .bg-gradient-to-r.from-rose-50 {
+  background-image: linear-gradient(135deg, #0c1a14 0%, #10241a 52%, #0d2118 100%) !important;
+}
+
+/* Початкові баланси: 3 різні темно-зелені відтінки */
+html.theme-neon .bg-gradient-to-br.from-blue-50 {
+  background-image: linear-gradient(135deg, #102a22 0%, #123325 100%) !important;
+}
+
+html.theme-neon .bg-gradient-to-br.from-emerald-50 {
+  background-image: linear-gradient(135deg, #0f2419 0%, #143628 100%) !important;
+}
+
+html.theme-neon .bg-gradient-to-br.from-amber-50 {
+  background-image: linear-gradient(135deg, #241f10 0%, #2b2612 100%) !important;
+}
+
+html.theme-neon .border-blue-200,
+html.theme-neon .hover\:border-blue-300:hover {
+  border-color: rgba(96, 165, 250, 0.28) !important;
+}
+
+html.theme-neon .border-emerald-200,
+html.theme-neon .hover\:border-emerald-300:hover {
+  border-color: rgba(74, 222, 128, 0.28) !important;
+}
+
+html.theme-neon .border-amber-200,
+html.theme-neon .hover\:border-amber-300:hover {
+  border-color: rgba(252, 211, 77, 0.32) !important;
+}
+
+/* Режим «По днях» / «12 місяців» (лише 2-колонковий tablist у бюджеті) */
+html.theme-neon .grid-cols-2[role="tablist"] [role="tab"][aria-selected="true"] {
+  background-image: linear-gradient(135deg, #14532d 0%, #166534 55%, #15803d 100%) !important;
+  background-color: #14532d !important;
+  color: #ecfdf5 !important;
+  border: 1px solid rgba(134, 239, 172, 0.28) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05), 0 10px 20px -16px rgba(0, 0, 0, 0.85) !important;
+}
+
+html.theme-neon .grid-cols-2[role="tablist"] [role="tab"][aria-selected="false"] {
+  background-image: none !important;
+  background-color: #12261c !important;
+  color: var(--neon-text-muted) !important;
+  border: 1px solid var(--neon-border) !important;
+}
+
+html.theme-neon .grid-cols-2[role="tablist"] [role="tab"][aria-selected="true"] [class*="text-blue-100"],
+html.theme-neon .grid-cols-2[role="tablist"] [role="tab"][aria-selected="true"] [class*="text-slate-500"] {
+  color: #bbf7d0 !important;
+}
+
+/* Футер */
+html.theme-neon footer {
+  background: linear-gradient(90deg, #08140f 0%, #0f2419 50%, #08140f 100%) !important;
+  border-top-color: var(--neon-border) !important;
+  box-shadow: inset 0 1px 0 rgba(134, 239, 172, 0.06) !important;
+}
+
+html.theme-neon footer .bg-white {
+  background-color: #163123 !important;
+  color: #d1fae5 !important;
+}
+
+html.theme-neon footer .text-slate-300 {
+  color: rgba(167, 203, 180, 0.45) !important;
+}
+
+/* Таблиця днів: чергування рядків */
+html.theme-neon .bg-sky-100,
+html.theme-neon .bg-sky-50 {
+  background-color: #132a1f !important;
+}
+
+html.theme-neon tbody tr.bg-white {
+  background-color: #10241a !important;
+}
+
+html.theme-neon tbody tr.bg-sky-100 {
+  background-color: #132a1f !important;
+}
+
+html.theme-neon tbody tr.hover\:bg-blue-100:hover,
+html.theme-neon .hover\:bg-blue-100:hover {
+  background-color: #1a3b2a !important;
+}
+
+html.theme-neon tbody tr:hover td,
+html.theme-neon tbody tr:hover th {
+  background-color: rgba(34, 197, 94, 0.1) !important;
+}
+
+/* Критичні дні / місяці — темно-червоний блок */
+html.theme-neon .bg-gradient-to-r.from-rose-50.to-orange-50,
+html.theme-neon .bg-gradient-to-r.from-rose-50 {
+  background-image: linear-gradient(90deg, #3f1018 0%, #4a1710 100%) !important;
+  border-color: rgba(251, 113, 133, 0.35) !important;
+}
+
+html.theme-neon .bg-gradient-to-r.from-rose-50 .text-rose-700,
+html.theme-neon .bg-gradient-to-r.from-rose-50 .text-rose-600 {
+  color: #fecdd3 !important;
+}
+
+html.theme-neon .border-rose-100,
+html.theme-neon .border-rose-200,
+html.theme-neon .border-rose-300,
+html.theme-neon .hover\:border-rose-300:hover {
+  border-color: rgba(251, 113, 133, 0.28) !important;
+}
+
+html.theme-neon .bg-white\/80.border-rose-100,
+html.theme-neon .bg-white\/80.border.border-rose-100 {
+  background-color: rgba(58, 16, 24, 0.92) !important;
+}
+
+html.theme-neon .bg-rose-50.rounded-lg,
+html.theme-neon .bg-rose-50.border-rose-100 {
+  background-color: #4a1418 !important;
+}
+
+html.theme-neon .text-rose-500 {
+  color: #fda4af !important;
+}
+
+html.theme-neon .from-indigo-500 {
+  --tw-gradient-from: #14532d var(--tw-gradient-from-position) !important;
+  --tw-gradient-to: rgb(20 83 45 / 0) var(--tw-gradient-to-position) !important;
+  --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to) !important;
+}
+
+/* ============================================================= */
+/* =====  ДОДАТКОВІ ВИПРАВЛЕННЯ ТЕМНОЇ ТЕМИ (РАУНД 2)  ======= */
+/* ============================================================= */
+
+/* Колонка «(Конвертовано)» у таблиці днів */
+html.theme-neon td[class*="bg-indigo-50"],
+html.theme-neon td[class*="bg-indigo-100"],
+html.theme-neon th[class*="bg-indigo-50"],
+html.theme-neon th[class*="bg-indigo-100"] {
+  background-color: #132a1f !important;
+}
+
+html.theme-neon td.border-l-2.border-indigo-200,
+html.theme-neon .border-l-2.border-indigo-200 {
+  border-color: rgba(134, 239, 172, 0.22) !important;
+}
+
+/* Мобільна картка «Конвертовано» */
+html.theme-neon .bg-gradient-to-br.from-indigo-50,
+html.theme-neon .from-indigo-50 {
+  --tw-gradient-from: #152a22 var(--tw-gradient-from-position) !important;
+  --tw-gradient-to: rgb(21 42 34 / 0) var(--tw-gradient-to-position) !important;
+  --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to) !important;
+}
+
+html.theme-neon .bg-gradient-to-br.from-indigo-50 {
+  background-image: linear-gradient(135deg, #152a22 0%, #1a3328 100%) !important;
+}
+
+html.theme-neon [class*="to-violet-100"],
+html.theme-neon .to-violet-100 {
+  --tw-gradient-to: #1a3028 var(--tw-gradient-to-position) !important;
+}
+
+html.theme-neon .border-indigo-300 {
+  border-color: rgba(134, 239, 172, 0.3) !important;
+}
+
+/* Додаткові пастельні градієнти (Огляд, Інсайти, курси) */
+html.theme-neon .from-cyan-50,
+html.theme-neon .from-sky-50 {
+  --tw-gradient-from: #0f2228 var(--tw-gradient-from-position) !important;
+  --tw-gradient-to: rgb(15 34 40 / 0) var(--tw-gradient-to-position) !important;
+  --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to) !important;
+}
+
+html.theme-neon .from-violet-50,
+html.theme-neon .from-purple-50,
+html.theme-neon .from-fuchsia-50 {
+  --tw-gradient-from: #1a1524 var(--tw-gradient-from-position) !important;
+  --tw-gradient-to: rgb(26 21 36 / 0) var(--tw-gradient-to-position) !important;
+  --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to) !important;
+}
+
+html.theme-neon .from-lime-50,
+html.theme-neon .from-orange-50 {
+  --tw-gradient-from: #1f2810 var(--tw-gradient-from-position) !important;
+  --tw-gradient-to: rgb(31 40 16 / 0) var(--tw-gradient-to-position) !important;
+  --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to) !important;
+}
+
+html.theme-neon [class*="to-sky-100"],
+html.theme-neon [class*="to-purple-100"],
+html.theme-neon [class*="to-indigo-100"],
+html.theme-neon [class*="to-violet-100"],
+html.theme-neon [class*="to-gray-100"],
+html.theme-neon [class*="to-red-100"] {
+  --tw-gradient-to: #14281c var(--tw-gradient-to-position) !important;
+}
+
+/* Огляд: картки метрик (Прогноз балансу тощо) */
+html.theme-neon .bg-gradient-to-br.from-violet-50,
+html.theme-neon .bg-gradient-to-br.from-purple-50 {
+  background-image: linear-gradient(135deg, #1a1524 0%, #1a3020 100%) !important;
+}
+
+html.theme-neon .bg-gradient-to-br.from-cyan-50,
+html.theme-neon .bg-gradient-to-br.from-sky-50 {
+  background-image: linear-gradient(135deg, #0f2228 0%, #14281c 100%) !important;
+}
+
+html.theme-neon .bg-gradient-to-br.from-orange-50 {
+  background-image: linear-gradient(135deg, #281a10 0%, #2b2612 100%) !important;
+}
+
+html.theme-neon .bg-gradient-to-br.from-green-50 {
+  background-image: linear-gradient(135deg, #0f2419 0%, #143628 100%) !important;
+}
+
+html.theme-neon .bg-gradient-to-br.from-lime-50 {
+  background-image: linear-gradient(135deg, #1a2810 0%, #1a3020 100%) !important;
+}
+
+html.theme-neon .bg-gradient-to-br.from-rose-50 {
+  background-image: linear-gradient(135deg, #3a1018 0%, #2a1810 100%) !important;
+}
+
+html.theme-neon .bg-gradient-to-br.from-slate-50.to-gray-100\/70,
+html.theme-neon .bg-gradient-to-br.to-gray-100\/70 {
+  background-image: linear-gradient(135deg, #0c1a14 0%, #10241a 100%) !important;
+}
+
+/* Інсайти: «Тижневий розподіл витрат» та «Серія ощадних днів» */
+html.theme-neon .border-sky-200,
+html.theme-neon .border-lime-200,
+html.theme-neon .border-violet-200,
+html.theme-neon .border-fuchsia-200 {
+  border-color: rgba(134, 239, 172, 0.24) !important;
+}
+
+html.theme-neon .bg-white\/80.border-lime-200,
+html.theme-neon .border-lime-200.bg-white\/80 {
+  background-color: rgba(12, 31, 22, 0.92) !important;
+}
+
+html.theme-neon .text-sky-700,
+html.theme-neon .text-lime-600 {
+  color: #86efac !important;
+}
+
+html.theme-neon .bg-sky-100.rounded-full {
+  background-color: #1a3328 !important;
+}
+
+/* Курси обміну (UAH ↔ USD тощо) */
+html.theme-neon .bg-gradient-to-br.from-fuchsia-50 {
+  background-image: linear-gradient(135deg, #201528 0%, #182218 100%) !important;
+}
+
+html.theme-neon .bg-gradient-to-br.from-violet-50.to-indigo-100\/70,
+html.theme-neon .bg-gradient-to-br.from-violet-50[class*="to-indigo-100"] {
+  background-image: linear-gradient(135deg, #1a1528 0%, #152218 100%) !important;
+}
+
+html.theme-neon .bg-gradient-to-br.from-fuchsia-50[class*="to-purple-100"] {
+  background-image: linear-gradient(135deg, #201528 0%, #1a2820 100%) !important;
+}
+
+html.theme-neon .bg-gradient-to-br.from-rose-50[class*="to-pink-100"] {
+  background-image: linear-gradient(135deg, #30151c 0%, #281820 100%) !important;
+}
+
+html.theme-neon .border-violet-200,
+html.theme-neon .border-fuchsia-200,
+html.theme-neon .hover\:border-opacity-70:hover {
+  border-color: rgba(134, 239, 172, 0.28) !important;
+}
+
+/* Огляд: нижні панелі (Рівень заощаджень тощо) */
+html.theme-neon .rounded-xl.bg-slate-50 {
+  background-color: #10241a !important;
+}
+
 /* ========== SAMSUNG/ANDROID FIX ========== */
 
 /* Mix-blend-mode */

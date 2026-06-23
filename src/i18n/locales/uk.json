@@ -12,6 +12,11 @@
     "signIn": "Увійти через Google",
     "language": "Мова",
     "languageShort": "Мова",
+    "theme": {
+      "label": "Тема",
+      "toLight": "Перемкнути на світлу тему",
+      "toNeon": "Перемкнути на темно-зелену тему"
+    },
     "syncStatus": {
       "local": "Дані зберігаються локально в браузері. Увійдіть через Google для синхронізації в хмарі.",
       "saved": "Дані збережено в хмарі. Вони будуть доступні на всіх ваших пристроях.",
@@ -288,6 +293,9 @@
     "week": "Тиждень",
     "weekShort": "Тиж",
     "weeklyAvg": "Сер. за тиждень",
+    "monthlyBreakdown": "Місячний розподіл витрат",
+    "monthlyAvg": "Сер. за місяць",
+    "endOfPeriod": "прогноз на кінець 12 місяців",
     "weeklyTotal": "Загалом",
     "savingsStreak": "Серія ощадних днів",
     "streakDays": "днів поспіль",
@@ -330,7 +338,13 @@
     "noSpendDays": "Дні без витрат",
     "noSpendDaysHelper": "за {{days}} минулих днів",
     "savingsRate": "Рівень заощаджень",
-    "savingsRateHelper": "чистий потік як частка доходу"
+    "savingsRateHelper": "чистий потік як частка доходу",
+    "titleTwelveMonths": "Огляд 12 місяців",
+    "subtitleTwelveMonths": "Зведений зріз лише за місяці з транзакціями (порожні пропускаються).",
+    "periodProgress": "Прогрес періоду",
+    "elapsedDaysInPeriod": "Минуло {{elapsed}}/{{total}} днів у вікні",
+    "dayWithMonth": "День {{day}}, {{month}}",
+    "forecastHelperTwelveMonths": "прогноз балансу на кінець 12-місячного вікна"
   },
   "transactionExplorer": {
     "title": "Пошук транзакцій",
