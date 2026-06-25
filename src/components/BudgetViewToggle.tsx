@@ -16,7 +16,7 @@ const BudgetViewToggle: React.FC<BudgetViewToggleProps> = ({
   onChange,
   className = 'mb-4 sm:mb-6'
 }) => (
-  <div className={`rounded-2xl bg-white shadow-md border border-slate-200 p-1.5 ${className}`}>
+  <div className={`rounded-2xl bg-white shadow-md p-1.5 ${className}`}>
     <div
       className="grid grid-cols-2 gap-1.5"
       role="tablist"
@@ -31,7 +31,7 @@ const BudgetViewToggle: React.FC<BudgetViewToggleProps> = ({
             role="tab"
             aria-selected={isActive}
             onClick={() => onChange(viewMode)}
-            className={`appearance-none px-3 sm:px-4 py-2.5 rounded-xl text-sm sm:text-base font-bold transition-all focus:outline-none focus:ring-2 focus:ring-indigo-400 ${
+            className={`appearance-none px-3 sm:px-4 py-2.5 rounded-xl text-sm sm:text-base font-bold transition-all focus:outline-none ${
               isActive
                 ? 'bg-gradient-to-r from-indigo-600 via-blue-600 to-violet-600 text-white shadow-md'
                 : 'bg-slate-100 text-slate-700 hover:bg-slate-200'

@@ -165,10 +165,21 @@ const SettingsCard: React.FC<SettingsCardProps> = ({
   const [isLocalInteractionExpanded, setIsLocalInteractionExpanded] = useState(false);
   // Стан для згортання/розгортання секції курсів обміну (за замовчуванням відкрита, далі — з localStorage)
   const exchangeRatesExpandedStorageKey = 'settings_exchangeRates_expanded';
+  const settingsPanelExpandedStorageKey = 'settings_panel_expanded';
   const [isExchangeRatesExpanded, setIsExchangeRatesExpanded] = useState<boolean>(() => {
     try {
       if (typeof window === 'undefined') return true;
       const stored = window.localStorage.getItem(exchangeRatesExpandedStorageKey);
+      if (stored === null) return true;
+      return stored === 'true';
+    } catch {
+      return true;
+    }
+  });
+  const [isSettingsPanelExpanded, setIsSettingsPanelExpanded] = useState<boolean>(() => {
+    try {
+      if (typeof window === 'undefined') return true;
+      const stored = window.localStorage.getItem(settingsPanelExpandedStorageKey);
       if (stored === null) return true;
       return stored === 'true';
     } catch {
@@ -328,14 +339,36 @@ const SettingsCard: React.FC<SettingsCardProps> = ({
 
   return (
     <div
-      className={`bg-white/90 backdrop-blur rounded-2xl shadow-xl p-4 sm:p-6 mb-4 sm:mb-6 border border-gray-100 ${
+      className={`ui-panel bg-white/90 backdrop-blur rounded-2xl shadow-xl p-4 sm:p-6 mb-4 sm:mb-6 border border-slate-200 ${
         readOnly ? 'opacity-[0.88] pointer-events-none' : ''
       }`}
     >
-      <h2 className="text-lg sm:text-xl font-bold text-gray-800 mb-4 flex items-center">
-        <span className="mr-2">⚙️</span> {t('settings.title')}
-      </h2>
+      <button
+        type="button"
+        onClick={() => {
+          const next = !isSettingsPanelExpanded;
+          setIsSettingsPanelExpanded(next);
+          try {
+            if (typeof window !== 'undefined') {
+              window.localStorage.setItem(settingsPanelExpandedStorageKey, String(next));
+            }
+          } catch {
+            // ignore storage errors
+          }
+        }}
+        className="w-full flex items-center justify-between gap-2 text-left mb-0 focus:outline-none rounded-lg"
+        aria-expanded={isSettingsPanelExpanded}
+      >
+        <h2 className="text-lg sm:text-xl font-bold text-gray-800 flex items-center">
+          <span className="mr-2">⚙️</span> {t('settings.title')}
+        </h2>
+        <span className="text-gray-600 text-lg transition-transform duration-200 shrink-0" aria-hidden="true">
+          {isSettingsPanelExpanded ? '▼' : '▶'}
+        </span>
+      </button>
 
+      {isSettingsPanelExpanded && (
+      <div className="mt-4">
       {/* Currency Selector */}
       <div className="mb-4 sm:mb-6">
         <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-2">
@@ -488,7 +521,7 @@ const SettingsCard: React.FC<SettingsCardProps> = ({
         {isExchangeRatesExpanded && (
           <>
             {/* Region selector */}
-            <div className="mb-3 rounded-xl border border-indigo-100 bg-indigo-50/40 px-3 py-3">
+            <div className="mb-3 rounded-xl border border-slate-200 bg-slate-50 px-3 py-3">
               <label className="block text-xs sm:text-sm font-semibold text-gray-800 mb-1">
                 {t('settings.exchangeRates.region.label')}
               </label>
@@ -518,7 +551,7 @@ const SettingsCard: React.FC<SettingsCardProps> = ({
 
             {/* Auto fetch toggle */}
             {handleUpdateNbuRates && (
-              <div className="mb-3 flex items-start justify-between gap-3 rounded-xl border border-indigo-100 bg-indigo-50/40 px-3 py-2">
+              <div className="mb-3 flex items-start justify-between gap-3 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
                 <div className="min-w-0">
                   <div className="text-xs sm:text-sm font-semibold text-gray-800">
                     {t('settings.exchangeRates.autoFetch.label')}
@@ -729,7 +762,7 @@ const SettingsCard: React.FC<SettingsCardProps> = ({
                   type="button"
                   onClick={handleImportFromJsonFile}
                   disabled={isLoading}
-                  className={`flex-1 px-4 sm:px-6 py-2 sm:py-3 rounded-xl font-bold transition-all text-xs sm:text-sm ${
+                  className={`btn-import-json flex-1 px-4 sm:px-6 py-2 sm:py-3 rounded-xl font-bold transition-all text-xs sm:text-sm ${
                     isLoading
                       ? 'bg-gray-400 cursor-not-allowed text-white'
                       : 'bg-gradient-to-r from-indigo-500 to-violet-500 hover:from-indigo-600 hover:to-violet-600 text-white shadow-lg hover:shadow-xl active:scale-95'
@@ -799,11 +832,11 @@ const SettingsCard: React.FC<SettingsCardProps> = ({
               className={`w-full px-4 sm:px-6 py-3 rounded-xl font-bold transition-all text-sm sm:text-base text-white shadow-lg hover:shadow-xl active:scale-95 ${
                 budgetViewMode === 'months'
                   ? onBulkAddTransactionsToMonths && !readOnly
-                    ? 'bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700'
+                    ? 'bg-emerald-500 hover:bg-emerald-600'
                     : 'bg-gray-400 cursor-not-allowed'
                   : !updateDay || !days || days.length === 0
                     ? 'bg-gray-400 cursor-not-allowed'
-                    : 'bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700'
+                    : 'bg-emerald-500 hover:bg-emerald-600'
               }`}
               title={t('transaction.add')}
             >
@@ -813,6 +846,8 @@ const SettingsCard: React.FC<SettingsCardProps> = ({
           </div>
         </div>
       </div>
+      </div>
+      )}
       
       {/* Модальне вікно підтвердження зміни валюти */}
       <ConfirmModal

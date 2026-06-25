@@ -46,7 +46,7 @@ const OnboardingCard: React.FC<OnboardingCardProps> = ({ isSignedIn, onSignIn })
     },
     {
       icon: '🗓️',
-      accent: 'bg-violet-100 text-violet-700',
+      accent: 'bg-indigo-100 text-indigo-700',
       title: t('onboarding.plan.title'),
       text: t('onboarding.plan.text')
     },
@@ -59,7 +59,7 @@ const OnboardingCard: React.FC<OnboardingCardProps> = ({ isSignedIn, onSignIn })
   ];
 
   return (
-    <div className="relative mb-4 sm:mb-6 rounded-2xl bg-white shadow-lg ring-1 ring-slate-200 overflow-hidden">
+    <div className="relative mb-4 sm:mb-6 rounded-2xl bg-white shadow-lg overflow-hidden">
       {/* Thin gradient accent strip instead of a heavy gradient block */}
       <div className="h-1.5 w-full bg-gradient-to-r from-indigo-600 via-blue-600 to-violet-600" />
 
@@ -95,7 +95,7 @@ const OnboardingCard: React.FC<OnboardingCardProps> = ({ isSignedIn, onSignIn })
             >
               <div className="flex items-center gap-2.5 mb-2">
                 <span
-                  className={`inline-flex items-center justify-center w-9 h-9 rounded-lg text-lg ${step.accent}`}
+                  className={`onboarding-step-icon inline-flex items-center justify-center w-9 h-9 rounded-lg text-lg ${step.accent}`}
                 >
                   {step.icon}
                 </span>
@@ -114,7 +114,7 @@ const OnboardingCard: React.FC<OnboardingCardProps> = ({ isSignedIn, onSignIn })
             <button
               type="button"
               onClick={() => void onSignIn()}
-              className="px-5 py-2.5 rounded-xl text-sm font-bold text-white bg-gradient-to-r from-indigo-600 via-blue-600 to-violet-600 shadow-md hover:shadow-lg hover:brightness-105 active:scale-[0.98] transition-all"
+              className="px-5 py-2.5 rounded-xl text-sm font-bold text-white bg-gradient-to-r from-indigo-600 via-blue-600 to-violet-600 hover:brightness-105 active:scale-[0.98] transition-[transform,filter,background-color] outline-none border-0"
             >
               {t('onboarding.signInCta')}
             </button>
@@ -122,7 +122,7 @@ const OnboardingCard: React.FC<OnboardingCardProps> = ({ isSignedIn, onSignIn })
           <button
             type="button"
             onClick={handleDismiss}
-            className="px-5 py-2.5 rounded-xl text-sm font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 active:scale-[0.98] transition-all"
+            className="px-5 py-2.5 rounded-xl text-sm font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 active:scale-[0.98] transition-[transform,background-color] outline-none border-0"
           >
             {t('onboarding.getStarted')}
           </button>

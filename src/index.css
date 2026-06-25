@@ -49,9 +49,9 @@
     }
     
     /* Покращення для жирних шрифтів у Firefox */
-    .font-bold,
-    .font-extrabold,
-    .font-black,
+    .font-bold:not(button):not(.day-number-badge),
+    .font-extrabold:not(button):not(.day-number-badge),
+    .font-black:not(button):not(.day-number-badge),
     strong,
     b,
     h1, h2, h3, h4, h5, h6 {
@@ -60,12 +60,41 @@
       /* М'яке потовщення через filter */
       filter: drop-shadow(0.15px 0 0 currentColor) drop-shadow(-0.15px 0 0 currentColor);
     }
+
+    td.font-bold,
+    th.font-bold {
+      filter: none;
+    }
   }
   
   h1, h2, h3, h4, h5, h6 {
     font-family: var(--font-headings);
     font-weight: 600;
     letter-spacing: -0.02em;
+  }
+
+  /* Прозора рамка за замовчуванням — без «фантомної» обводки на *, ::before, ::after */
+  *, ::before, ::after {
+    border-color: transparent;
+  }
+
+  button,
+  [role="tab"],
+  input[type="button"],
+  input[type="submit"],
+  input[type="reset"] {
+    border-width: 0;
+    border-style: solid;
+    outline: none;
+    -webkit-appearance: none;
+    appearance: none;
+    background-clip: padding-box;
+  }
+
+  button:focus:not(:focus-visible),
+  [role="tab"]:focus:not(:focus-visible) {
+    outline: none;
+    box-shadow: none;
   }
   
   /* Покращена підтримка чисел */
@@ -183,9 +212,7 @@ a {
 *:focus-visible {
   outline: 2px solid #6366f1;
   outline-offset: 2px;
-  -webkit-box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1);
-  -moz-box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1);
-  box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1);
+  box-shadow: none;
 }
 
 /* Видалення outline в Safari/iOS при фокусі */
@@ -196,13 +223,16 @@ textarea:focus {
   outline: none;
 }
 
-/* Але додаємо його назад для доступності */
+/* Focus visible — лише клавіатурний фокус, без подвійного кільця */
 button:focus-visible,
+[role="tab"]:focus-visible,
+a:focus-visible,
 input:focus-visible,
 select:focus-visible,
 textarea:focus-visible {
   outline: 2px solid #6366f1;
   outline-offset: 2px;
+  box-shadow: none;
 }
 
 /* Animation for cards */
@@ -420,8 +450,8 @@ button {
   letter-spacing: 0.01em;
 }
 
-button:not(:disabled):active {
-  transform: translateY(0.5px) scale(0.985);
+button:not(:disabled):active:not([role="tab"]) {
+  transform: none;
 }
 
 /* М'якша, сучасніша обводка для інпутів/селектів */
@@ -643,7 +673,7 @@ html.theme-neon .bg-indigo-600,
 html.theme-neon .bg-blue-600,
 html.theme-neon .bg-violet-600 {
   background-color: #0f7a37 !important;
-  box-shadow: var(--neon-glow);
+  box-shadow: none;
 }
 
 html.theme-neon .bg-emerald-600,
@@ -660,14 +690,17 @@ html.theme-neon .bg-rose-500 {
 /* Неонове підсвічування для головних карток та хедера */
 html.theme-neon .shadow-2xl,
 html.theme-neon .shadow-xl {
-  box-shadow: 0 0 0 1px var(--neon-border), 0 18px 40px -12px rgba(0, 0, 0, 0.8), 0 0 32px rgba(57, 255, 20, 0.12) !important;
+  box-shadow: var(--neon-shadow) !important;
 }
 
-/* Акцентний неоновий бордер на головних панелях */
-html.theme-neon .rounded-2xl.shadow-md,
-html.theme-neon .rounded-2xl.shadow-lg,
-html.theme-neon .rounded-2xl.shadow-xl,
-html.theme-neon .rounded-2xl.shadow-2xl {
+/* Акцентний бордер лише на головних панелях з класом ui-panel */
+html.theme-neon .border-slate-200,
+html.theme-neon .border-gray-100,
+html.theme-neon .border-gray-200 {
+  border-color: var(--neon-border) !important;
+}
+
+html.theme-neon .ui-panel {
   border: 1px solid var(--neon-border) !important;
 }
 
@@ -719,10 +752,10 @@ html.theme-neon ::-webkit-scrollbar-corner {
   background: var(--neon-bg-2);
 }
 
-/* Фокус-кільце у неоновій темі */
-html.theme-neon *:focus-visible {
+/* Фокус-кільце у неоновій темі (не на кнопках — окреме правило нижче) */
+html.theme-neon *:focus-visible:not(button):not([role="tab"]) {
   outline-color: var(--neon-green);
-  box-shadow: 0 0 0 4px rgba(57, 255, 20, 0.18);
+  box-shadow: none;
 }
 
 /* Дрібні дільники/лінії */
@@ -1020,11 +1053,7 @@ html.theme-neon .shadow-2xl {
   box-shadow: var(--neon-shadow) !important;
 }
 
-html.theme-neon .rounded-xl,
-html.theme-neon .rounded-2xl,
-html.theme-neon .rounded-3xl {
-  border-color: var(--neon-border) !important;
-}
+/* Не фарбуємо рамку на всіх rounded — лише де є явний border-клас або ui-panel */
 
 /* Таблиці та sticky-колонки */
 html.theme-neon table,
@@ -1096,9 +1125,9 @@ html.theme-neon ::-webkit-scrollbar-thumb {
   box-shadow: none;
 }
 
-html.theme-neon *:focus-visible {
+html.theme-neon *:focus-visible:not(button):not([role="tab"]) {
   outline-color: #86efac;
-  box-shadow: 0 0 0 4px rgba(134, 239, 172, 0.18);
+  box-shadow: none;
 }
 
 /* ============================================================= */
@@ -1221,15 +1250,15 @@ html.theme-neon .grid-cols-2[role="tablist"] [role="tab"][aria-selected="true"] 
   background-image: linear-gradient(135deg, #14532d 0%, #166534 55%, #15803d 100%) !important;
   background-color: #14532d !important;
   color: #ecfdf5 !important;
-  border: 1px solid rgba(134, 239, 172, 0.28) !important;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05), 0 10px 20px -16px rgba(0, 0, 0, 0.85) !important;
+  border: none !important;
+  box-shadow: none !important;
 }
 
 html.theme-neon .grid-cols-2[role="tablist"] [role="tab"][aria-selected="false"] {
   background-image: none !important;
   background-color: #12261c !important;
   color: var(--neon-text-muted) !important;
-  border: 1px solid var(--neon-border) !important;
+  border: none !important;
 }
 
 html.theme-neon .grid-cols-2[role="tablist"] [role="tab"][aria-selected="true"] [class*="text-blue-100"],
@@ -1254,17 +1283,80 @@ html.theme-neon footer .text-slate-300 {
 }
 
 /* Таблиця днів: чергування рядків */
+.days-table tbody tr.days-table-row-even > td {
+  background-color: #ffffff;
+}
+
+.days-table tbody tr.days-table-row-odd > td {
+  background-color: #eff6ff;
+}
+
+.days-table tbody tr.days-table-row:hover > td,
+.days-table tbody tr.days-table-row:hover > td.bg-emerald-50,
+.days-table tbody tr.days-table-row:hover > td.bg-rose-50,
+.days-table tbody tr.days-table-row:hover > td.bg-indigo-50 {
+  background-color: #fdba74 !important;
+}
+
+html.theme-neon .days-table tbody tr.days-table-row-even > td {
+  background-color: #0b1812 !important;
+}
+
+html.theme-neon .days-table tbody tr.days-table-row-odd > td {
+  background-color: #1a3f2e !important;
+}
+
+html.theme-neon .days-table tbody tr.days-table-row:hover > td,
+html.theme-neon .days-table tbody tr.days-table-row:hover > td.bg-emerald-50,
+html.theme-neon .days-table tbody tr.days-table-row:hover > td.bg-rose-50,
+html.theme-neon .days-table tbody tr.days-table-row:hover > td.bg-indigo-50 {
+  background-color: #0f4f6d !important;
+}
+
+/* Акцентні комірки балансу — зберігаємо смугастість */
+html.theme-neon .days-table tr.days-table-row-even > td.bg-emerald-50 {
+  background-color: rgba(74, 222, 128, 0.1) !important;
+}
+
+html.theme-neon .days-table tr.days-table-row-odd > td.bg-emerald-50 {
+  background-color: rgba(74, 222, 128, 0.17) !important;
+}
+
+html.theme-neon .days-table tr.days-table-row-even > td.bg-rose-50 {
+  background-color: rgba(190, 18, 60, 0.12) !important;
+}
+
+html.theme-neon .days-table tr.days-table-row-odd > td.bg-rose-50 {
+  background-color: rgba(190, 18, 60, 0.19) !important;
+}
+
+html.theme-neon .days-table tr.days-table-row-even > td.bg-indigo-50 {
+  background-color: rgba(110, 231, 183, 0.08) !important;
+}
+
+html.theme-neon .days-table tr.days-table-row-odd > td.bg-indigo-50 {
+  background-color: rgba(110, 231, 183, 0.15) !important;
+}
+
 html.theme-neon .bg-sky-100,
 html.theme-neon .bg-sky-50 {
   background-color: #132a1f !important;
 }
 
-html.theme-neon tbody tr.bg-white {
-  background-color: #10241a !important;
+/* Таблиця днів: комірки балансу (Tailwind opacity-варіанти не ловляться звичайними .bg-* правилами) */
+html.theme-neon [class*="bg-emerald-50/"],
+html.theme-neon [class*="bg-rose-50/"],
+html.theme-neon [class*="bg-indigo-50/"],
+html.theme-neon [class*="bg-indigo-100/"] {
+  background-color: rgba(110, 231, 183, 0.1) !important;
 }
 
-html.theme-neon tbody tr.bg-sky-100 {
-  background-color: #132a1f !important;
+html.theme-neon [class*="bg-emerald-50/"] {
+  background-color: rgba(74, 222, 128, 0.12) !important;
+}
+
+html.theme-neon [class*="bg-rose-50/"] {
+  background-color: rgba(190, 18, 60, 0.14) !important;
 }
 
 html.theme-neon tbody tr.hover\:bg-blue-100:hover,
@@ -1272,9 +1364,20 @@ html.theme-neon .hover\:bg-blue-100:hover {
   background-color: #1a3b2a !important;
 }
 
-html.theme-neon tbody tr:hover td,
-html.theme-neon tbody tr:hover th {
-  background-color: rgba(34, 197, 94, 0.1) !important;
+html.theme-neon .days-table tbody tr.days-table-row {
+  border-bottom: 1px solid rgba(57, 255, 20, 0.1) !important;
+}
+
+/* Кнопка «Додати транзакцію» в таблиці днів */
+html.theme-neon .days-table .days-table-add-btn {
+  background-color: #ea580c !important;
+  color: #fff !important;
+  box-shadow: 0 0 0 1px rgba(251, 146, 60, 0.4);
+}
+
+html.theme-neon .days-table .days-table-add-btn:hover {
+  background-color: #c2410c !important;
+  box-shadow: 0 0 10px rgba(234, 88, 12, 0.35);
 }
 
 /* Критичні дні / місяці — темно-червоний блок */
@@ -1310,10 +1413,67 @@ html.theme-neon .text-rose-500 {
   color: #fda4af !important;
 }
 
-html.theme-neon .from-indigo-500 {
+html.theme-neon .from-indigo-500:not(.btn-import-json) {
   --tw-gradient-from: #14532d var(--tw-gradient-from-position) !important;
   --tw-gradient-to: rgb(20 83 45 / 0) var(--tw-gradient-to-position) !important;
   --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to) !important;
+}
+
+html.theme-neon .to-violet-500:not(.btn-import-json),
+html.theme-neon .hover\:to-violet-600:hover:not(.btn-import-json) {
+  --tw-gradient-to: #15803d var(--tw-gradient-to-position) !important;
+}
+
+html.theme-neon .from-emerald-500,
+html.theme-neon .from-blue-500 {
+  --tw-gradient-from: #14532d var(--tw-gradient-from-position) !important;
+  --tw-gradient-to: rgb(20 83 45 / 0) var(--tw-gradient-to-position) !important;
+  --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to) !important;
+}
+
+html.theme-neon .to-teal-500,
+html.theme-neon .to-cyan-500,
+html.theme-neon .hover\:to-teal-600:hover,
+html.theme-neon .hover\:to-cyan-600:hover {
+  --tw-gradient-to: #15803d var(--tw-gradient-to-position) !important;
+}
+
+html.theme-neon .bg-violet-100 {
+  background-color: rgba(110, 231, 183, 0.1) !important;
+}
+
+/* Кнопки та таби: без зайвих обводок по краях */
+html.theme-neon button[role="tab"],
+html.theme-neon [role="tablist"] button {
+  border: none !important;
+  box-shadow: none !important;
+}
+
+html.theme-neon .grid-cols-2[role="tablist"] [role="tab"][aria-selected="true"] {
+  box-shadow: none !important;
+}
+
+html.theme-neon .grid-cols-1[role="tablist"] [role="tab"][aria-selected="true"],
+html.theme-neon .sm\:grid-cols-3[role="tablist"] [role="tab"][aria-selected="true"] {
+  border: none !important;
+}
+
+/* Імпорт JSON: темніший фіолетовий градієнт (як у світлій темі, але глибший) */
+html.theme-neon .btn-import-json {
+  background-image: linear-gradient(to right, #4338ca, #6d28d9) !important;
+  background-color: transparent !important;
+  color: #f5f3ff !important;
+  box-shadow: 0 4px 14px -6px rgba(0, 0, 0, 0.65) !important;
+}
+
+html.theme-neon .btn-import-json:hover {
+  background-image: linear-gradient(to right, #3730a3, #5b21b6) !important;
+}
+
+/* Онбординг: іконки кроків однаковий фон */
+html.theme-neon .onboarding-step-icon {
+  background-color: rgba(110, 231, 183, 0.12) !important;
+  color: var(--neon-green) !important;
 }
 
 /* ============================================================= */
@@ -1469,6 +1629,75 @@ html.theme-neon .rounded-xl.bg-slate-50 {
   background-color: #10241a !important;
 }
 
+/* Імпорт JSON: не перефарбовувати в зелений через глобальні градієнт-оверрайди */
+html.theme-neon .btn-import-json.from-indigo-500,
+html.theme-neon .btn-import-json[class*="from-indigo-500"] {
+  --tw-gradient-from: #4338ca var(--tw-gradient-from-position) !important;
+  --tw-gradient-to: rgb(67 56 202 / 0) var(--tw-gradient-to-position) !important;
+  --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to) !important;
+}
+
+html.theme-neon .btn-import-json[class*="to-violet-500"] {
+  --tw-gradient-to: #6d28d9 var(--tw-gradient-to-position) !important;
+}
+
+html.theme-neon .btn-import-json[class*="hover:from-indigo-600"]:hover {
+  --tw-gradient-from: #3730a3 var(--tw-gradient-from-position) !important;
+}
+
+html.theme-neon .btn-import-json[class*="hover:to-violet-600"]:hover {
+  --tw-gradient-to: #5b21b6 var(--tw-gradient-to-position) !important;
+}
+
+/* Прибираємо зайві обводки на табах і кнопках дій (світла тема) */
+[role="tablist"] [role="tab"] {
+  border: none !important;
+  outline: none;
+}
+
+[role="tablist"] [role="tab"]:focus-visible {
+  box-shadow: none;
+}
+
+/* Число дня в таблиці / картках — без обводки та тіней */
+.day-number-badge {
+  border: none !important;
+  box-shadow: none !important;
+  outline: none !important;
+  filter: none !important;
+  -webkit-box-shadow: none !important;
+  background-clip: padding-box;
+  isolation: isolate;
+}
+
+html.theme-neon .day-number-badge {
+  background-color: #166534 !important;
+  color: #ecfdf5 !important;
+  box-shadow: none !important;
+  outline: none !important;
+  border: none !important;
+}
+
+/* Кнопки: без фантомних 1px-кілець і тіней у темній темі */
+html.theme-neon button {
+  box-shadow: none !important;
+  -webkit-box-shadow: none !important;
+  outline: none !important;
+  border: none !important;
+  filter: none !important;
+}
+
+html.theme-neon button:focus:not(:focus-visible) {
+  box-shadow: none !important;
+  outline: none !important;
+}
+
+html.theme-neon button:focus-visible {
+  outline: 2px solid #86efac !important;
+  outline-offset: 2px;
+  box-shadow: none !important;
+}
+
 /* ========== SAMSUNG/ANDROID FIX ========== */
 
 /* Mix-blend-mode */
@@ -1586,9 +1815,9 @@ html.theme-neon .rounded-xl.bg-slate-50 {
   .border {
     border-width: 2px;
   }
-  
-  button,
-  a {
+
+  button:focus-visible,
+  a:focus-visible {
     outline: 2px solid currentColor;
     outline-offset: 2px;
   }

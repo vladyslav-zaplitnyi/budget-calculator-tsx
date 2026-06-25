@@ -151,12 +151,12 @@ const DaysTable: React.FC<DaysTableProps> = ({
 
   return (
     <div
-      className={`hidden md:block bg-white rounded-2xl shadow-xl overflow-hidden mb-4 sm:mb-6 ${
+      className={`ui-panel hidden md:block bg-white rounded-2xl shadow-xl overflow-hidden mb-4 sm:mb-6 border border-slate-200 ${
         readOnly ? 'opacity-[0.88] pointer-events-none' : ''
       }`}
     >
       <div className="table-container overflow-x-auto lg:max-h-[85vh] lg:overflow-y-auto">
-        <table className="w-full text-sm tabular-nums">
+        <table className="days-table w-full text-sm tabular-nums">
           <thead className="bg-gradient-to-r from-indigo-600 via-blue-600 to-violet-600 !text-white sticky-table-header">
             <tr>
               <th className="px-3 py-3 text-left font-semibold font-display text-xs sm:text-sm !text-white" rowSpan={2}>
@@ -243,16 +243,13 @@ const DaysTable: React.FC<DaysTableProps> = ({
               return (
                 <tr 
                   key={day.day} 
-                  className={`transition-colors border-b border-gray-100 hover:bg-blue-100 ${
-                    index % 2 === 0 ? 'bg-white' : 'bg-sky-100'
+                  className={`days-table-row transition-colors border-b border-gray-100 ${
+                    index % 2 === 0 ? 'days-table-row-even' : 'days-table-row-odd'
                   }`}
                 >
-                  <td className="px-3 py-3 font-bold text-gray-900 font-display text-sm whitespace-nowrap text-center">
+                  <td className="px-3 py-3 text-gray-900 font-display text-sm whitespace-nowrap text-center">
                     <div className="flex flex-col items-center">
-                      <span
-                        className="inline-block py-1 px-2.5 rounded-lg bg-indigo-600 !text-white select-none"
-                        style={{ border: '2px solid #4f46e5', boxShadow: '0 1px 3px rgba(79, 70, 229, 0.3)' }}
-                      >
+                      <span className="day-number-badge inline-block py-1 px-2.5 rounded-lg bg-indigo-600 !text-white select-none">
                         {day.day}
                       </span>
                       <span className="text-[14px] uppercase text-gray-500 mt-1">
@@ -276,7 +273,7 @@ const DaysTable: React.FC<DaysTableProps> = ({
                       {canAddMore ? (
                         <button
                           onClick={() => handleAddTransaction(index)}
-                          className="w-full px-2 py-1 text-xs bg-blue-500 !text-white rounded-lg hover:bg-blue-600 transition-colors font-semibold"
+                          className="days-table-add-btn w-full px-2 py-1 text-xs bg-blue-500 !text-white rounded-lg hover:bg-blue-600 transition-colors font-semibold"
                         >
                           {translate('days.addTransaction')}
                         </button>
@@ -342,7 +339,7 @@ const DaysTable: React.FC<DaysTableProps> = ({
                           {expense > 0 ? expense.toFixed(2) : ''}
                         </td>
                         <td className={`px-2 py-3 text-right text-xs font-semibold tabular-nums ${
-                          dayBalance > 0 ? 'text-emerald-600 bg-emerald-50/50' : dayBalance < 0 ? 'text-rose-600 bg-rose-50/50' : 'text-gray-600'
+                          dayBalance > 0 ? 'text-emerald-600 bg-emerald-50' : dayBalance < 0 ? 'text-rose-600 bg-rose-50' : 'text-gray-600'
                         }`}>
                           {dayBalance !== 0 ? dayBalance.toFixed(2) : ''}
                         </td>
@@ -381,19 +378,19 @@ const DaysTable: React.FC<DaysTableProps> = ({
                     
                     return (
                       <>
-                        <td className={`px-2 py-3 border-l-2 border-indigo-200 text-right text-xs tabular-nums bg-indigo-50/80 ${convertedIncome > 0 ? 'text-emerald-700 font-medium' : 'text-gray-400'}`}>
+                        <td className={`px-2 py-3 border-l-2 border-indigo-200 text-right text-xs tabular-nums bg-indigo-50 ${convertedIncome > 0 ? 'text-emerald-700 font-medium' : 'text-gray-400'}`}>
                           {convertedIncome > 0 ? convertedIncome.toFixed(2) : ''}
                         </td>
-                        <td className={`px-2 py-3 text-right text-xs tabular-nums bg-indigo-50/80 ${convertedExpense > 0 ? 'text-rose-700 font-medium' : 'text-gray-400'}`}>
+                        <td className={`px-2 py-3 text-right text-xs tabular-nums bg-indigo-50 ${convertedExpense > 0 ? 'text-rose-700 font-medium' : 'text-gray-400'}`}>
                           {convertedExpense > 0 ? convertedExpense.toFixed(2) : ''}
                         </td>
-                        <td className={`px-2 py-3 text-right text-xs font-semibold tabular-nums bg-indigo-100/60 ${
-                          convertedDayBalance > 0 ? 'text-emerald-700' : convertedDayBalance < 0 ? 'text-rose-700' : 'text-gray-700'
+                        <td className={`px-2 py-3 text-right text-xs font-semibold tabular-nums ${
+                          convertedDayBalance > 0 ? 'text-emerald-700 bg-emerald-50' : convertedDayBalance < 0 ? 'text-rose-700 bg-rose-50' : 'text-gray-600'
                         }`}>
                           {convertedDayBalance !== 0 ? `${displaySymbol}${convertedDayBalance.toFixed(2)}` : ''}
                         </td>
-                        <td className={`px-2 py-3 text-right text-xs font-bold tabular-nums bg-indigo-100 ${
-                          convertedCumulative >= 0 ? 'text-emerald-800' : 'text-rose-800'
+                        <td className={`px-2 py-3 text-right text-xs font-bold tabular-nums ${
+                          convertedCumulative >= 0 ? 'text-emerald-700 bg-emerald-50' : 'text-rose-700 bg-rose-50'
                         }`}>
                           {convertedCumulative !== 0 ? `${displaySymbol}${convertedCumulative.toFixed(2)}` : ''}
                         </td>

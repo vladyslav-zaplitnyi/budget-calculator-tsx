@@ -160,7 +160,7 @@ const DaysCards: React.FC<DaysCardsProps> = ({
             {/* Day Header */}
             <div className="flex items-center justify-between mb-3 pb-3 border-b-2 border-gray-200">
               <div className="flex items-center gap-2">
-                <span className="inline-block bg-indigo-600 !text-white font-bold text-base sm:text-lg rounded-lg px-3 py-1.5 font-display select-none" style={{ border: '3px solid #4f46e5', boxShadow: '0 2px 4px rgba(79, 70, 229, 0.3)' }}>
+                <span className="day-number-badge inline-block bg-indigo-600 !text-white font-bold text-base sm:text-lg rounded-lg px-3 py-1.5 font-display select-none">
                   {t('days.dayNumber')} <span className='samsung-white-text'>{day.day}</span>
                 </span>
                 <span className="text-sm font-bold text-gray-500 uppercase bg-gray-100 px-2 py-1 rounded-md">

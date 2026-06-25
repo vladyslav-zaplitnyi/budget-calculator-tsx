@@ -96,7 +96,7 @@ const ThemeToggle: React.FC = () => {
       aria-checked={isNeon}
       aria-label={isNeon ? t('header.theme.toLight') : t('header.theme.toNeon')}
       title={isNeon ? t('header.theme.toLight') : t('header.theme.toNeon')}
-      className="theme-toggle-btn inline-flex items-center gap-1.5 rounded-full bg-slate-900/40 hover:bg-slate-900/60 border border-white/15 px-2.5 py-1.5 text-[11px] font-semibold text-white shadow-inner transition-all"
+      className="theme-toggle-btn inline-flex items-center justify-center gap-1.5 rounded-full bg-slate-900/40 hover:bg-slate-900/60 border border-white/15 w-9 h-9 sm:w-auto sm:h-auto sm:px-2.5 sm:py-1.5 p-0 text-[11px] font-semibold text-white shadow-inner transition-all shrink-0"
     >
       <span className="inline-flex items-center justify-center text-amber-200">
         {isNeon ? <SunIcon /> : <MoonIcon />}
@@ -169,7 +169,7 @@ const Header: React.FC<HeaderProps> = ({
         </div>
       )}
       {/* Десктоп / планшет: заголовок зліва, панель дій справа */}
-      <div className="hidden md:flex flex-col lg:flex-row items-center justify-between gap-4 lg:gap-6 mb-3">
+      <div className="hidden lg:flex flex-col lg:flex-row items-center justify-between gap-4 lg:gap-6 mb-3">
         {/* Брендинг + заголовок */}
         <div className="flex flex-col gap-1 w-full lg:w-auto text-center lg:text-left">
           <span className="inline-flex items-center justify-center lg:justify-start text-[11px] uppercase tracking-[0.18em] text-indigo-100/90">
@@ -304,9 +304,10 @@ const Header: React.FC<HeaderProps> = ({
       </div>
 
       {/* Мобільні екрани: заголовок і панель дій в один компактний блок */}
-      <div className="flex md:hidden flex-col gap-3 mb-3">
+      <div className="flex lg:hidden flex-col gap-3 mb-3">
         <div className="flex flex-col items-center text-center gap-1">
-          <span className="text-[11px] uppercase tracking-[0.18em] text-indigo-100/90">
+          <span className="inline-flex items-center text-[11px] uppercase tracking-[0.18em] text-indigo-100/90">
+            <span className="mr-1">💰</span>
             {t('header.subtitle')}
           </span>
           <h1 className="text-2xl sm:text-3xl font-extrabold leading-tight samsung-white-text">
@@ -318,22 +319,23 @@ const Header: React.FC<HeaderProps> = ({
         </div>
 
         <div className="flex flex-col gap-2 items-stretch">
-          <div className="flex flex-wrap items-center justify-between gap-2 bg-white/10 backdrop-blur-xl rounded-2xl px-3 py-2 shadow-lg border border-white/20">
-            {/* Статус синхронізації */}
+          {/* Статус синхронізації */}
+          <div className="flex justify-center bg-white/10 backdrop-blur-xl rounded-2xl px-3 py-2 shadow-lg border border-white/20">
             <div
-              className="flex items-center gap-1 text-[11px] font-semibold bg-black/20 px-2 py-1 rounded-full"
+              className="flex items-center gap-1 text-[11px] font-semibold bg-black/20 px-2.5 py-1 rounded-full max-w-full"
               title={getSyncStatusTitle(syncStatus)}
             >
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-300 animate-pulse" />
-              <span className="truncate max-w-[140px]">{syncStatus}</span>
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-300 animate-pulse shrink-0" />
+              <span className="truncate">{syncStatus}</span>
             </div>
+          </div>
 
-            {/* Перемикач теми */}
+          {/* Тема + мова */}
+          <div className="flex flex-wrap items-center justify-center gap-3 bg-white/10 backdrop-blur-xl rounded-2xl px-3 py-2.5 shadow-lg border border-white/20">
             <ThemeToggle />
 
-            {/* Перемикач мови */}
             <div className="flex items-center gap-2">
-              <span className="text-[11px] font-medium text-indigo-100/90">
+              <span className="text-[11px] font-medium text-indigo-100/90 whitespace-nowrap">
                 {t('header.languageShort')}
               </span>
               <div className="inline-flex items-center bg-slate-900/40 rounded-full p-0.5 shadow-inner border border-white/10">

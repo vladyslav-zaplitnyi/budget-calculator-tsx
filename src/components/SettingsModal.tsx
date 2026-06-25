@@ -98,7 +98,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                   {!isEncrypted ? (
                     <button
                       onClick={handleEnableEncryptionClickWrapper}
-                      className="w-full px-4 sm:px-6 py-3 rounded-xl font-bold transition-all text-sm sm:text-base bg-gradient-to-r from-indigo-500 to-violet-500 hover:from-indigo-600 hover:to-violet-600 text-white shadow-lg hover:shadow-xl active:scale-95"
+                      className="w-full px-4 sm:px-6 py-3 rounded-xl font-bold transition-all text-sm sm:text-base bg-indigo-600 hover:bg-indigo-700 text-white shadow-lg hover:shadow-xl active:scale-95"
                     >
                       🔒 {t('settings.security.enable')}
                     </button>
