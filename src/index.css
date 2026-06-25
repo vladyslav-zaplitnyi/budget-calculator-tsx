@@ -1288,14 +1288,43 @@ html.theme-neon footer .text-slate-300 {
 }
 
 .days-table tbody tr.days-table-row-odd > td {
-  background-color: #eff6ff;
+  background-color: #dbeafe;
+}
+
+.days-table tbody tr.days-table-row {
+  border-bottom: 1px solid #e2e8f0;
+}
+
+/* Акцентні комірки — зберігаємо смугастість у світлій темі */
+.days-table tr.days-table-row-even > td.bg-emerald-50 {
+  background-color: #ecfdf5;
+}
+
+.days-table tr.days-table-row-odd > td.bg-emerald-50 {
+  background-color: #d1fae5;
+}
+
+.days-table tr.days-table-row-even > td.bg-rose-50 {
+  background-color: #fff1f2;
+}
+
+.days-table tr.days-table-row-odd > td.bg-rose-50 {
+  background-color: #ffe4e6;
+}
+
+.days-table tr.days-table-row-even > td.bg-indigo-50 {
+  background-color: #eef2ff;
+}
+
+.days-table tr.days-table-row-odd > td.bg-indigo-50 {
+  background-color: #dbeafe;
 }
 
 .days-table tbody tr.days-table-row:hover > td,
 .days-table tbody tr.days-table-row:hover > td.bg-emerald-50,
 .days-table tbody tr.days-table-row:hover > td.bg-rose-50,
 .days-table tbody tr.days-table-row:hover > td.bg-indigo-50 {
-  background-color: #fdba74 !important;
+  background-color: #93c5fd !important;
 }
 
 html.theme-neon .days-table tbody tr.days-table-row-even > td {
