@@ -441,7 +441,20 @@
   },
   "importExport": {
     "saveCancelled": "❌ Save cancelled",
-    "fileSavedInfo": "✅ File saved: {{filename}}. 💡 To choose folder: Settings → General → Downloads → \"Always ask you where to save files\""
+    "fileSavedInfo": "✅ File saved: {{filename}}. 💡 To choose folder: Settings → General → Downloads → \"Always ask you where to save files\"",
+    "fileSavedWithFilename": "✅ File saved to disk: {{filename}}",
+    "jsonFileType": "JSON files",
+    "importedFromFile": "✅ Imported from file: {{filename}}",
+    "importedFullStateFromFile": "✅ Imported full state from file: {{filename}}",
+    "importedMonthFromFile": "✅ Imported month from file: {{filename}}",
+    "importedFullState": "✅ Imported full state (up to 12 months)",
+    "budgetLimitReached": "❌ Budget limit (3) reached! Delete one to add a new one.",
+    "createdFromMonthImport": "✅ Created budget from month import: {{budgetName}}",
+    "updatedMonthInCurrentBudget": "✅ Updated month in current budget",
+    "budgetNameWithDate": "{{name}} (from {{date}})",
+    "importMonthBudgetName": "Import {{monthKey}} ({{date}})",
+    "createdNewBudget": "✅ Created new budget: {{budgetName}}",
+    "updatedBudget": "✅ Updated budget: {{budgetName}}"
   },
   "importModal": {
     "title": "Import Budget",

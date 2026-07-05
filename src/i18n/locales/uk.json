@@ -441,7 +441,20 @@
   },
   "importExport": {
     "saveCancelled": "❌ Збереження скасовано",
-    "fileSavedInfo": "✅ Файл збережено: {{filename}}. 💡 Для вибору папки: Налаштування → Загальні → Завантаження → \"Завжди питати, куди зберігати файли\""
+    "fileSavedInfo": "✅ Файл збережено: {{filename}}. 💡 Для вибору папки: Налаштування → Загальні → Завантаження → \"Завжди питати, куди зберігати файли\"",
+    "fileSavedWithFilename": "✅ Файл збережено на диск: {{filename}}",
+    "jsonFileType": "JSON-файли",
+    "importedFromFile": "✅ Імпортовано з файлу: {{filename}}",
+    "importedFullStateFromFile": "✅ Імпортовано повний стан з файлу: {{filename}}",
+    "importedMonthFromFile": "✅ Імпортовано місяць з файлу: {{filename}}",
+    "importedFullState": "✅ Імпортовано повний стан (до 12 місяців)",
+    "budgetLimitReached": "❌ Ліміт 3 бюджети досягнуто! Видаліть один, щоб додати новий.",
+    "createdFromMonthImport": "✅ Створено бюджет з імпорту місяця: {{budgetName}}",
+    "updatedMonthInCurrentBudget": "✅ Оновлено місяць у поточному бюджеті",
+    "budgetNameWithDate": "{{name}} (від {{date}})",
+    "importMonthBudgetName": "Імпорт {{monthKey}} ({{date}})",
+    "createdNewBudget": "✅ Створено новий бюджет: {{budgetName}}",
+    "updatedBudget": "✅ Оновлено бюджет: {{budgetName}}"
   },
   "importModal": {
     "title": "Імпорт бюджету",
