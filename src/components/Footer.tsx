@@ -1,5 +1,6 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
+import { TOUR_START_EVENT } from './GuidedTour';
 
 interface FooterProps {
   language?: string;
@@ -39,6 +40,22 @@ const Footer: React.FC<FooterProps> = ({ language = 'uk' }) => {
                 {t('footer.feedback')}
               </span>
             </a>
+
+            {/* Роздільник (тільки на ПК) */}
+            <span className="hidden sm:block text-slate-300">|</span>
+
+            {/* Перезапуск туторіалу */}
+            <button
+              type="button"
+              onClick={() => window.dispatchEvent(new CustomEvent(TOUR_START_EVENT))}
+              className="group flex items-center gap-1.5 text-slate-500 hover:text-indigo-600 transition-colors duration-200"
+              title={t('tour.restart')}
+            >
+              <span aria-hidden="true">🎓</span>
+              <span className="group-hover:underline decoration-indigo-300 underline-offset-2">
+                {t('tour.restart')}
+              </span>
+            </button>
           </div>
           
           {/* Right Side: Actions (Donate & Social) */}

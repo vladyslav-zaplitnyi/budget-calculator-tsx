@@ -19,6 +19,7 @@ import ConfirmModal from './ConfirmModal';
 import CurrencyFlag from './CurrencyFlag';
 import BulkTransactionModal from './BulkTransactionModal';
 import MultiMonthBulkTransactionModal from './MultiMonthBulkTransactionModal';
+import { TOUR_EXPAND_SECTIONS_EVENT } from './GuidedTour';
 import type { ClearDaysScope } from '../hooks/useBudgetSettings';
 import type { MultiMonthBulkTransactionDraft } from '../utils/multiMonthBulkTransactions';
 
@@ -276,6 +277,20 @@ const SettingsCard: React.FC<SettingsCardProps> = ({
     document.addEventListener('visibilitychange', onVisible);
     return () => document.removeEventListener('visibilitychange', onVisible);
   }, [isAutoFetchNbuRatesEnabled, handleUpdateNbuRates, isUpdatingRates, needsNbuFetch]);
+
+  // Guided tour: transiently expand every collapsible section so the tour can
+  // point at inner controls (currencies, rates, region, import/export). We do
+  // not persist these expansions — it is purely so the walkthrough can anchor.
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const expandAll = () => {
+      setIsSettingsPanelExpanded(true);
+      setIsExchangeRatesExpanded(true);
+      setIsLocalInteractionExpanded(true);
+    };
+    window.addEventListener(TOUR_EXPAND_SECTIONS_EVENT, expandAll);
+    return () => window.removeEventListener(TOUR_EXPAND_SECTIONS_EVENT, expandAll);
+  }, []);
   
   const handleCurrencySelect = (currencyCode: string, index: number) => {
     const previousValue = selectedCurrencies[index];
@@ -370,7 +385,7 @@ const SettingsCard: React.FC<SettingsCardProps> = ({
       {isSettingsPanelExpanded && (
       <div className="mt-4">
       {/* Currency Selector */}
-      <div className="mb-4 sm:mb-6">
+      <div className="mb-4 sm:mb-6" data-tour="settings-currency">
         <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-2">
           {t('settings.currency.selection')}
         </label>
@@ -409,7 +424,7 @@ const SettingsCard: React.FC<SettingsCardProps> = ({
       </div>
 
       {/* Initial Balances */}
-      <div className="mb-4 sm:mb-6">
+      <div className="mb-4 sm:mb-6" data-tour="settings-balances">
         <div className="flex items-center justify-between gap-2 mb-2">
           <label className="text-xs sm:text-sm font-semibold text-gray-700">
             {t('settings.balances.title')}
@@ -521,7 +536,7 @@ const SettingsCard: React.FC<SettingsCardProps> = ({
         {isExchangeRatesExpanded && (
           <>
             {/* Region selector */}
-            <div className="mb-3 rounded-xl border border-slate-200 bg-slate-50 px-3 py-3">
+            <div className="mb-3 rounded-xl border border-slate-200 bg-slate-50 px-3 py-3" data-tour="settings-region">
               <label className="block text-xs sm:text-sm font-semibold text-gray-800 mb-1">
                 {t('settings.exchangeRates.region.label')}
               </label>
@@ -551,7 +566,7 @@ const SettingsCard: React.FC<SettingsCardProps> = ({
 
             {/* Auto fetch toggle */}
             {handleUpdateNbuRates && (
-              <div className="mb-3 flex items-start justify-between gap-3 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
+              <div className="mb-3 flex items-start justify-between gap-3 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2" data-tour="settings-autofetch">
                 <div className="min-w-0">
                   <div className="text-xs sm:text-sm font-semibold text-gray-800">
                     {t('settings.exchangeRates.autoFetch.label')}
@@ -699,7 +714,7 @@ const SettingsCard: React.FC<SettingsCardProps> = ({
             </p>
             {/* Кнопка оновлення курсів НБУ */}
             {handleUpdateNbuRates && (
-              <div className="mt-3">
+              <div className="mt-3" data-tour="settings-update-rates">
                 <button
                   type="button"
                   onClick={handleUpdateNbuRates}
@@ -732,7 +747,7 @@ const SettingsCard: React.FC<SettingsCardProps> = ({
       {/* Action Buttons */}
       <div className="space-y-3 sm:space-y-4">
         {/* Для локальної взаємодії */}
-        <div className="bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 p-3 sm:p-4 rounded-xl border-2 border-slate-200">
+        <div className="bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 p-3 sm:p-4 rounded-xl border-2 border-slate-200" data-tour="settings-local">
           <button
             type="button"
             onClick={() => setIsLocalInteractionExpanded(!isLocalInteractionExpanded)}

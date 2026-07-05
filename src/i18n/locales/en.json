@@ -40,24 +40,79 @@
     "deleteConfirmMessage": "All data in this budget book will be permanently deleted. Continue?",
     "limitReached": "You can keep at most 2 budget books."
   },
-  "onboarding": {
-    "title": "Welcome!",
-    "intro": "Three simple steps to start managing your budget.",
-    "days": {
-      "title": "By days",
-      "text": "Track income and expenses day by day within a single month and see your balance for every day."
+  "tour": {
+    "intro": {
+      "title": "Quick app tour",
+      "text": "In about half a minute I'll show what everything here is for — tab by tab. Tap “Start tutorial”, or skip it if you already know your way around.",
+      "start": "Start tutorial",
+      "skip": "Skip"
     },
-    "plan": {
-      "title": "12 months",
-      "text": "See income and expenses for each month and jump to the day-by-day view with one tap."
+    "controls": {
+      "back": "Back",
+      "next": "Next",
+      "finish": "Done",
+      "skip": "Skip",
+      "step": "Step {{current}} of {{total}}"
     },
-    "sync": {
-      "title": "Sign in & sync",
-      "text": "Sign in with Google to save your data in the cloud and keep up to 2 separate budgets (e.g. Personal and Family)."
-    },
-    "signInCta": "Sign in with Google",
-    "getStarted": "Get started",
-    "dismiss": "Close"
+    "restart": "Take the tutorial",
+    "steps": {
+      "tabs": {
+        "title": "Three app sections",
+        "text": "Everything is split into three tabs: “Budget” — settings and transactions, “Overview” — status and forecast, “Insights” — stats and analytics. Switch here anytime."
+      },
+      "viewToggle": {
+        "title": "By days or 12 months",
+        "text": "“By days” is the detailed plan for the current month. “12 months” shows every month at once. This toggle works in every section."
+      },
+      "currency": {
+        "title": "3 starting currencies",
+        "text": "Pick the three currencies you track (e.g. UAH, USD, EUR). Each currency can be chosen only once — all bookkeeping runs in them."
+      },
+      "balances": {
+        "title": "Starting balances",
+        "text": "Enter how much money you start with in each currency. Every day's balance is calculated from these amounts."
+      },
+      "region": {
+        "title": "Region for local rate",
+        "text": "Choose a country (or “auto detect”) so your local currency is pulled in as well whenever rates are refreshed."
+      },
+      "autoFetch": {
+        "title": "Auto rates mode",
+        "text": "Turn this on so you don't have to click — NBU rates are fetched automatically once a day when you open the page."
+      },
+      "updateRates": {
+        "title": "Update rates",
+        "text": "This button instantly pulls the latest currency rates from the NBU. You can also type rates in manually above."
+      },
+      "localInteraction": {
+        "title": "Local interaction",
+        "text": "Save your whole budget to a JSON file on disk and import it back when needed — handy for backups and moving between devices."
+      },
+      "budgetStatus": {
+        "title": "Budget status",
+        "text": "Your current balance, total value in the chosen currency and the forecast for any day or the end of the month are always shown here."
+      },
+      "daysTable": {
+        "title": "Days & transactions",
+        "text": "Add income and expenses to specific days of the month. The table auto-calculates the day balance and the running total. On phones days are shown as cards."
+      },
+      "months": {
+        "title": "12-month overview",
+        "text": "Each month is stored separately with its own transactions. Tap a month to open it day by day, and use “Add transaction” to add entries across different days of several months at once."
+      },
+      "overview": {
+        "title": "The “Overview” tab",
+        "text": "A quick read of the month: net cash flow, daily budget left, projected balance, largest expense and savings rate — all in one place."
+      },
+      "statistics": {
+        "title": "Detailed statistics",
+        "text": "Income, expenses and the difference per currency and in total — so you see the results without doing the math yourself."
+      },
+      "analytics": {
+        "title": "Analytics & insights",
+        "text": "Top expenses, breakdown by category and week, savings streak and forecasts. That's it — you're all set to start entering your budget!"
+      }
+    }
   },
   "settings": {
     "title": "Settings",

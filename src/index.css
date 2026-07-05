@@ -1499,12 +1499,6 @@ html.theme-neon .btn-import-json:hover {
   background-image: linear-gradient(to right, #3730a3, #5b21b6) !important;
 }
 
-/* Онбординг: іконки кроків однаковий фон */
-html.theme-neon .onboarding-step-icon {
-  background-color: rgba(110, 231, 183, 0.12) !important;
-  color: var(--neon-green) !important;
-}
-
 /* ============================================================= */
 /* =====  ДОДАТКОВІ ВИПРАВЛЕННЯ ТЕМНОЇ ТЕМИ (РАУНД 2)  ======= */
 /* ============================================================= */
@@ -1850,4 +1844,357 @@ html.theme-neon button:focus-visible {
     outline: 2px solid currentColor;
     outline-offset: 2px;
   }
+}
+
+/* ============================================================= */
+/* =====================  ГАЙДЕД-ТУР  ========================== */
+/* ============================================================= */
+
+.tour-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+}
+
+.tour-overlay__blocker {
+  position: absolute;
+  inset: 0;
+  pointer-events: auto;
+  background: transparent;
+}
+
+.tour-overlay__dim {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: rgba(15, 23, 42, 0.62);
+  animation: tourFade 0.2s ease-out;
+}
+
+/* Прожектор навколо активного елемента: затемнення робиться величезною тінню. */
+.tour-spotlight {
+  position: absolute;
+  border-radius: 16px;
+  pointer-events: none;
+  box-shadow: 0 0 0 9999px rgba(15, 23, 42, 0.62);
+  outline: 2px solid rgba(99, 102, 241, 0.9);
+  outline-offset: 2px;
+  transition: top 0.25s ease, left 0.25s ease, width 0.25s ease, height 0.25s ease;
+  animation: tourPulse 2s ease-in-out infinite;
+}
+
+.tour-center {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  pointer-events: none;
+}
+
+.tour-anchored {
+  position: absolute;
+  pointer-events: none;
+}
+
+.tour-card {
+  pointer-events: auto;
+  overflow: hidden;
+  border-radius: 18px;
+  background: #ffffff;
+  box-shadow: 0 24px 60px -18px rgba(15, 23, 42, 0.55), 0 0 0 1px rgba(148, 163, 184, 0.25);
+  animation: tourPop 0.22s ease-out;
+  display: flex;
+  flex-direction: column;
+  max-width: 100%;
+}
+
+.tour-card__accent {
+  height: 6px;
+  width: 100%;
+  background: linear-gradient(to right, #4f46e5, #2563eb, #7c3aed);
+  flex-shrink: 0;
+}
+
+.tour-card__body {
+  padding: 18px 18px 16px;
+  overflow-y: auto;
+}
+
+.tour-card__header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.tour-card__progress--placeholder {
+  flex: 1;
+  min-width: 0;
+}
+
+.tour-lang {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.tour-lang__label {
+  font-size: 11px;
+  font-weight: 600;
+  color: #64748b;
+  white-space: nowrap;
+}
+
+.tour-lang__group {
+  display: inline-flex;
+  align-items: center;
+  background: #f1f5f9;
+  border-radius: 9999px;
+  padding: 2px;
+  border: 1px solid #e2e8f0;
+}
+
+.tour-lang__btn {
+  appearance: none;
+  border: 0;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border-radius: 9999px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #64748b;
+  background: transparent;
+  transition: background-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.tour-lang__btn:hover {
+  color: #334155;
+  background: rgba(255, 255, 255, 0.7);
+}
+
+.tour-lang__btn--active {
+  color: #312e81;
+  background: #ffffff;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.12);
+}
+
+.tour-card__progress {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #6366f1;
+  margin-bottom: 8px;
+}
+
+.tour-card__header-row .tour-card__progress {
+  margin-bottom: 0;
+}
+
+.tour-card__title {
+  font-size: 17px;
+  font-weight: 800;
+  line-height: 1.25;
+  color: #0f172a;
+  margin: 0 0 8px;
+}
+
+.tour-card__text {
+  font-size: 13.5px;
+  line-height: 1.6;
+  color: #475569;
+  margin: 0;
+}
+
+.tour-card__dots {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-top: 14px;
+}
+
+.tour-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 9999px;
+  background: #e2e8f0;
+  transition: background-color 0.2s ease, transform 0.2s ease;
+}
+
+.tour-dot--done {
+  background: #a5b4fc;
+}
+
+.tour-dot--active {
+  background: #4f46e5;
+  transform: scale(1.35);
+}
+
+.tour-card__actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 18px;
+}
+
+.tour-card__actions-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.tour-btn {
+  appearance: none;
+  border: 0;
+  cursor: pointer;
+  border-radius: 12px;
+  padding: 9px 16px;
+  font-size: 13.5px;
+  font-weight: 700;
+  transition: transform 0.12s ease, filter 0.12s ease, background-color 0.12s ease, color 0.12s ease;
+}
+
+.tour-btn:active {
+  transform: scale(0.97);
+}
+
+.tour-btn--primary {
+  color: #ffffff;
+  background: linear-gradient(to right, #4f46e5, #2563eb, #7c3aed);
+}
+
+.tour-btn--primary:hover {
+  filter: brightness(1.06);
+}
+
+.tour-btn--secondary {
+  color: #4338ca;
+  background: #eef2ff;
+}
+
+.tour-btn--secondary:hover {
+  background: #e0e7ff;
+}
+
+.tour-btn--ghost {
+  color: #64748b;
+  background: transparent;
+  padding-left: 6px;
+  padding-right: 6px;
+}
+
+.tour-btn--ghost:hover {
+  color: #334155;
+}
+
+@keyframes tourFade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes tourPop {
+  from { opacity: 0; transform: translateY(6px) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes tourPulse {
+  0%, 100% { outline-color: rgba(99, 102, 241, 0.9); }
+  50% { outline-color: rgba(99, 102, 241, 0.35); }
+}
+
+/* Темна (неонова) тема */
+html.theme-neon .tour-spotlight {
+  box-shadow: 0 0 0 9999px rgba(3, 12, 8, 0.7);
+  outline-color: var(--neon-green, #34d399);
+}
+
+html.theme-neon .tour-overlay__dim {
+  background: rgba(3, 12, 8, 0.7);
+}
+
+html.theme-neon .tour-card {
+  background: #0d1f17;
+  box-shadow: 0 24px 60px -18px rgba(0, 0, 0, 0.75), 0 0 0 1px rgba(52, 211, 153, 0.28);
+}
+
+html.theme-neon .tour-card__accent {
+  background: linear-gradient(to right, #059669, #10b981, #34d399);
+}
+
+html.theme-neon .tour-card__progress {
+  color: var(--neon-green, #34d399);
+}
+
+html.theme-neon .tour-card__title {
+  color: #ecfdf5;
+}
+
+html.theme-neon .tour-card__text {
+  color: #a7c3b4;
+}
+
+html.theme-neon .tour-lang__label {
+  color: #94b3a4;
+}
+
+html.theme-neon .tour-lang__group {
+  background: rgba(15, 31, 23, 0.85);
+  border-color: rgba(52, 211, 153, 0.22);
+}
+
+html.theme-neon .tour-lang__btn {
+  color: #94b3a4;
+}
+
+html.theme-neon .tour-lang__btn:hover {
+  color: #cdeadd;
+  background: rgba(52, 211, 153, 0.1);
+}
+
+html.theme-neon .tour-lang__btn--active {
+  color: #04120c;
+  background: var(--neon-green, #34d399);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.35);
+}
+
+html.theme-neon .tour-dot {
+  background: rgba(148, 163, 184, 0.25);
+}
+
+html.theme-neon .tour-dot--done {
+  background: rgba(52, 211, 153, 0.5);
+}
+
+html.theme-neon .tour-dot--active {
+  background: var(--neon-green, #34d399);
+}
+
+html.theme-neon .tour-btn--primary {
+  background: linear-gradient(to right, #059669, #10b981);
+  color: #04120c;
+}
+
+html.theme-neon .tour-btn--secondary {
+  background: rgba(52, 211, 153, 0.14);
+  color: #6ee7b7;
+}
+
+html.theme-neon .tour-btn--secondary:hover {
+  background: rgba(52, 211, 153, 0.22);
+}
+
+html.theme-neon .tour-btn--ghost {
+  color: #94b3a4;
+}
+
+html.theme-neon .tour-btn--ghost:hover {
+  color: #cdeadd;
 }

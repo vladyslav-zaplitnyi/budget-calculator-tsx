@@ -13,7 +13,7 @@ import BudgetViewToggle, { BudgetViewMode } from './BudgetViewToggle';
 import TransactionExplorer from './TransactionExplorer';
 import MultiMonthTransactionExplorer from './MultiMonthTransactionExplorer';
 import TwelveMonthOverview from './TwelveMonthOverview';
-import OnboardingCard from './OnboardingCard';
+import GuidedTour from './GuidedTour';
 import BudgetMonthSection from './BudgetMonthSection';
 import AlertModal from './AlertModal';
 import PromptModal from './PromptModal';
@@ -155,7 +155,7 @@ export default function BudgetTracker() {
     }
   });
 
-  const handleTabChange = (tab: BudgetAppTab) => {
+  const handleTabChange = useCallback((tab: BudgetAppTab) => {
     setActiveTab(tab);
     try {
       if (typeof window !== 'undefined') {
@@ -164,7 +164,7 @@ export default function BudgetTracker() {
     } catch {
       // ignore storage errors
     }
-  };
+  }, []);
 
   const [budgetViewMode, setBudgetViewMode] = useState<BudgetViewMode>(() => {
     try {
@@ -426,19 +426,27 @@ export default function BudgetTracker() {
           {/* Приховуємо весь контент між Header і Footer, якщо потрібен пароль */}
           {!(showPasswordModal && user) && (
             <>
-              <OnboardingCard isSignedIn={!!user} onSignIn={loginWithGoogle} />
+              <GuidedTour
+                setActiveTab={handleTabChange}
+                setBudgetViewMode={handleBudgetViewModeChange}
+                setLanguage={setLanguage}
+              />
 
-              <AppTabs activeTab={activeTab} onChange={handleTabChange} />
+              <div data-tour="tabs">
+                <AppTabs activeTab={activeTab} onChange={handleTabChange} />
+              </div>
 
               {(activeTab === 'budget' || activeTab === 'overview' || activeTab === 'insights') && (
-                <BudgetViewToggle
-                  mode={budgetViewMode}
-                  onChange={handleBudgetViewModeChange}
-                />
+                <div data-tour="view-toggle">
+                  <BudgetViewToggle
+                    mode={budgetViewMode}
+                    onChange={handleBudgetViewModeChange}
+                  />
+                </div>
               )}
 
               {activeTab === 'overview' && (
-                <>
+                <div data-tour="overview-dashboard">
                   <OverviewDashboard
                     days={days}
                     selectedCurrencies={selectedCurrencies}
@@ -451,7 +459,7 @@ export default function BudgetTracker() {
                     monthsByKey={activeBudgetData?.monthsByKey}
                     activeMonthKey={activeMonthKey}
                   />
-                </>
+                </div>
               )}
 
               {activeTab === 'budget' && (
@@ -500,26 +508,28 @@ export default function BudgetTracker() {
                     startingBalancesReadOnly={startingBalancesReadOnly}
                   />
 
-                  <BudgetStatus
-                    finalBalances={finalBalances}
-                    startBalances={startBalances}
-                    selectedCurrencies={selectedCurrencies}
-                    exchangeRates={exchangeRates}
-                    totalInUAH={totalInUAH}
-                    totalInBaseCurrency={totalInBaseCurrency}
-                    baseCurrency={baseCurrency}
-                    displayCurrency={displayCurrency}
-                    setDisplayCurrency={setDisplayCurrency}
-                    setDisplayCurrencyIndex={setDisplayCurrencyIndex}
-                    totalInDisplayCurrency={totalInDisplayCurrency}
-                    days={days}
-                    budgetYear={budgetDate.year}
-                    budgetMonth={budgetDate.month}
-                    budgetViewMode={budgetViewMode}
-                    activeMonthKey={activeMonthKey}
-                    monthsByKey={activeBudgetData?.monthsByKey}
-                    readOnly={isCurrentBookReadOnly}
-                  />
+                  <div data-tour="budget-status">
+                    <BudgetStatus
+                      finalBalances={finalBalances}
+                      startBalances={startBalances}
+                      selectedCurrencies={selectedCurrencies}
+                      exchangeRates={exchangeRates}
+                      totalInUAH={totalInUAH}
+                      totalInBaseCurrency={totalInBaseCurrency}
+                      baseCurrency={baseCurrency}
+                      displayCurrency={displayCurrency}
+                      setDisplayCurrency={setDisplayCurrency}
+                      setDisplayCurrencyIndex={setDisplayCurrencyIndex}
+                      totalInDisplayCurrency={totalInDisplayCurrency}
+                      days={days}
+                      budgetYear={budgetDate.year}
+                      budgetMonth={budgetDate.month}
+                      budgetViewMode={budgetViewMode}
+                      activeMonthKey={activeMonthKey}
+                      monthsByKey={activeBudgetData?.monthsByKey}
+                      readOnly={isCurrentBookReadOnly}
+                    />
+                  </div>
 
                   {budgetViewMode === 'days' && (
                     <>
@@ -531,31 +541,33 @@ export default function BudgetTracker() {
                         readOnly={isCurrentBookReadOnly}
                       />
 
-                      <DaysTable
-                        isUk={language === 'uk'}
-                        days={days}
-                        updateDay={updateDay}
-                        startBalances={startBalances}
-                        selectedCurrencies={selectedCurrencies}
-                        displayCurrency={displayCurrency}
-                        exchangeRates={exchangeRates}
-                        budgetYear={budgetDate.year}
-                        budgetMonth={budgetDate.month}
-                        readOnly={isCurrentBookReadOnly}
-                      />
+                      <div data-tour="days-table">
+                        <DaysTable
+                          isUk={language === 'uk'}
+                          days={days}
+                          updateDay={updateDay}
+                          startBalances={startBalances}
+                          selectedCurrencies={selectedCurrencies}
+                          displayCurrency={displayCurrency}
+                          exchangeRates={exchangeRates}
+                          budgetYear={budgetDate.year}
+                          budgetMonth={budgetDate.month}
+                          readOnly={isCurrentBookReadOnly}
+                        />
 
-                      <DaysCards
-                        isUk={language === 'uk'}
-                        days={days}
-                        updateDay={updateDay}
-                        startBalances={startBalances}
-                        selectedCurrencies={selectedCurrencies}
-                        displayCurrency={displayCurrency}
-                        exchangeRates={exchangeRates}
-                        budgetYear={budgetDate.year}
-                        budgetMonth={budgetDate.month}
-                        readOnly={isCurrentBookReadOnly}
-                      />
+                        <DaysCards
+                          isUk={language === 'uk'}
+                          days={days}
+                          updateDay={updateDay}
+                          startBalances={startBalances}
+                          selectedCurrencies={selectedCurrencies}
+                          displayCurrency={displayCurrency}
+                          exchangeRates={exchangeRates}
+                          budgetYear={budgetDate.year}
+                          budgetMonth={budgetDate.month}
+                          readOnly={isCurrentBookReadOnly}
+                        />
+                      </div>
 
                       <TransactionExplorer
                         days={days}
@@ -570,13 +582,15 @@ export default function BudgetTracker() {
 
                   {budgetViewMode === 'months' && (
                     <>
-                      <TwelveMonthOverview
-                        activeBudget={activeBudgetData}
-                        selectedCurrencies={selectedCurrencies}
-                        displayCurrency={displayCurrency}
-                        exchangeRates={exchangeRates}
-                        onSelectMonth={handleSelectMonthFromOverview}
-                      />
+                      <div data-tour="months-overview">
+                        <TwelveMonthOverview
+                          activeBudget={activeBudgetData}
+                          selectedCurrencies={selectedCurrencies}
+                          displayCurrency={displayCurrency}
+                          exchangeRates={exchangeRates}
+                          onSelectMonth={handleSelectMonthFromOverview}
+                        />
+                      </div>
 
                       <MultiMonthTransactionExplorer
                         monthsByKey={activeBudgetData?.monthsByKey}
@@ -591,26 +605,30 @@ export default function BudgetTracker() {
 
               {activeTab === 'insights' && (
                 <>
-                  <Statistics
-                    isUk={language === 'uk'}
-                    totals={insightsTotals}
-                    selectedCurrencies={selectedCurrencies}
-                    displayCurrency={displayCurrency}
-                    exchangeRates={exchangeRates}
-                  />
+                  <div data-tour="statistics">
+                    <Statistics
+                      isUk={language === 'uk'}
+                      totals={insightsTotals}
+                      selectedCurrencies={selectedCurrencies}
+                      displayCurrency={displayCurrency}
+                      exchangeRates={exchangeRates}
+                    />
+                  </div>
 
-                  <Analytics
-                    days={days}
-                    selectedCurrencies={selectedCurrencies}
-                    displayCurrency={displayCurrency}
-                    exchangeRates={exchangeRates}
-                    startBalances={startBalances}
-                    budgetYear={budgetDate.year}
-                    budgetMonth={budgetDate.month}
-                    budgetViewMode={budgetViewMode}
-                    monthsByKey={activeBudgetData?.monthsByKey}
-                    activeMonthKey={activeMonthKey}
-                  />
+                  <div data-tour="analytics">
+                    <Analytics
+                      days={days}
+                      selectedCurrencies={selectedCurrencies}
+                      displayCurrency={displayCurrency}
+                      exchangeRates={exchangeRates}
+                      startBalances={startBalances}
+                      budgetYear={budgetDate.year}
+                      budgetMonth={budgetDate.month}
+                      budgetViewMode={budgetViewMode}
+                      monthsByKey={activeBudgetData?.monthsByKey}
+                      activeMonthKey={activeMonthKey}
+                    />
+                  </div>
                 </>
               )}
 
