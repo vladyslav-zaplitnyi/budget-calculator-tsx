@@ -1,5 +1,3 @@
-import CryptoJS from 'crypto-js';
-
 /**
  * Клас помилки для невірного пароля
  */
@@ -11,85 +9,183 @@ export class WrongPasswordError extends Error {
 }
 
 /**
- * Шифрує дані за допомогою AES-256
+ * Шифрування даних — нативний Web Crypto: PBKDF2-SHA256 → AES-256-GCM.
+ *
+ *  - PBKDF2-SHA256 з 250 000 ітерацій та випадковою сіллю → перебір пароля (brute-force)
+ *    на порядки повільніший.
+ *  - AES-256-GCM (автентифіковане шифрування) → підміна/пошкодження шифротексту виявляється,
+ *    невірний пароль дає чисту помилку автентифікації.
+ *  - Web Crypto виконується нативно (швидко, не блокує UI).
+ *
+ * Формат зберігання: рядок з префіксом `ENCv2:` + JSON-конверт (сіль, IV, шифротекст).
+ * Префікс — це маркер версії формату на випадок майбутніх змін схеми.
+ */
+const ENC_V2_PREFIX = 'ENCv2:';
+const PBKDF2_ITERATIONS = 250000;
+const SALT_BYTES = 16; // 128-бітна сіль
+const IV_BYTES = 12; // рекомендований розмір IV для AES-GCM
+const AES_KEY_BITS = 256;
+
+interface EncryptedEnvelopeV2 {
+  v: 2;
+  alg: 'AES-GCM';
+  kdf: 'PBKDF2-SHA256';
+  it: number;
+  salt: string; // base64
+  iv: string; // base64
+  ct: string; // base64 (шифротекст + тег автентифікації GCM)
+}
+
+function getSubtle(): SubtleCrypto | null {
+  const cryptoObj = (globalThis as unknown as { crypto?: Crypto }).crypto;
+  return cryptoObj && cryptoObj.subtle ? cryptoObj.subtle : null;
+}
+
+function randomBytes(length: number): Uint8Array {
+  return (globalThis as unknown as { crypto: Crypto }).crypto.getRandomValues(new Uint8Array(length));
+}
+
+function bytesToBase64(bytes: Uint8Array): string {
+  let binary = '';
+  for (let i = 0; i < bytes.length; i += 1) {
+    binary += String.fromCharCode(bytes[i]);
+  }
+  return btoa(binary);
+}
+
+function base64ToBytes(base64: string): Uint8Array {
+  const binary = atob(base64);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i += 1) {
+    bytes[i] = binary.charCodeAt(i);
+  }
+  return bytes;
+}
+
+async function deriveAesKey(
+  subtle: SubtleCrypto,
+  password: string,
+  salt: Uint8Array,
+  iterations: number,
+  usage: KeyUsage[]
+): Promise<CryptoKey> {
+  const keyMaterial = await subtle.importKey(
+    'raw',
+    new TextEncoder().encode(password),
+    'PBKDF2',
+    false,
+    ['deriveKey']
+  );
+  return subtle.deriveKey(
+    { name: 'PBKDF2', salt, iterations, hash: 'SHA-256' },
+    keyMaterial,
+    { name: 'AES-GCM', length: AES_KEY_BITS },
+    false,
+    usage
+  );
+}
+
+/**
+ * Шифрує дані за допомогою PBKDF2-SHA256 + AES-256-GCM (Web Crypto).
  * @param data - Дані для шифрування (будь-який об'єкт)
  * @param password - Пароль для шифрування
- * @returns Зашифрований рядок
+ * @returns Зашифрований рядок (формат ENCv2)
  */
-export function encryptData<T>(data: T, password: string): string {
+export async function encryptData<T>(data: T, password: string): Promise<string> {
+  const subtle = getSubtle();
+  if (!subtle) {
+    throw new Error('Web Crypto API недоступний: шифрування потребує безпечного контексту (HTTPS).');
+  }
+
   try {
-    // Перетворюємо об'єкт в JSON
     const jsonString = JSON.stringify(data);
-    
-    // Шифруємо за допомогою AES
-    const encrypted = CryptoJS.AES.encrypt(jsonString, password).toString();
-    
-    return encrypted;
+    const salt = randomBytes(SALT_BYTES);
+    const iv = randomBytes(IV_BYTES);
+    const key = await deriveAesKey(subtle, password, salt, PBKDF2_ITERATIONS, ['encrypt']);
+
+    const ciphertext = new Uint8Array(
+      await subtle.encrypt({ name: 'AES-GCM', iv }, key, new TextEncoder().encode(jsonString))
+    );
+
+    const envelope: EncryptedEnvelopeV2 = {
+      v: 2,
+      alg: 'AES-GCM',
+      kdf: 'PBKDF2-SHA256',
+      it: PBKDF2_ITERATIONS,
+      salt: bytesToBase64(salt),
+      iv: bytesToBase64(iv),
+      ct: bytesToBase64(ciphertext)
+    };
+
+    return ENC_V2_PREFIX + JSON.stringify(envelope);
   } catch (error) {
     throw new Error(`Помилка при шифруванні даних: ${error instanceof Error ? error.message : String(error)}`);
   }
 }
 
 /**
- * Розшифровує дані за допомогою AES-256
- * @param encryptedString - Зашифрований рядок
+ * Розшифровує дані у форматі ENCv2 (PBKDF2-SHA256 + AES-256-GCM).
+ */
+async function decryptV2(encryptedString: string, password: string): Promise<string> {
+  const subtle = getSubtle();
+  if (!subtle) {
+    throw new Error('Web Crypto API недоступний для розшифрування даних.');
+  }
+
+  const envelope = JSON.parse(encryptedString.slice(ENC_V2_PREFIX.length)) as EncryptedEnvelopeV2;
+  const salt = base64ToBytes(envelope.salt);
+  const iv = base64ToBytes(envelope.iv);
+  const ciphertext = base64ToBytes(envelope.ct);
+  const iterations = typeof envelope.it === 'number' && envelope.it > 0 ? envelope.it : PBKDF2_ITERATIONS;
+
+  const key = await deriveAesKey(subtle, password, salt, iterations, ['decrypt']);
+
+  try {
+    const plaintext = await subtle.decrypt({ name: 'AES-GCM', iv }, key, ciphertext);
+    return new TextDecoder().decode(plaintext);
+  } catch {
+    // Помилка автентифікації GCM = невірний пароль або підмінені/пошкоджені дані
+    throw new WrongPasswordError('Невірний пароль');
+  }
+}
+
+/**
+ * Розшифровує дані.
+ * @param encryptedString - Зашифрований рядок (формат ENCv2)
  * @param password - Пароль для розшифрування
  * @returns Розшифровані дані типу T
  * @throws WrongPasswordError якщо пароль невірний
  */
-export function decryptData<T>(encryptedString: string, password: string): T {
+export async function decryptData<T>(encryptedString: string, password: string): Promise<T> {
+  if (!encryptedString.startsWith(ENC_V2_PREFIX)) {
+    throw new Error('Непідтримуваний формат зашифрованих даних.');
+  }
+
   try {
-    console.log('🔓 decryptData: Початок розшифрування');
-    console.log('🔓 Довжина зашифрованого рядка:', encryptedString.length);
-    console.log('🔓 Довжина пароля:', password.length);
-    
-    // Розшифровуємо
-    const decrypted = CryptoJS.AES.decrypt(encryptedString, password);
-    
-    // Отримуємо оригінальний рядок
-    const decryptedString = decrypted.toString(CryptoJS.enc.Utf8);
-    
-    console.log('🔓 Довжина розшифрованого рядка:', decryptedString.length);
-    console.log('🔓 Перші 100 символів розшифрованого рядка:', decryptedString.substring(0, 100));
-    
-    // Перевіряємо, чи розшифрування було успішним
+    const decryptedString = await decryptV2(encryptedString, password);
+
     if (!decryptedString) {
-      console.error('❌ Розшифрований рядок порожній - невірний пароль');
       throw new WrongPasswordError('Невірний пароль');
     }
-    
-    // Парсимо JSON
+
     try {
-      const data = JSON.parse(decryptedString) as T;
-      console.log('🔓 ✅ JSON успішно розпарсено');
-      return data;
+      return JSON.parse(decryptedString) as T;
     } catch (parseError) {
-      console.error('❌ Помилка парсингу JSON:', parseError);
+      // Невдалий парсинг JSON після розшифрування = невірний пароль
       if (parseError instanceof SyntaxError) {
         throw new WrongPasswordError('Невірний пароль');
       }
       throw parseError;
     }
   } catch (error) {
-    console.error('❌ Помилка в decryptData:', error);
-    // Якщо це наша кастомна помилка, просто кидаємо її далі
     if (error instanceof WrongPasswordError) {
       throw error;
     }
-    
-    // Якщо помилка парсингу JSON, це також означає невірний пароль
+
     if (error instanceof SyntaxError) {
       throw new WrongPasswordError('Невірний пароль');
     }
-    
-    // Перевіряємо, чи це помилка CryptoJS про невірний формат
-    if (error instanceof Error && error.message.includes('Malformed UTF-8')) {
-      console.error('❌ Malformed UTF-8 - це означає невірний пароль або пошкоджені дані');
-      throw new WrongPasswordError('Невірний пароль');
-    }
-    
-    // Інші помилки
+
     throw new Error(`Помилка при розшифруванні даних: ${error instanceof Error ? error.message : String(error)}`);
   }
 }
-

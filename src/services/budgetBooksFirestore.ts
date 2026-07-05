@@ -262,15 +262,15 @@ const mapBookDocToSummary = (id: string, data: Record<string, unknown>): BudgetB
   return { id, isReadOnly, displayLabel: label };
 };
 
-const parseBudgetBookDocument = (
+const parseBudgetBookDocument = async (
   bookId: string,
   raw: Record<string, unknown>,
   encryptionPassword: string | null | undefined
-): (LoadedUserData | 'needsPassword') => {
+): Promise<LoadedUserData | 'needsPassword'> => {
   if (raw.isEncrypted === true && raw.encryptedData) {
     if (!encryptionPassword) return 'needsPassword';
     try {
-      const decrypted = decryptData<{ activeBudgetId: string; budgets: Budgets }>(
+      const decrypted = await decryptData<{ activeBudgetId: string; budgets: Budgets }>(
         raw.encryptedData as string,
         encryptionPassword
       );
@@ -323,7 +323,7 @@ export async function loadUserBudgetFirestoreState(
           return { kind: 'needsPassword' };
         }
         try {
-          const decrypted = decryptData<{ activeBudgetId: string; budgets: Budgets }>(
+          const decrypted = await decryptData<{ activeBudgetId: string; budgets: Budgets }>(
             rawUser.encryptedData as string,
             encryptionPassword
           );
@@ -376,7 +376,7 @@ export async function loadUserBudgetFirestoreState(
     }
 
     const bookRaw = bookSnap.data() as Record<string, unknown>;
-    const parsed = parseBudgetBookDocument(currentBudgetBookId, bookRaw, encryptionPassword);
+    const parsed = await parseBudgetBookDocument(currentBudgetBookId, bookRaw, encryptionPassword);
     if (parsed === 'needsPassword') {
       return { kind: 'needsPassword' };
     }
@@ -415,7 +415,7 @@ export async function loadBudgetBookDocumentForUser(
   if (!bookSnap.exists()) return null;
   const raw = bookSnap.data() as Record<string, unknown>;
   const isReadOnly = raw.isReadOnly === true;
-  const parsed = parseBudgetBookDocument(bookId, raw, encryptionPassword);
+  const parsed = await parseBudgetBookDocument(bookId, raw, encryptionPassword);
   if (parsed === 'needsPassword') return 'needsPassword';
   if (!parsed.budgets || Object.keys(parsed.budgets).length === 0) return null;
   return { data: parsed, isReadOnly };
@@ -508,7 +508,7 @@ export async function saveBudgetBookToFirestore(params: SaveBudgetBookParams): P
   const isReadOnlyPersisted = existing?.isReadOnly === true ? true : false;
 
   if (encryptionPassword) {
-    const encryptedData = encryptData({ activeBudgetId: safeActive, budgets: budgetsForFirestore }, encryptionPassword);
+    const encryptedData = await encryptData({ activeBudgetId: safeActive, budgets: budgetsForFirestore }, encryptionPassword);
     await setDoc(bRef, {
       isReadOnly: isReadOnlyPersisted,
       isEncrypted: true,
