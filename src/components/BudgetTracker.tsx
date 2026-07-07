@@ -27,6 +27,7 @@ import { translate } from '../i18n/config';
 import { BUDGET_VIEW_MODE_IMPORT_EVENT } from '../hooks/useBudgetImportExport';
 import { isViewingCurrentCalendarMonth, monthKeyFromBudgetDate } from '../utils/rollingMonthsBudget';
 import { simulateMonthsAfterNavigation } from '../utils/balanceWaterfall';
+import { BUDGET_BOOK_CREATE_ENABLED } from '../utils/constants';
 
 const MAX_BUDGET_BOOKS = 2;
 
@@ -273,7 +274,8 @@ export default function BudgetTracker() {
   }, []);
 
   // Budget book (max 2) management modals
-  const canCreateBook = !!user && availableBudgetBooks.length < MAX_BUDGET_BOOKS;
+  const canCreateBook =
+    BUDGET_BOOK_CREATE_ENABLED && !!user && availableBudgetBooks.length < MAX_BUDGET_BOOKS;
   const [bookModal, setBookModal] = useState<{ mode: 'create' | 'rename'; bookId?: string } | null>(null);
   const [deleteBookId, setDeleteBookId] = useState<string | null>(null);
 
@@ -285,7 +287,9 @@ export default function BudgetTracker() {
         return;
       }
       if (bookModal.mode === 'create') {
-        void createBook(trimmed);
+        if (BUDGET_BOOK_CREATE_ENABLED) {
+          void createBook(trimmed);
+        }
       } else if (bookModal.bookId) {
         void renameBook(bookModal.bookId, trimmed);
       }
@@ -417,7 +421,9 @@ export default function BudgetTracker() {
             onBudgetBookChange={(id) => void switchBudgetBook(id)}
             isSwitchingBudgetBook={isSwitchingBudgetBook}
             isCurrentBookReadOnly={isCurrentBookReadOnly}
-            onCreateBookClick={() => setBookModal({ mode: 'create' })}
+            onCreateBookClick={
+              BUDGET_BOOK_CREATE_ENABLED ? () => setBookModal({ mode: 'create' }) : undefined
+            }
             onRenameBookClick={(id) => setBookModal({ mode: 'rename', bookId: id })}
             onDeleteBookClick={(id) => setDeleteBookId(id)}
             canCreateBook={canCreateBook}

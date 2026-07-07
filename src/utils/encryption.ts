@@ -9,6 +9,18 @@ export class WrongPasswordError extends Error {
 }
 
 /**
+ * Кидається, коли зашифровані дані записані у форматі, який більше не підтримується
+ * (наприклад, старим форматом на базі crypto-js до переходу на Web Crypto).
+ * На відміну від WrongPasswordError, жодний пароль тут не допоможе — формат несумісний.
+ */
+export class UnsupportedEncryptionFormatError extends Error {
+  constructor(message: string = 'Непідтримуваний формат зашифрованих даних') {
+    super(message);
+    this.name = 'UnsupportedEncryptionFormatError';
+  }
+}
+
+/**
  * Шифрування даних — нативний Web Crypto: PBKDF2-SHA256 → AES-256-GCM.
  *
  *  - PBKDF2-SHA256 з 250 000 ітерацій та випадковою сіллю → перебір пароля (brute-force)
@@ -158,7 +170,7 @@ async function decryptV2(encryptedString: string, password: string): Promise<str
  */
 export async function decryptData<T>(encryptedString: string, password: string): Promise<T> {
   if (!encryptedString.startsWith(ENC_V2_PREFIX)) {
-    throw new Error('Непідтримуваний формат зашифрованих даних.');
+    throw new UnsupportedEncryptionFormatError();
   }
 
   try {

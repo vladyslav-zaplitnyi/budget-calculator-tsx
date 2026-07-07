@@ -2,13 +2,17 @@ import { useEffect, useState } from 'react';
 import { loadFromFirestore, loadFromLocalStorage, saveToFirestore, createEmptyDefaultBudget, saveToLocalStorage, FirestoreBudgetContext } from '../utils/storageHelpers';
 import { normalizeDaysArray } from '../utils/dayHelpers';
 import { validateSelectedCurrencies, DEFAULT_CURRENCIES, BASE_CURRENCY } from '../utils/currencies';
-import { ACTIVE_BUDGET_COOKIE_KEY, ACTIVE_BUDGET_BOOK_COOKIE_KEY } from '../utils/constants';
+import {
+  ACTIVE_BUDGET_COOKIE_KEY,
+  ACTIVE_BUDGET_BOOK_COOKIE_KEY,
+  BUDGET_BOOK_CREATE_ENABLED
+} from '../utils/constants';
 import { getCookie, setCookie } from '../utils/cookieHelpers';
 import { BudgetStateWithSync } from '../contexts/BudgetContext';
 import { User } from 'firebase/auth';
 import { Budgets, ExchangeRates, Budget } from '../types';
 import { getBuyRate, hasPairStructure } from '../utils/typeGuards';
-import { WrongPasswordError } from '../utils/encryption';
+import { WrongPasswordError, UnsupportedEncryptionFormatError } from '../utils/encryption';
 import { translate } from '../i18n/config';
 import { roundToDecimals } from '../utils/rounding';
 import {
@@ -511,7 +515,7 @@ export function useFirestoreSync(
 
   /** Creates a second budget book (max MAX_USER_BUDGET_BOOKS) and switches to it. */
   const createBook = async (displayLabel: string) => {
-    if (!user) return;
+    if (!BUDGET_BOOK_CREATE_ENABLED || !user) return;
     const label = (displayLabel || '').trim();
     if (!label) return;
     setIsSwitchingBudgetBook(true);
@@ -666,6 +670,11 @@ export function useFirestoreSync(
             if (error instanceof WrongPasswordError) {
               // Невірний пароль - показуємо помилку в модальному вікні
               setPasswordError(translate('encryption.wrongPassword'));
+              setShowPasswordModal(true);
+              setIsInitialLoad(false);
+            } else if (error instanceof UnsupportedEncryptionFormatError) {
+              // Дані зашифровані застарілим форматом - жодний пароль не допоможе
+              setPasswordError(translate('encryption.unsupportedFormat'));
               setShowPasswordModal(true);
               setIsInitialLoad(false);
             } else {
@@ -860,6 +869,10 @@ export function useFirestoreSync(
           setPasswordError(errorText);
           setShowPasswordModal(true);
           // 🔒 ЗАПОБІЖНИК: Залишаємо isRemoteDataEncrypted = true, щоб захист від запису продовжував працювати
+        } else if (error instanceof UnsupportedEncryptionFormatError) {
+          // Дані зашифровані застарілим форматом - жодний пароль не допоможе
+          setPasswordError(translate('encryption.unsupportedFormat'));
+          setShowPasswordModal(true);
         } else {
           setSyncStatus(getSyncStatusText('error'));
         }

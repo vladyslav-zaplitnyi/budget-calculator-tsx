@@ -452,6 +452,7 @@
     "authenticationRequired": "Authentication required for encryption!",
     "enterPassword": "Enter password!",
     "wrongPassword": "Wrong password",
+    "unsupportedFormat": "This data was encrypted with an old format that is no longer supported. Click \"Cancel\" to start with a fresh budget (the old encrypted data will be lost), or contact support.",
     "enabled": "Encryption enabled!",
     "enableError": "Error enabling encryption!",
     "disabled": "Encryption disabled!",

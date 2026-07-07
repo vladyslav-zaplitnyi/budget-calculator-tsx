@@ -1,6 +1,6 @@
 import { webcrypto } from 'crypto';
 import { TextEncoder, TextDecoder } from 'util';
-import { encryptData, decryptData, WrongPasswordError } from './encryption';
+import { encryptData, decryptData, WrongPasswordError, UnsupportedEncryptionFormatError } from './encryption';
 
 // jsdom не реалізує Web Crypto (crypto.subtle) та інколи TextEncoder/TextDecoder —
 // підставляємо нативні реалізації Node, щоб тест відображав поведінку у браузері.
@@ -42,8 +42,8 @@ describe('encryption', () => {
   });
 
   it('відхиляє дані у непідтримуваному (старому) форматі', async () => {
-    await expect(decryptData('U2FsdGVkX1+legacyGarbage==', password)).rejects.toThrow(
-      /Непідтримуваний формат/
+    await expect(decryptData('U2FsdGVkX1+legacyGarbage==', password)).rejects.toBeInstanceOf(
+      UnsupportedEncryptionFormatError
     );
   });
 });
