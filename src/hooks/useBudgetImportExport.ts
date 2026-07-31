@@ -17,6 +17,10 @@ import {
   type SingleMonthExportPayload,
   type FullRollingExportPayload
 } from '../utils/budgetImportExport';
+import {
+  MAX_TRANSACTIONS_PER_MONTH,
+  getRemainingMonthCapacity
+} from '../utils/transactionLimits';
 
 /** Must match `BUDGET_VIEW_MODE_STORAGE_KEY` in BudgetTracker. */
 const BUDGET_VIEW_MODE_STORAGE_KEY = 'budget_tracker_budget_view_mode';
@@ -318,6 +322,8 @@ export function useBudgetImportExport() {
       }));
 
       const newDays: Day[] = [];
+      let monthTransactionTotal = 0;
+      let droppedTransactions = 0;
       for (let i = 1; i <= 31; i++) {
         const loadedDay = loadedDays.find((d) => d.day === i);
         if (loadedDay) {
@@ -340,15 +346,12 @@ export function useBudgetImportExport() {
             }
           }
 
-          if (validatedTransactions.length > 5) {
-            const warningMessage = translate('transaction.maxTransactions', { 
-              day: i, 
-              count: validatedTransactions.length 
-            });
-            console.warn(warningMessage);
-            setLoadMessage(warningMessage);
-            validatedTransactions.splice(5);
+          const capacity = getRemainingMonthCapacity(monthTransactionTotal);
+          if (validatedTransactions.length > capacity) {
+            droppedTransactions += validatedTransactions.length - capacity;
+            validatedTransactions.splice(capacity);
           }
+          monthTransactionTotal += validatedTransactions.length;
 
           const dayData: Day = {
             day: loadedDay.day || i,
@@ -381,6 +384,15 @@ export function useBudgetImportExport() {
             description: ''
           });
         }
+      }
+
+      if (droppedTransactions > 0) {
+        const warningMessage = translate('transactionLimit.importTruncated', {
+          count: droppedTransactions,
+          max: MAX_TRANSACTIONS_PER_MONTH
+        });
+        console.warn(warningMessage);
+        setLoadMessage(warningMessage);
       }
 
       normalizedDays = normalizeDaysArray(newDays, budgetDate.year, budgetDate.month);

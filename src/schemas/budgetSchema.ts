@@ -27,7 +27,8 @@ export const TransactionSchema: z.ZodType<Transaction> = z.object({
   amount: z.number().nonnegative(),
   currency: z.string().min(1),
   description: z.string(),
-  date: z.union([z.date(), z.string()]).optional()
+  date: z.union([z.date(), z.string()]).optional(),
+  category: z.string().optional()
 });
 
 /**

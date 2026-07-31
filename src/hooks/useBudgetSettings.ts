@@ -18,9 +18,9 @@ import { parseMonthKey } from '../utils/monthlyPlan';
 import { applyBalanceWaterfallToBudget } from '../utils/balanceWaterfall';
 import {
   applyMultiMonthBulkAdd,
-  validateMultiMonthBulkAdd,
-  MAX_TRANSACTIONS_PER_DAY
+  validateMultiMonthBulkAdd
 } from '../utils/multiMonthBulkTransactions';
+import { MAX_TRANSACTIONS_PER_MONTH } from '../utils/transactionLimits';
 import type { MultiMonthBulkTransactionDraft } from '../utils/multiMonthBulkTransactions';
 
 export type ClearDaysScope = 'current-month' | 'all-months';
@@ -780,9 +780,16 @@ export function useBudgetSettings() {
         monthsByKey,
         activeMonthKey,
         days,
-        MAX_TRANSACTIONS_PER_DAY
+        MAX_TRANSACTIONS_PER_MONTH
       );
-      if (!validation.ok) return;
+      if (!validation.ok) {
+        setAlertMessage(
+          translate('transactionLimit.reached', { max: MAX_TRANSACTIONS_PER_MONTH })
+        );
+        setAlertType('warning');
+        setShowAlertModal(true);
+        return;
+      }
 
       const { monthsByKey: nextMonthsByKey, activeMonthDays } = applyMultiMonthBulkAdd(
         validation.plan,

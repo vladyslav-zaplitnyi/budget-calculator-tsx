@@ -3,8 +3,7 @@ import { getDaysInMonth } from './dateHelpers';
 import { generateTransactionId, normalizeDaysArray } from './dayHelpers';
 import { parseMonthKey } from './monthlyPlan';
 import { buildEmptyMonthSlice } from './rollingMonthsBudget';
-
-export const MAX_TRANSACTIONS_PER_DAY = 5;
+import { MAX_TRANSACTIONS_PER_MONTH, countMonthTransactions } from './transactionLimits';
 
 /** Clamp a selected calendar day to the last day of the given month when needed. */
 export function clampDayToMonth(day: number, year: number, month: number): number {
@@ -22,9 +21,9 @@ export interface BulkAddPlanEntry {
 
 export interface BulkAddLimitError {
   monthKey: string;
-  resolvedDay: number;
   existing: number;
   adding: number;
+  max: number;
 }
 
 export interface BulkAddValidationResult {
@@ -33,25 +32,10 @@ export interface BulkAddValidationResult {
   errors: BulkAddLimitError[];
 }
 
-function getDayTransactionCount(
-  monthKey: string,
-  dayNumber: number,
-  monthsByKey: Record<string, MonthSlice>,
-  activeMonthKey: string | null,
-  activeMonthDays: Day[] | undefined
-): number {
-  const useActiveDays = activeMonthKey !== null && monthKey === activeMonthKey && Array.isArray(activeMonthDays);
-  const days = useActiveDays
-    ? activeMonthDays!
-    : monthsByKey[monthKey]?.days;
-  if (!Array.isArray(days)) return 0;
-  const day = days[dayNumber - 1];
-  return Array.isArray(day?.transactions) ? day.transactions.length : 0;
-}
-
 /**
- * Build an add plan and validate per-day limits after clamping (e.g. day 31 → 30 in April).
- * Multiple selected days that clamp to the same resolved day are counted together.
+ * Build an add plan and check that no targeted month exceeds the monthly limit.
+ * Days are clamped to the month first (e.g. day 31 → 30 in April), so several
+ * selected days can collapse onto one day while still each adding a transaction.
  */
 export function validateMultiMonthBulkAdd(
   selectedMonthKeys: string[],
@@ -59,11 +43,10 @@ export function validateMultiMonthBulkAdd(
   monthsByKey: Record<string, MonthSlice> | undefined,
   activeMonthKey: string | null,
   activeMonthDays: Day[] | undefined,
-  maxPerDay: number = MAX_TRANSACTIONS_PER_DAY
+  maxPerMonth: number = MAX_TRANSACTIONS_PER_MONTH
 ): BulkAddValidationResult {
-  const map = monthsByKey || {};
   const plan: BulkAddPlanEntry[] = [];
-  const additions = new Map<string, number>();
+  const additionsByMonth = new Map<string, number>();
 
   selectedMonthKeys.forEach((monthKey) => {
     const parsed = parseMonthKey(monthKey);
@@ -77,18 +60,15 @@ export function validateMultiMonthBulkAdd(
         selectedDay,
         resolvedDay
       });
-      const slotKey = `${monthKey}:${resolvedDay}`;
-      additions.set(slotKey, (additions.get(slotKey) || 0) + 1);
+      additionsByMonth.set(monthKey, (additionsByMonth.get(monthKey) || 0) + 1);
     });
   });
 
   const errors: BulkAddLimitError[] = [];
-  additions.forEach((adding, slotKey) => {
-    const [monthKey, dayStr] = slotKey.split(':');
-    const resolvedDay = parseInt(dayStr, 10);
-    const existing = getDayTransactionCount(monthKey, resolvedDay, map, activeMonthKey, activeMonthDays);
-    if (existing + adding > maxPerDay) {
-      errors.push({ monthKey, resolvedDay, existing, adding });
+  additionsByMonth.forEach((adding, monthKey) => {
+    const existing = countMonthTransactions(monthKey, monthsByKey, activeMonthKey, activeMonthDays);
+    if (existing + adding > maxPerMonth) {
+      errors.push({ monthKey, existing, adding, max: maxPerMonth });
     }
   });
 

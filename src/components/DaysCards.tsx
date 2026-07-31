@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { translate } from '../i18n/config';
 import {
@@ -11,6 +11,12 @@ import { getCurrencyInfo, getCurrencySymbol, getCurrencyName } from '../utils/cu
 import TransactionModal from './TransactionModal';
 import AlertModal from './AlertModal';
 import { generateTransactionId } from '../utils/dayHelpers';
+import { getCategoryEmoji } from '../utils/categories';
+import {
+  MAX_TRANSACTIONS_PER_MONTH,
+  canAddToMonth,
+  countTransactionsInDays
+} from '../utils/transactionLimits';
 import { Day, ExchangeRates, Transaction } from '../types';
 import CurrencyFlag from './CurrencyFlag';
 import { capitalizeFirstLetter, getWeekdayShortName, getDaysInMonth } from '../utils/dateHelpers';
@@ -59,10 +65,10 @@ const DaysCards: React.FC<DaysCardsProps> = ({
   // НОВИЙ СТАН: Зберігає індекси днів, які розгорнуті (показують валюти)
   const [expandedDays, setExpandedDays] = useState<Record<number, boolean>>({});
 
-  const MAX_TRANSACTIONS = 5;
-  
   const daysInMonth = getDaysInMonth(budgetYear, budgetMonth);
   const visibleDays = days.slice(0, daysInMonth);
+
+  const monthTransactionCount = useMemo(() => countTransactionsInDays(days), [days]);
 
   // Функція для перемикання видимості деталей дня
   const toggleDayDetails = (index: number) => {
@@ -76,10 +82,9 @@ const DaysCards: React.FC<DaysCardsProps> = ({
     if (readOnly) return;
     const day = days[dayIndex];
     if (!day) return;
-    const transactionCount = Array.isArray(day.transactions) ? day.transactions.length : 0;
-    
-    if (transactionCount >= MAX_TRANSACTIONS) {
-      setAlertMessage(t('transaction.maxTransactions'));
+
+    if (!canAddToMonth(monthTransactionCount)) {
+      setAlertMessage(t('transactionLimit.reached', { max: MAX_TRANSACTIONS_PER_MONTH }));
       setShowAlertModal(true);
       return;
     }
@@ -126,6 +131,11 @@ const DaysCards: React.FC<DaysCardsProps> = ({
         } as Transaction;
       }
     } else {
+      if (!canAddToMonth(monthTransactionCount)) {
+        setAlertMessage(t('transactionLimit.reached', { max: MAX_TRANSACTIONS_PER_MONTH }));
+        setShowAlertModal(true);
+        return;
+      }
       currentTransactions.push({
         ...transactionData,
         id: transactionData.id || generateTransactionId()
@@ -149,8 +159,6 @@ const DaysCards: React.FC<DaysCardsProps> = ({
         );
         
         const transactions = Array.isArray(day.transactions) ? day.transactions : [];
-        const transactionCount = transactions.length;
-        const canAddMore = transactionCount < MAX_TRANSACTIONS;
         
         // Перевіряємо, чи розгорнутий цей день
         const isExpanded = expandedDays[index] || false;
@@ -187,7 +195,9 @@ const DaysCards: React.FC<DaysCardsProps> = ({
                         }`}>
                           {t.type === 'income' ? '✅' : '❌'} {t.amount} {t.currency}
                         </span>
-                        <p className="text-xs text-gray-600 truncate mt-0.5">{t.description}</p>
+                        <p className="text-xs text-gray-600 truncate mt-0.5">
+                          {getCategoryEmoji(t.category) ? `${getCategoryEmoji(t.category)} ` : ''}{t.description}
+                        </p>
                       </div>
                       <div className="flex gap-1.5 ml-2 flex-shrink-0">
                         <button
@@ -210,18 +220,12 @@ const DaysCards: React.FC<DaysCardsProps> = ({
                 </div>
               )}
               
-              {canAddMore ? (
-                <button
-                  onClick={() => handleAddTransaction(index)}
-                  className="w-full px-3 py-2.5 text-sm bg-blue-500 !text-white rounded-lg hover:bg-blue-600 transition-all font-semibold font-display shadow-md hover:shadow-lg hover:scale-[1.02]"
-                >
-                  ➕ {t('days.addTransaction')}
-                </button>
-              ) : (
-                <div className="w-full px-3 py-2 text-sm bg-gray-200 text-gray-600 rounded-lg text-center font-medium">
-                  {t('transaction.maxTransactions')}
-                </div>
-              )}
+              <button
+                onClick={() => handleAddTransaction(index)}
+                className="w-full px-3 py-2.5 text-sm bg-blue-500 !text-white rounded-lg hover:bg-blue-600 transition-all font-semibold font-display shadow-md hover:shadow-lg hover:scale-[1.02]"
+              >
+                ➕ {t('days.addTransaction')}
+              </button>
             </div>
 
             {/* Separator and Toggle Button */}
@@ -392,7 +396,6 @@ const DaysCards: React.FC<DaysCardsProps> = ({
         onSave={handleSaveTransaction}
         transaction={modalState.transaction}
         isUk={isUk}
-        maxTransactions={MAX_TRANSACTIONS}
         selectedCurrencies={selectedCurrencies}
         currentBudgetYear={budgetYear}
         currentBudgetMonth={budgetMonth}

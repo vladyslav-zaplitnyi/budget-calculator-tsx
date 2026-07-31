@@ -28,6 +28,7 @@ import { BUDGET_VIEW_MODE_IMPORT_EVENT } from '../hooks/useBudgetImportExport';
 import { isViewingCurrentCalendarMonth, monthKeyFromBudgetDate } from '../utils/rollingMonthsBudget';
 import { simulateMonthsAfterNavigation } from '../utils/balanceWaterfall';
 import { BUDGET_BOOK_CREATE_ENABLED } from '../utils/constants';
+import { countTransactionsInDays } from '../utils/transactionLimits';
 
 const MAX_BUDGET_BOOKS = 2;
 
@@ -323,6 +324,8 @@ export default function BudgetTracker() {
     [days, selectedCurrencies]
   );
 
+  const monthTransactionCount = useMemo(() => countTransactionsInDays(days), [days]);
+
   const twelveMonthTotals = useMemo(
     () =>
       aggregateTotalsForOverviewWindow({
@@ -545,6 +548,7 @@ export default function BudgetTracker() {
                         setBudgetDate={setBudgetDate}
                         rollingMonthPreview={monthRollingPreview}
                         readOnly={isCurrentBookReadOnly}
+                        monthTransactionCount={monthTransactionCount}
                       />
 
                       <div data-tour="days-table">

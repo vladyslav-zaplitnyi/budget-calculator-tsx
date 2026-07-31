@@ -13,13 +13,17 @@ import {
   getMonthYearLabel,
   getWeekdayLabelsMondayFirst
 } from '../utils/dateHelpers';
+import {
+  MAX_TRANSACTIONS_PER_MONTH,
+  canAddToMonth,
+  countTransactionsInDays
+} from '../utils/transactionLimits';
 
 interface BulkTransactionModalProps {
   isOpen: boolean;
   onClose: () => void;
   days: Day[];
   updateDay: (index: number, field: string, value: any) => void;
-  maxTransactions: number;
   selectedCurrencies?: string[];
   budgetYear: number;
   budgetMonth: number;
@@ -36,7 +40,6 @@ const BulkTransactionModal: React.FC<BulkTransactionModalProps> = ({
   onClose,
   days,
   updateDay,
-  maxTransactions,
   selectedCurrencies = ['UAH', 'USD', 'EUR'],
   budgetYear,
   budgetMonth
@@ -138,16 +141,15 @@ const BulkTransactionModal: React.FC<BulkTransactionModalProps> = ({
       return;
     }
 
-    const errorDays: number[] = [];
-    selectedDaysSorted.forEach(dayNumber => {
-      const idx = dayNumber - 1;
-      const day = days[idx];
-      const count = Array.isArray(day?.transactions) ? day.transactions.length : 0;
-      if (count >= maxTransactions) errorDays.push(dayNumber);
-    });
-
-    if (errorDays.length > 0) {
-      setAlertMessage(t('bulkTransactions.errorMaxTransactions', { days: errorDays.join(', ') }));
+    const existingCount = countTransactionsInDays(days);
+    if (!canAddToMonth(existingCount, selectedDaysSorted.length)) {
+      setAlertMessage(
+        t('transactionLimit.batchWouldExceed', {
+          existing: existingCount,
+          adding: selectedDaysSorted.length,
+          max: MAX_TRANSACTIONS_PER_MONTH
+        })
+      );
       setShowAlertModal(true);
       return;
     }

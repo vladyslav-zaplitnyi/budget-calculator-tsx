@@ -19,6 +19,8 @@ import ConfirmModal from './ConfirmModal';
 import CurrencyFlag from './CurrencyFlag';
 import BulkTransactionModal from './BulkTransactionModal';
 import MultiMonthBulkTransactionModal from './MultiMonthBulkTransactionModal';
+import CsvImportModal from './CsvImportModal';
+import { parseTransactionsCsv, CsvParseResult } from '../utils/csvImport';
 import { TOUR_EXPAND_SECTIONS_EVENT } from './GuidedTour';
 import type { ClearDaysScope } from '../hooks/useBudgetSettings';
 import type { MultiMonthBulkTransactionDraft } from '../utils/multiMonthBulkTransactions';
@@ -202,6 +204,38 @@ const SettingsCard: React.FC<SettingsCardProps> = ({
   });
   const [showRecurringModal, setShowRecurringModal] = useState(false);
   const [showMultiMonthModal, setShowMultiMonthModal] = useState(false);
+
+  // Імпорт транзакцій з CSV-виписки (Monobank або сумісний формат)
+  const csvFileInputRef = React.useRef<HTMLInputElement>(null);
+  const [showCsvImportModal, setShowCsvImportModal] = useState(false);
+  const [csvParseResult, setCsvParseResult] = useState<CsvParseResult | null>(null);
+  const [csvFileName, setCsvFileName] = useState('');
+  const [csvImportMessage, setCsvImportMessage] = useState('');
+
+  const handleCsvFileSelected = (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files && event.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const text = e.target?.result;
+      if (typeof text !== 'string') return;
+      const result = parseTransactionsCsv(text, selectedCurrencies[0] || 'UAH');
+      setCsvParseResult(result);
+      setCsvFileName(file.name);
+      setShowCsvImportModal(true);
+    };
+    reader.onerror = () => {
+      setCsvImportMessage(t('errors.readError'));
+      setTimeout(() => setCsvImportMessage(''), 4000);
+    };
+    reader.readAsText(file, 'utf-8');
+    event.target.value = '';
+  };
+
+  const handleCsvImported = (count: number) => {
+    setCsvImportMessage(t('csvImport.importedMessage', { count }));
+    setTimeout(() => setCsvImportMessage(''), 5000);
+  };
   
   // Синхронізуємо displayCurrencies з selectedCurrencies, коли немає pending зміни
   React.useEffect(() => {
@@ -788,6 +822,21 @@ const SettingsCard: React.FC<SettingsCardProps> = ({
                     : t('settings.localInteraction.import')}
                 </button>
               </div>
+              <button
+                type="button"
+                onClick={() => csvFileInputRef.current?.click()}
+                disabled={!updateDay || !days || days.length === 0 || readOnly}
+                className={`w-full px-4 sm:px-6 py-2 sm:py-3 rounded-xl font-bold transition-all text-xs sm:text-sm ${
+                  !updateDay || !days || days.length === 0 || readOnly
+                    ? 'bg-gray-400 cursor-not-allowed text-white'
+                    : 'bg-gradient-to-r from-sky-500 to-blue-500 hover:from-sky-600 hover:to-blue-600 text-white shadow-lg hover:shadow-xl active:scale-95'
+                }`}
+              >
+                {t('csvImport.importButtonLabel')}
+              </button>
+              <p className="text-[10px] sm:text-xs text-gray-500">
+                {t('csvImport.importButtonHint')}
+              </p>
               <input
                 type="file"
                 accept="application/json"
@@ -795,6 +844,18 @@ const SettingsCard: React.FC<SettingsCardProps> = ({
                 onChange={handleJsonFileSelected}
                 className="hidden"
               />
+              <input
+                type="file"
+                accept=".csv,text/csv"
+                ref={csvFileInputRef}
+                onChange={handleCsvFileSelected}
+                className="hidden"
+              />
+              {csvImportMessage && (
+                <span className="block text-xs sm:text-sm font-semibold px-3 py-2 rounded-lg text-green-700 bg-green-100">
+                  {csvImportMessage}
+                </span>
+              )}
               {saveMessage && (
                 <span
                   className={`block text-xs sm:text-sm font-semibold px-3 py-2 rounded-lg whitespace-pre-line ${
@@ -880,10 +941,22 @@ const SettingsCard: React.FC<SettingsCardProps> = ({
         onClose={() => setShowRecurringModal(false)}
         days={days}
         updateDay={updateDay || (() => {})}
-        maxTransactions={5}
         selectedCurrencies={selectedCurrencies}
         budgetYear={budgetYear}
         budgetMonth={budgetMonth}
+      />
+
+      <CsvImportModal
+        isOpen={showCsvImportModal}
+        onClose={() => setShowCsvImportModal(false)}
+        fileName={csvFileName}
+        parseResult={csvParseResult}
+        days={days}
+        updateDay={updateDay || (() => {})}
+        selectedCurrencies={selectedCurrencies}
+        budgetYear={budgetYear}
+        budgetMonth={budgetMonth}
+        onImported={handleCsvImported}
       />
 
       <MultiMonthBulkTransactionModal

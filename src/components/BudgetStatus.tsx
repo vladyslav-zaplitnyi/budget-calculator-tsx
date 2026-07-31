@@ -203,6 +203,11 @@ const BudgetStatus: React.FC<BudgetStatusProps> = ({
     }
   }, [budgetViewMode]);
 
+  // Clamp day selector when switching to a shorter month (e.g. 31 → 30).
+  useEffect(() => {
+    setSelectedDay((prev) => Math.min(Math.max(prev, 1), daysInMonth));
+  }, [daysInMonth]);
+
   // Balance as of the selected day
   const selectedDayBalance = dailyBalances.length > 0 && selectedDay >= 1 && selectedDay <= dailyBalances.length
     ? dailyBalances[selectedDay - 1]

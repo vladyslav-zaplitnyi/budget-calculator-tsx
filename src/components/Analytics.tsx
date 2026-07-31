@@ -12,6 +12,10 @@ import {
 import { buildTwelveMonthBalanceRows } from '../utils/rollingMonthsBudget';
 import CurrencyFlag from './CurrencyFlag';
 import type { BudgetViewMode } from './BudgetViewToggle';
+import {
+  TRANSACTION_CATEGORIES,
+  getCategoryLabel
+} from '../utils/categories';
 
 interface AnalyticsProps {
   days: Day[];
@@ -33,6 +37,7 @@ interface TopExpense {
   convertedAmount: number;
   day: number;
   monthLabel?: string;
+  category?: string;
 }
 
 interface CategoryData {
@@ -89,6 +94,8 @@ const Analytics: React.FC<AnalyticsProps> = ({
       return true;
     }
   });
+  /** Фільтр блоку «Витрати за категоріями»: '' = усі, '__none__' = без категорії, інакше id. */
+  const [categoryFilter, setCategoryFilter] = useState('');
 
   const toggleExpanded = useCallback(() => {
     setIsExpanded(prev => {
@@ -172,7 +179,8 @@ const Analytics: React.FC<AnalyticsProps> = ({
             currency: tx.currency,
             convertedAmount: converted,
             day: day.day,
-            monthLabel
+            monthLabel,
+            category: tx.category
           });
         }
       });
@@ -243,9 +251,21 @@ const Analytics: React.FC<AnalyticsProps> = ({
         ? Math.min((totalExpenseConverted / totalIncomeConverted) * 100, 100)
         : 0;
 
-    // ---------- Витрати за категоріями ----------
+    // ---------- Витрати за категоріями (групування за описом, опційний фільтр category) ----------
+    const filteredExpenses =
+      categoryFilter === ''
+        ? allExpenses
+        : categoryFilter === '__none__'
+          ? allExpenses.filter((expense) => !expense.category)
+          : allExpenses.filter((expense) => expense.category === categoryFilter);
+
+    const filteredExpenseTotal = filteredExpenses.reduce(
+      (sum, expense) => sum + expense.convertedAmount,
+      0
+    );
+
     const categoryMap = new Map<string, { totalAmount: number; count: number }>();
-    allExpenses.forEach((expense) => {
+    filteredExpenses.forEach((expense) => {
       const key = (expense.description || '').trim().toLowerCase() || '—';
       if (categoryMap.has(key)) {
         const existing = categoryMap.get(key)!;
@@ -262,7 +282,7 @@ const Analytics: React.FC<AnalyticsProps> = ({
         name: key === '—' ? '—' : key,
         totalAmount: data.totalAmount,
         count: data.count,
-        percentage: totalExpenseConverted > 0 ? (data.totalAmount / totalExpenseConverted) * 100 : 0
+        percentage: filteredExpenseTotal > 0 ? (data.totalAmount / filteredExpenseTotal) * 100 : 0
       }))
       .sort((a, b) => b.totalAmount - a.totalAmount);
 
@@ -278,7 +298,7 @@ const Analytics: React.FC<AnalyticsProps> = ({
           name: '__other__',
           totalAmount: otherTotal,
           count: otherCount,
-          percentage: totalExpenseConverted > 0 ? (otherTotal / totalExpenseConverted) * 100 : 0
+          percentage: filteredExpenseTotal > 0 ? (otherTotal / filteredExpenseTotal) * 100 : 0
         }
       ];
     } else {
@@ -417,7 +437,8 @@ const Analytics: React.FC<AnalyticsProps> = ({
     monthsByKey,
     activeMonthKey,
     days,
-    locale
+    locale,
+    categoryFilter
   ]);
 
   // ---------- Рендер ----------
@@ -586,67 +607,93 @@ const Analytics: React.FC<AnalyticsProps> = ({
       )}
 
       {/* Ряд 4: Витрати за категоріями */}
-      {analytics.categories.length > 0 && (
+      {analytics.totalExpenseConverted > 0 && (
         <div className="bg-gradient-to-br from-amber-50 to-yellow-100/70 p-4 rounded-xl border border-amber-200 shadow-sm mt-4">
-          <h3 className="text-xs sm:text-sm font-bold text-gray-800 mb-3 flex items-center">
-            <span className="mr-2">📦</span> {t('analytics.categoryBreakdown')}
-          </h3>
-
-          {/* Кольорова шкала - стекові бар */}
-          <div className="w-full h-4 sm:h-5 rounded-full overflow-hidden flex mb-4">
-            {analytics.categories.map((cat, idx) => {
-              const colors = [
-                'bg-amber-500', 'bg-orange-500', 'bg-rose-400', 'bg-violet-500',
-                'bg-blue-500', 'bg-emerald-500', 'bg-teal-400', 'bg-pink-400'
-              ];
-              return (
-                <div
-                  key={idx}
-                  className={`${colors[idx % colors.length]} transition-all duration-500`}
-                  style={{ width: `${cat.percentage}%` }}
-                  title={`${cat.name === '__other__' ? t('analytics.categoryOther') : cat.name === '—' ? t('analytics.categoryNoDescription') : cat.name}: ${cat.percentage.toFixed(1)}%`}
-                />
-              );
-            })}
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-3">
+            <h3 className="text-xs sm:text-sm font-bold text-gray-800 flex items-center">
+              <span className="mr-2">📦</span> {t('analytics.categoryBreakdown')}
+            </h3>
+            <label className="flex items-center gap-2 text-xs text-gray-600">
+              <span className="whitespace-nowrap font-semibold">{t('analytics.categoryFilterLabel')}</span>
+              <select
+                value={categoryFilter}
+                onChange={(e) => setCategoryFilter(e.target.value)}
+                className="px-2 py-1.5 text-xs sm:text-sm border-2 border-amber-200 rounded-lg bg-white focus:ring-2 focus:ring-amber-400 focus:border-amber-400 max-w-[200px]"
+              >
+                <option value="">{t('analytics.categoryFilterAll')}</option>
+                <option value="__none__">{t('analytics.categoryFilterNone')}</option>
+                {TRANSACTION_CATEGORIES.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.emoji} {getCategoryLabel(c.id, locale === 'uk' ? 'uk' : 'en')}
+                  </option>
+                ))}
+              </select>
+            </label>
           </div>
 
-          {/* Список категорій */}
-          <div className="space-y-2">
-            {analytics.categories.map((cat, idx) => {
-              const colors = [
-                'bg-amber-500', 'bg-orange-500', 'bg-rose-400', 'bg-violet-500',
-                'bg-blue-500', 'bg-emerald-500', 'bg-teal-400', 'bg-pink-400'
-              ];
-              const dotColor = colors[idx % colors.length];
-              const displayName = cat.name === '__other__'
-                ? t('analytics.categoryOther')
-                : cat.name === '—'
-                ? t('analytics.categoryNoDescription')
-                : cat.name;
+          {analytics.categories.length === 0 ? (
+            <p className="text-sm text-gray-500 py-2">
+              {t('analytics.categoryFilterEmpty')}
+            </p>
+          ) : (
+            <>
+              {/* Кольорова шкала - стекові бар */}
+              <div className="w-full h-4 sm:h-5 rounded-full overflow-hidden flex mb-4">
+                {analytics.categories.map((cat, idx) => {
+                  const colors = [
+                    'bg-amber-500', 'bg-orange-500', 'bg-rose-400', 'bg-violet-500',
+                    'bg-blue-500', 'bg-emerald-500', 'bg-teal-400', 'bg-pink-400'
+                  ];
+                  return (
+                    <div
+                      key={idx}
+                      className={`${colors[idx % colors.length]} transition-all duration-500`}
+                      style={{ width: `${cat.percentage}%` }}
+                      title={`${cat.name === '__other__' ? t('analytics.categoryOther') : cat.name === '—' ? t('analytics.categoryNoDescription') : cat.name}: ${cat.percentage.toFixed(1)}%`}
+                    />
+                  );
+                })}
+              </div>
 
-              return (
-                <div key={idx} className="flex items-center justify-between">
-                  <div className="flex items-center gap-2 min-w-0 flex-1">
-                    <span className={`w-3 h-3 rounded-full flex-shrink-0 ${dotColor}`} />
-                    <span className="text-sm text-gray-800 truncate font-medium">
-                      {displayName}
-                    </span>
-                    <span className="text-[10px] text-gray-400 flex-shrink-0">
-                      {cat.count} {t('analytics.categoryTransactions')}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-2 flex-shrink-0 ml-2">
-                    <span className="text-sm font-bold text-gray-800 tabular-nums">
-                      {displaySymbol}{formatNumber(cat.totalAmount, 2)}
-                    </span>
-                    <span className="text-xs text-gray-500 tabular-nums w-12 text-right">
-                      {cat.percentage.toFixed(1)}%
-                    </span>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
+              {/* Список категорій */}
+              <div className="space-y-2">
+                {analytics.categories.map((cat, idx) => {
+                  const colors = [
+                    'bg-amber-500', 'bg-orange-500', 'bg-rose-400', 'bg-violet-500',
+                    'bg-blue-500', 'bg-emerald-500', 'bg-teal-400', 'bg-pink-400'
+                  ];
+                  const dotColor = colors[idx % colors.length];
+                  const displayName = cat.name === '__other__'
+                    ? t('analytics.categoryOther')
+                    : cat.name === '—'
+                    ? t('analytics.categoryNoDescription')
+                    : cat.name;
+
+                  return (
+                    <div key={idx} className="flex items-center justify-between">
+                      <div className="flex items-center gap-2 min-w-0 flex-1">
+                        <span className={`w-3 h-3 rounded-full flex-shrink-0 ${dotColor}`} />
+                        <span className="text-sm text-gray-800 truncate font-medium">
+                          {displayName}
+                        </span>
+                        <span className="text-[10px] text-gray-400 flex-shrink-0">
+                          {cat.count} {t('analytics.categoryTransactions')}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2 flex-shrink-0 ml-2">
+                        <span className="text-sm font-bold text-gray-800 tabular-nums">
+                          {displaySymbol}{formatNumber(cat.totalAmount, 2)}
+                        </span>
+                        <span className="text-xs text-gray-500 tabular-nums w-12 text-right">
+                          {cat.percentage.toFixed(1)}%
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </>
+          )}
         </div>
       )}
 

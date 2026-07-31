@@ -6,10 +6,8 @@ import { sanitizeNumberInput } from '../utils/calculations';
 import { AVAILABLE_CURRENCIES, getCurrencyName } from '../utils/currencies';
 import { capitalizeFirstLetter, getMonthYearLabel } from '../utils/dateHelpers';
 import { getDefaultOverviewWindow } from '../utils/rollingMonthsBudget';
-import {
-  MAX_TRANSACTIONS_PER_DAY,
-  validateMultiMonthBulkAdd
-} from '../utils/multiMonthBulkTransactions';
+import { validateMultiMonthBulkAdd } from '../utils/multiMonthBulkTransactions';
+import { MAX_TRANSACTIONS_PER_MONTH } from '../utils/transactionLimits';
 import type { MultiMonthBulkTransactionDraft } from '../utils/multiMonthBulkTransactions';
 import AlertModal from './AlertModal';
 
@@ -143,21 +141,20 @@ const MultiMonthBulkTransactionModal: React.FC<MultiMonthBulkTransactionModalPro
       monthsByKey,
       activeMonthKey,
       activeMonthDays,
-      MAX_TRANSACTIONS_PER_DAY
+      MAX_TRANSACTIONS_PER_MONTH
     );
 
     if (!validation.ok) {
       const lines = validation.errors.map((err) => {
         const label = monthLabels[err.monthKey] || err.monthKey;
-        return t('multiMonthBulk.errorDayLimit', {
+        return t('multiMonthBulk.errorMonthLimit', {
           month: label,
-          day: err.resolvedDay,
           existing: err.existing,
           adding: err.adding,
-          max: MAX_TRANSACTIONS_PER_DAY
+          max: err.max
         });
       });
-      setAlertMessage(lines.join('\n'));
+      setAlertMessage([t('transactionLimit.batchBlocked'), ...lines].join('\n'));
       setShowAlertModal(true);
       return;
     }

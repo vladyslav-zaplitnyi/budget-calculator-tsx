@@ -50,7 +50,7 @@ interface MonthlyPlannerProps {
   readOnly?: boolean;
 }
 
-const MAX_TRANSACTIONS_PER_MONTH = 30;
+const MAX_PLANNED_TRANSACTIONS_PER_MONTH = 30;
 
 interface PendingNavigation {
   year: number;
@@ -239,7 +239,7 @@ const MonthlyPlanner = forwardRef<MonthlyPlannerHandle, MonthlyPlannerProps>(fun
     const updates: Record<string, Transaction[]> = {};
     monthKeys.forEach((key) => {
       const existing = Array.isArray(monthlyPlans[key]) ? monthlyPlans[key] : [];
-      if (existing.length >= MAX_TRANSACTIONS_PER_MONTH) return;
+      if (existing.length >= MAX_PLANNED_TRANSACTIONS_PER_MONTH) return;
       const newTx: Transaction = {
         id: generateTransactionId(),
         type: data.type,

@@ -5,6 +5,8 @@ export interface Transaction {
   currency: string;
   description: string;
   date?: Date | string; // Optional for backwards compatibility
+  /** ID категорії зі статичного списку (utils/categories.ts). Відсутнє = без категорії. */
+  category?: string;
 }
 
 export interface Day {

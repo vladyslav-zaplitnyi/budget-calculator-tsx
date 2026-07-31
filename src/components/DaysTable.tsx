@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   calculateDayBalance,
@@ -10,9 +10,15 @@ import { getCurrencyInfo, getCurrencySymbol, getCurrencyName } from '../utils/cu
 import TransactionModal from './TransactionModal';
 import AlertModal from './AlertModal';
 import { generateTransactionId } from '../utils/dayHelpers';
+import { getCategoryEmoji } from '../utils/categories';
 import { Day, ExchangeRates, Transaction } from '../types';
 import CurrencyFlag from './CurrencyFlag';
 import { capitalizeFirstLetter, getWeekdayShortName, getDaysInMonth } from '../utils/dateHelpers';
+import {
+  MAX_TRANSACTIONS_PER_MONTH,
+  canAddToMonth,
+  countTransactionsInDays
+} from '../utils/transactionLimits';
 
 interface DaysTableProps {
   isUk: boolean;
@@ -52,22 +58,21 @@ const DaysTable: React.FC<DaysTableProps> = ({
   const [showAlertModal, setShowAlertModal] = useState(false);
   const [alertMessage, setAlertMessage] = useState('');
 
-  const MAX_TRANSACTIONS = 5;
-  
   // Отримуємо реальну кількість днів у місяці
   const daysInMonth = getDaysInMonth(budgetYear, budgetMonth);
   
   // Фільтруємо дні, щоб показати тільки реальні дні місяця
   const visibleDays = days.slice(0, daysInMonth);
 
+  const monthTransactionCount = useMemo(() => countTransactionsInDays(days), [days]);
+
   const handleAddTransaction = (dayIndex: number) => {
     if (readOnly) return;
     const day = days[dayIndex];
     if (!day) return;
-    const transactionCount = Array.isArray(day.transactions) ? day.transactions.length : 0;
-    
-    if (transactionCount >= MAX_TRANSACTIONS) {
-      setAlertMessage(translate('transaction.maxTransactions'));
+
+    if (!canAddToMonth(monthTransactionCount)) {
+      setAlertMessage(translate('transactionLimit.reached', { max: MAX_TRANSACTIONS_PER_MONTH }));
       setShowAlertModal(true);
       return;
     }
@@ -116,6 +121,11 @@ const DaysTable: React.FC<DaysTableProps> = ({
       }
     } else {
       // Додаємо нову транзакцію
+      if (!canAddToMonth(monthTransactionCount)) {
+        setAlertMessage(translate('transactionLimit.reached', { max: MAX_TRANSACTIONS_PER_MONTH }));
+        setShowAlertModal(true);
+        return;
+      }
       currentTransactions.push({
         ...transactionData,
         id: transactionData.id || generateTransactionId()
@@ -144,7 +154,7 @@ const DaysTable: React.FC<DaysTableProps> = ({
         }`}
         title={`${t.amount} ${t.currency}: ${t.description}`}
       >
-        {emojiMap[t.type] || '•'} {t.description.length > 15 ? t.description.substring(0, 15) + '...' : t.description}
+        {emojiMap[t.type] || '•'} {getCategoryEmoji(t.category) ? `${getCategoryEmoji(t.category)} ` : ''}{t.description.length > 15 ? t.description.substring(0, 15) + '...' : t.description}
       </span>
     ));
   };
@@ -238,7 +248,6 @@ const DaysTable: React.FC<DaysTableProps> = ({
               
               const transactions = Array.isArray(day.transactions) ? day.transactions : [];
               const transactionCount = transactions.length;
-              const canAddMore = transactionCount < MAX_TRANSACTIONS;
 
               return (
                 <tr 
@@ -270,18 +279,12 @@ const DaysTable: React.FC<DaysTableProps> = ({
                       </div>
                       
                       {/* Кнопка додавання транзакції */}
-                      {canAddMore ? (
-                        <button
-                          onClick={() => handleAddTransaction(index)}
-                          className="days-table-add-btn w-full px-2 py-1 text-xs bg-blue-500 !text-white rounded-lg hover:bg-blue-600 transition-colors font-semibold"
-                        >
-                          {translate('days.addTransaction')}
-                        </button>
-                      ) : (
-                        <div className="w-full px-2 py-1 text-xs bg-gray-200 text-gray-600 rounded-lg text-center">
-                          {translate('transaction.maxTransactionsShort')}
-                        </div>
-                      )}
+                      <button
+                        onClick={() => handleAddTransaction(index)}
+                        className="days-table-add-btn w-full px-2 py-1 text-xs bg-blue-500 !text-white rounded-lg hover:bg-blue-600 transition-colors font-semibold"
+                      >
+                        {translate('days.addTransaction')}
+                      </button>
                       
                       {/* Список транзакцій для редагування */}
                       {transactions.length > 0 && (
@@ -292,7 +295,7 @@ const DaysTable: React.FC<DaysTableProps> = ({
                               className="flex items-center justify-between text-xs bg-gray-50 p-1 rounded"
                             >
                               <span className="flex-1 truncate">
-                                {t.type === 'income' ? '✅' : '❌'} {t.amount} {t.currency}: {t.description}
+                                {t.type === 'income' ? '✅' : '❌'} {t.amount} {t.currency}: {getCategoryEmoji(t.category) ? `${getCategoryEmoji(t.category)} ` : ''}{t.description}
                               </span>
                               <div className="flex gap-1">
                                 <button
@@ -411,7 +414,6 @@ const DaysTable: React.FC<DaysTableProps> = ({
         onSave={handleSaveTransaction}
         transaction={modalState.transaction}
         isUk={isUk}
-        maxTransactions={MAX_TRANSACTIONS}
         selectedCurrencies={selectedCurrencies}
         currentBudgetYear={budgetYear}
         currentBudgetMonth={budgetMonth}

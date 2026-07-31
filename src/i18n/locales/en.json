@@ -253,8 +253,7 @@
   "bulkTransactions": {
     "button": "Add Transaction",
     "title": "Add Transaction",
-    "selectDays": "Select Days",
-    "errorMaxTransactions": "Days: {{days}} have max transactions"
+    "selectDays": "Select Days"
   },
   "multiMonthBulk": {
     "selectMonths": "Select months",
@@ -262,7 +261,7 @@
     "monthHint": "The transaction will be added on the selected days in each chosen month. If a month has fewer days (e.g. day 31 → 30 or 28/29), it lands on the last day of that month.",
     "dayHint": "Pick day numbers (1–31). In shorter months the day is shifted to the month's last day.",
     "willCreateCount": "Will create {{count}} transactions.",
-    "errorDayLimit": "{{month}}, day {{day}}: already {{existing}}, adding {{adding}} (max {{max}})"
+    "errorMonthLimit": "{{month}}: already {{existing}}, adding {{adding}} (max {{max}})"
   },
   "transaction": {
     "add": "Add Transaction",
@@ -280,8 +279,56 @@
     "delete": "Delete",
     "amountError": "Enter a valid amount greater than 0",
     "descriptionError": "Enter transaction description",
-    "maxTransactions": "Maximum 5 transactions per day",
-    "maxTransactionsShort": "Max 5 transactions"
+    "category": "Category",
+    "noCategory": "No category"
+  },
+  "transactionLimit": {
+    "counter": "Transactions: {{count}} / {{max}}",
+    "counterHint": "Approaching the monthly limit.",
+    "counterFullHint": "Monthly limit reached — delete or merge entries to add more.",
+    "reached": "Monthly transaction limit ({{max}}) reached. To save space, please review or delete older entries.",
+    "batchBlocked": "Cannot add these transactions — the monthly limit would be exceeded.",
+    "batchWouldExceed": "Cannot add {{adding}} transactions: this month already has {{existing}} of {{max}}. Review or delete older entries first.",
+    "importTruncated": "⚠️ Monthly limit of {{max}} transactions reached — {{count}} imported transactions were skipped."
+  },
+  "csvImport": {
+    "title": "Import transactions from CSV",
+    "importButtonLabel": "📄 Import expenses from CSV (statement)",
+    "importButtonHint": "Supports Monobank statements and other CSVs with \"date / description / amount\" columns. Transactions are added to the current budget month.",
+    "fileLabel": "File:",
+    "detectedSummary": "Found {{count}} transactions for {{month}}",
+    "otherMonthNote": "{{count}} more transactions are outside {{month}} — they will not be imported",
+    "skippedRows": "Skipped rows (no date or amount): {{count}}",
+    "duplicatesSkippedNote": "Skipped {{count}} already in the budget — only new ones will be imported",
+    "allDuplicates": "All {{count}} transactions for {{month}} are already in the budget — nothing new to import.",
+    "unknownCurrencyWarning": "Warning: currency {{currencies}} is not among the selected budget currencies. Add it in settings, otherwise the amounts will not be included in totals.",
+    "nothingForMonth": "The file has no transactions for {{month}}. Switch the budget month or pick another file.",
+    "dayHeader": "Day {{day}}",
+    "dayCounter": "{{total}} transactions",
+    "monthCounter": "After import this month will have {{total}} of {{max}} transactions",
+    "existingLabel": "Already in budget ({{count}})",
+    "newLabel": "From file",
+    "mergeDay": "Merge {{count}} into one",
+    "unmerge": "Split",
+    "mergeExisting": "Merge existing ({{count}})",
+    "unmergeExisting": "Split existing",
+    "autoMergedNote": "Transactions with the same name within a day were merged automatically (−{{count}})",
+    "autoMergedRowTitle": "Automatically merged {{count}} transactions with the same name",
+    "overMonthLimitHint": "uncheck some rows or merge transactions to fit.",
+    "mergeAllDays": "Merge transactions of all days",
+    "mergedDescription": "Merged {{count}} transactions",
+    "overMonthLimitError": "Cannot import. This will exceed the {{max}} transactions/month limit. Please select fewer rows.",
+    "importButton": "Import ({{count}})",
+    "importedMessage": "✅ Imported {{count}} transactions from CSV",
+    "errorNoColumns": "Could not detect CSV columns. At least date and amount columns are required.",
+    "errorEmpty": "No transactions found in the file.",
+    "noCategory": "No category",
+    "categoryTitle": "Transaction category",
+    "nameCategoriesTitle": "Categories by name",
+    "nameCategoriesHint": "Pick a category once — it will be applied to every transaction with that name across all days.",
+    "applyToAllRows": "All transactions from the file",
+    "nameGroupMeta": "{{count}} tx · {{days}} days",
+    "noRepeatedNames": "No repeated names in this file — set categories per row below."
   },
   "days": {
     "day": "Day",
@@ -345,6 +392,10 @@
     "categoryOther": "Other",
     "categoryNoDescription": "No description",
     "categoryTransactions": "trans.",
+    "categoryFilterLabel": "Category:",
+    "categoryFilterAll": "All (no filter)",
+    "categoryFilterNone": "No category",
+    "categoryFilterEmpty": "No expenses in this category",
     "weeklyBreakdown": "Weekly Spending Breakdown",
     "week": "Week",
     "weekShort": "Wk",

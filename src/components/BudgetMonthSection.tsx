@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import ConfirmModal from './ConfirmModal';
+import MonthTransactionCounter from './MonthTransactionCounter';
 import type { RollingMonthNavigationPreview } from '../types';
 import { simulateMonthsAfterNavigation } from '../utils/balanceWaterfall';
 
@@ -10,6 +11,7 @@ interface BudgetMonthSectionProps {
   setBudgetDate: (date: { year: number; month: number }) => void;
   rollingMonthPreview: RollingMonthNavigationPreview | null;
   readOnly: boolean;
+  monthTransactionCount: number;
 }
 
 const BudgetMonthSection: React.FC<BudgetMonthSectionProps> = ({
@@ -17,7 +19,8 @@ const BudgetMonthSection: React.FC<BudgetMonthSectionProps> = ({
   budgetMonth,
   setBudgetDate,
   rollingMonthPreview,
-  readOnly
+  readOnly,
+  monthTransactionCount
 }) => {
   const { t } = useTranslation();
   const [draftYear, setDraftYear] = useState(budgetYear);
@@ -127,6 +130,7 @@ const BudgetMonthSection: React.FC<BudgetMonthSectionProps> = ({
           <p className="w-full max-w-none text-sm text-gray-600 mt-2 leading-relaxed">
             {t('settings.budgetMonth.tooltip')}
           </p>
+          <MonthTransactionCounter count={monthTransactionCount} className="mt-3" />
         </div>
 
         <div className="mt-4 w-full flex flex-col sm:flex-row sm:flex-wrap sm:items-end gap-3 sm:gap-4">
