@@ -233,7 +233,7 @@
     }
   },
   "budgetStatus": {
-    "title": "Current budget status",
+    "title": "Current budget status {{month}}",
     "balance": "balance",
     "totalValue": "Total value",
     "selectDisplayCurrency": "Select display currency",
@@ -261,6 +261,29 @@
     "dayHint": "Pick day numbers (1–31). In shorter months the day is shifted to the month's last day.",
     "willCreateCount": "Will create {{count}} transactions.",
     "errorMonthLimit": "{{month}}: already {{existing}}, adding {{adding}} (max {{max}})"
+  },
+  "budgetForecast": {
+    "button": "Forecast budget",
+    "title": "Forecast budget",
+    "subtitle": "Copy recurring transactions from existing months into the ones you pick. Review duplicates first; one-off items are listed below.",
+    "selectTargetMonths": "Months to fill",
+    "monthHint": "If a month already has the same transaction (type, currency, description, and day), it will not be added again.",
+    "selectAtLeastOneMonth": "Select at least one month",
+    "selectAtLeastOneTx": "Select at least one transaction",
+    "selectTx": "Select transaction",
+    "recurringTitle": "Recurring (duplicates)",
+    "recurringHint": "Same type, currency, description, and day in multiple months — selected by default. The same name on different days counts as separate items.",
+    "uniqueTitle": "No duplicates",
+    "uniqueHint": "All other transactions from every month (including the same name on different days) — not selected by default.",
+    "emptyGroup": "No transactions in this group",
+    "seenInMonths": "in {{count}} mo.",
+    "edit": "Edit",
+    "dayError": "Day must be between 1 and 31",
+    "willCreateCount": "Will add {{count}} transactions.",
+    "willSkipCount": "Skipping {{count}} (already present).",
+    "nothingToAdd": "Nothing to add — these transactions already exist in the selected months.",
+    "apply": "Add to months",
+    "successMessage": "Added {{added}} transactions. Skipped (already present): {{skipped}}."
   },
   "transaction": {
     "add": "Add Transaction",
@@ -581,6 +604,7 @@
     "create": "Create",
     "cancel": "Cancel",
     "save": "Save",
+    "done": "Done",
     "expand": "Expand",
     "collapse": "Collapse"
   },
@@ -591,6 +615,7 @@
     "months": "12 months",
     "monthsHint": "Income and expenses per month — tap a month to open the daily view",
     "monthsReadOnlyHint": "Each month shows its own transactions from saved data. Tap a month to open the day-by-day view.",
+    "endBalance": "Balance",
     "emptyMonthTap": "No data yet — opens empty month"
   },
   "monthlyPlanner": {

@@ -19,11 +19,13 @@ import ConfirmModal from './ConfirmModal';
 import CurrencyFlag from './CurrencyFlag';
 import BulkTransactionModal from './BulkTransactionModal';
 import MultiMonthBulkTransactionModal from './MultiMonthBulkTransactionModal';
+import BudgetForecastModal from './BudgetForecastModal';
 import CsvImportModal from './CsvImportModal';
 import { parseTransactionsCsv, CsvParseResult } from '../utils/csvImport';
 import { TOUR_EXPAND_SECTIONS_EVENT } from './GuidedTour';
 import type { ClearDaysScope } from '../hooks/useBudgetSettings';
 import type { MultiMonthBulkTransactionDraft } from '../utils/multiMonthBulkTransactions';
+import type { ForecastCopyDraft } from '../utils/budgetForecast';
 
 interface SettingsCardProps {
   isUk: boolean;
@@ -66,6 +68,7 @@ interface SettingsCardProps {
   monthsByKey?: Record<string, MonthSlice>;
   activeMonthKey?: string;
   onBulkAddTransactionsToMonths?: (draft: MultiMonthBulkTransactionDraft) => void;
+  onForecastCopyToMonths?: (draft: ForecastCopyDraft) => void;
   readOnly?: boolean;
 }
 
@@ -109,6 +112,7 @@ const SettingsCard: React.FC<SettingsCardProps> = ({
   monthsByKey,
   activeMonthKey = '',
   onBulkAddTransactionsToMonths,
+  onForecastCopyToMonths,
   readOnly = false
 }) => {
   const { t, i18n: i18nInstance } = useTranslation();
@@ -233,6 +237,7 @@ const SettingsCard: React.FC<SettingsCardProps> = ({
   });
   const [showRecurringModal, setShowRecurringModal] = useState(false);
   const [showMultiMonthModal, setShowMultiMonthModal] = useState(false);
+  const [showForecastModal, setShowForecastModal] = useState(false);
 
   // Імпорт транзакцій з CSV-виписки (Monobank або сумісний формат)
   const csvFileInputRef = React.useRef<HTMLInputElement>(null);
@@ -926,12 +931,12 @@ const SettingsCard: React.FC<SettingsCardProps> = ({
 
         {/* Очищення даних */}
         <div className="space-y-2 sm:space-y-4">
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-4">
+          <div className="flex flex-col sm:flex-row sm:flex-wrap items-stretch sm:items-center gap-2 sm:gap-4">
             <button
               onClick={() =>
                 handleClearAllDays(budgetViewMode === 'months' ? 'all-months' : 'current-month')
               }
-              className="w-full px-4 sm:px-6 py-3 rounded-xl font-bold transition-all text-sm sm:text-base bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white shadow-lg hover:shadow-xl active:scale-95"
+              className="w-full sm:flex-1 min-w-[10rem] px-4 sm:px-6 py-3 rounded-xl font-bold transition-all text-sm sm:text-base bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white shadow-lg hover:shadow-xl active:scale-95"
             >
               {budgetViewMode === 'months'
                 ? t('settings.clearAllDays')
@@ -951,7 +956,7 @@ const SettingsCard: React.FC<SettingsCardProps> = ({
                   ? !onBulkAddTransactionsToMonths || readOnly
                   : !updateDay || !days || days.length === 0
               }
-              className={`w-full px-4 sm:px-6 py-3 rounded-xl font-bold transition-all text-sm sm:text-base text-white shadow-lg hover:shadow-xl active:scale-95 ${
+              className={`w-full sm:flex-1 min-w-[10rem] px-4 sm:px-6 py-3 rounded-xl font-bold transition-all text-sm sm:text-base text-white shadow-lg hover:shadow-xl active:scale-95 ${
                 budgetViewMode === 'months'
                   ? onBulkAddTransactionsToMonths && !readOnly
                     ? 'bg-emerald-500 hover:bg-emerald-600'
@@ -964,6 +969,20 @@ const SettingsCard: React.FC<SettingsCardProps> = ({
             >
               <span className="mr-2">➕</span>
               {t('transaction.add')}
+            </button>
+            <button
+              type="button"
+              onClick={() => setShowForecastModal(true)}
+              disabled={!onForecastCopyToMonths || readOnly}
+              className={`w-full sm:flex-1 min-w-[10rem] px-4 sm:px-6 py-3 rounded-xl font-bold transition-all text-sm sm:text-base text-white shadow-lg hover:shadow-xl active:scale-95 ${
+                onForecastCopyToMonths && !readOnly
+                  ? 'bg-indigo-500 hover:bg-indigo-600'
+                  : 'bg-gray-400 cursor-not-allowed'
+              }`}
+              title={t('budgetForecast.button')}
+            >
+              <span className="mr-2">📅</span>
+              {t('budgetForecast.button')}
             </button>
           </div>
         </div>
@@ -1009,6 +1028,17 @@ const SettingsCard: React.FC<SettingsCardProps> = ({
         isOpen={showMultiMonthModal && budgetViewMode === 'months'}
         onClose={() => setShowMultiMonthModal(false)}
         onSave={(draft) => onBulkAddTransactionsToMonths?.(draft)}
+        monthsByKey={monthsByKey}
+        activeMonthKey={activeMonthKey}
+        activeMonthDays={days}
+        selectedCurrencies={selectedCurrencies}
+        isUk={isUk}
+      />
+
+      <BudgetForecastModal
+        isOpen={showForecastModal}
+        onClose={() => setShowForecastModal(false)}
+        onSave={(draft) => onForecastCopyToMonths?.(draft)}
         monthsByKey={monthsByKey}
         activeMonthKey={activeMonthKey}
         activeMonthDays={days}

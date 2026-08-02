@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
 import { Day, MonthSlice } from '../types';
 import { sanitizeNumberInput } from '../utils/calculations';
+import { TRANSACTION_CATEGORIES } from '../utils/categories';
 import { AVAILABLE_CURRENCIES, getCurrencyName } from '../utils/currencies';
 import { capitalizeFirstLetter, getMonthYearLabel } from '../utils/dateHelpers';
 import { getDefaultOverviewWindow } from '../utils/rollingMonthsBudget';
@@ -43,6 +44,7 @@ const MultiMonthBulkTransactionModal: React.FC<MultiMonthBulkTransactionModalPro
   const [amount, setAmount] = useState('');
   const [currency, setCurrency] = useState(selectedCurrencies[0] || 'UAH');
   const [description, setDescription] = useState('');
+  const [category, setCategory] = useState('');
   const [selectedMonthKeys, setSelectedMonthKeys] = useState<Set<string>>(new Set());
   const [selectedDays, setSelectedDays] = useState<Set<number>>(new Set());
   const [showAlertModal, setShowAlertModal] = useState(false);
@@ -64,6 +66,7 @@ const MultiMonthBulkTransactionModal: React.FC<MultiMonthBulkTransactionModalPro
     setAmount('');
     setCurrency(selectedCurrencies[0] || 'UAH');
     setDescription('');
+    setCategory('');
     setSelectedMonthKeys(new Set());
     setSelectedDays(new Set());
     setShowAlertModal(false);
@@ -164,6 +167,7 @@ const MultiMonthBulkTransactionModal: React.FC<MultiMonthBulkTransactionModalPro
       amount: numAmount,
       currency: currency.toUpperCase(),
       description: description.trim(),
+      ...(category ? { category } : {}),
       monthKeys: selectedMonthsSorted,
       days: selectedDaysSorted
     });
@@ -281,6 +285,24 @@ const MultiMonthBulkTransactionModal: React.FC<MultiMonthBulkTransactionModalPro
               required
               maxLength={100}
             />
+          </div>
+
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-2">
+              {t('transaction.category')}
+            </label>
+            <select
+              value={category}
+              onChange={(e) => setCategory(e.target.value)}
+              className="w-full px-4 py-2 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            >
+              <option value="">{t('transaction.noCategory')}</option>
+              {TRANSACTION_CATEGORIES.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.emoji} {locale === 'uk' ? c.name.uk : c.name.en}
+                </option>
+              ))}
+            </select>
           </div>
 
           <div>

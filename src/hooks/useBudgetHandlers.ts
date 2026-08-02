@@ -48,6 +48,7 @@ export function useBudgetHandlers() {
     handleExchangeRateChange: budgetSettings.handleExchangeRateChange,
     handleStartBalanceChange: budgetSettings.handleStartBalanceChange,
     handleBulkAddTransactionsToMonths: budgetSettings.handleBulkAddTransactionsToMonths,
+    handleForecastCopyToMonths: budgetSettings.handleForecastCopyToMonths,
     
     // Encryption
     handleEnableEncryptionClick: budgetSettings.handleEnableEncryptionClick,

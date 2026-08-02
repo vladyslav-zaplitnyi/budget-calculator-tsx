@@ -219,18 +219,23 @@ const MonthlyPlanner = forwardRef<MonthlyPlannerHandle, MonthlyPlannerProps>(fun
     if (modal.editing) {
       const { monthKey, transaction } = modal.editing;
       const existing = Array.isArray(monthlyPlans[monthKey]) ? monthlyPlans[monthKey] : [];
-      const next = existing.map((tx) =>
-        tx.id === transaction.id
-          ? ({
-            ...tx,
-            type: data.type,
-            amount: data.amount,
-            currency: data.currency,
-            description: data.description,
-            id: transaction.id
-          } as Transaction)
-          : tx
-      );
+      const next = existing.map((tx) => {
+        if (tx.id !== transaction.id) return tx;
+        const updated: Transaction = {
+          ...tx,
+          type: data.type,
+          amount: data.amount,
+          currency: data.currency,
+          description: data.description,
+          id: transaction.id
+        };
+        if (data.category) {
+          updated.category = data.category;
+        } else {
+          delete updated.category;
+        }
+        return updated;
+      });
       updateMonthlyPlan(monthKey, next);
       return;
     }
@@ -245,7 +250,8 @@ const MonthlyPlanner = forwardRef<MonthlyPlannerHandle, MonthlyPlannerProps>(fun
         type: data.type,
         amount: data.amount,
         currency: data.currency,
-        description: data.description
+        description: data.description,
+        ...(data.category ? { category: data.category } : {})
       };
       updates[key] = [...existing, newTx];
     });

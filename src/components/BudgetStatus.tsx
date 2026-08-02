@@ -229,11 +229,15 @@ const BudgetStatus: React.FC<BudgetStatusProps> = ({
   const selectedPlannerBalance = selectedPlannerRow?.balance ?? null;
   const isEndOfPlannerWindow = plannerMonthCount > 0 && selectedPlannerMonthSlot === plannerMonthCount;
 
+  const selectedBudgetMonthLabel = capitalizeFirstLetter(
+    getMonthYearLabel(i18nInstance.language || 'en', budgetYear, budgetMonth)
+  );
+
   return (
     <div className="bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 rounded-2xl shadow-xl p-4 sm:p-6 mb-4 sm:mb-6 border border-indigo-100 transition-all hover:shadow-2xl">
       <h2 className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-800 mb-4 flex items-center font-display tracking-tight">
         <span className="mr-2 text-2xl">📊</span>
-        {t('budgetStatus.title')}
+        {t('budgetStatus.title', { month: selectedBudgetMonthLabel })}
       </h2>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         {selectedCurrencies.map((currencyCode, index) => {

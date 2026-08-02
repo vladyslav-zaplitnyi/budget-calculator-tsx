@@ -21,6 +21,11 @@ import {
   applyMultiMonthBulkAdd,
   validateMultiMonthBulkAdd
 } from '../utils/multiMonthBulkTransactions';
+import {
+  applyForecastCopy,
+  validateForecastCopy
+} from '../utils/budgetForecast';
+import type { ForecastCopyDraft } from '../utils/budgetForecast';
 import { MAX_TRANSACTIONS_PER_MONTH } from '../utils/transactionLimits';
 import type { MultiMonthBulkTransactionDraft } from '../utils/multiMonthBulkTransactions';
 
@@ -831,6 +836,102 @@ export function useBudgetSettings() {
     ]
   );
 
+  const handleForecastCopyToMonths = useCallback(
+    (draft: ForecastCopyDraft) => {
+      if (user && isCurrentBookReadOnly) {
+        setAlertMessage(translate('budgetBook.readOnlyActionBlocked'));
+        setAlertType('warning');
+        setShowAlertModal(true);
+        return;
+      }
+
+      const currentId = activeBudgetId || 'default';
+      const safePrev = budgets || {};
+      const existingBudget = safePrev[currentId];
+      if (!existingBudget) return;
+
+      const budgetDate = existingBudget.budgetDate || {
+        year: new Date().getFullYear(),
+        month: new Date().getMonth()
+      };
+      const activeMonthKey = monthKeyFromBudgetDate(budgetDate.year, budgetDate.month);
+      const monthsByKey = existingBudget.monthsByKey || {};
+
+      const validation = validateForecastCopy(
+        draft,
+        monthsByKey,
+        activeMonthKey,
+        days,
+        MAX_TRANSACTIONS_PER_MONTH
+      );
+      if (!validation.ok) {
+        setAlertMessage(
+          translate('transactionLimit.reached', { max: MAX_TRANSACTIONS_PER_MONTH })
+        );
+        setAlertType('warning');
+        setShowAlertModal(true);
+        return;
+      }
+      if (validation.createCount === 0) {
+        setAlertMessage(translate('budgetForecast.nothingToAdd'));
+        setAlertType('info');
+        setShowAlertModal(true);
+        return;
+      }
+
+      const {
+        monthsByKey: nextMonthsByKey,
+        activeMonthDays,
+        addedCount,
+        skippedCount
+      } = applyForecastCopy(
+        validation.plan,
+        monthsByKey,
+        activeMonthKey,
+        days,
+        selectedCurrencies
+      );
+
+      const trimmedMonths = trimOldestMonthKeys(nextMonthsByKey);
+      const nextDays = activeMonthDays ?? days;
+
+      const draftBudget: Budget = {
+        ...existingBudget,
+        days: nextDays,
+        monthsByKey: trimmedMonths
+      };
+      const afterWaterfall = applyBalanceWaterfallToBudget(draftBudget);
+
+      const updatedBudgets: Budgets = {
+        ...safePrev,
+        [currentId]: { ...existingBudget, ...afterWaterfall }
+      };
+
+      setBudgets(updatedBudgets);
+      setDays(afterWaterfall.days || nextDays);
+      saveToLocalStorage(updatedBudgets, currentId);
+
+      setAlertMessage(
+        translate('budgetForecast.successMessage', {
+          added: addedCount,
+          skipped: skippedCount
+        })
+      );
+      setAlertType('success');
+      setShowAlertModal(true);
+    },
+    [
+      user,
+      isCurrentBookReadOnly,
+      activeBudgetId,
+      budgets,
+      days,
+      selectedCurrencies,
+      setBudgets,
+      setDays
+    ]
+  );
+
   return {
     handleClearAll,
     handleClearAllDays,
@@ -864,7 +965,8 @@ export function useBudgetSettings() {
     handleCancelClearAllDays,
     clearDaysScope,
     handleClearStartBalances,
-    handleBulkAddTransactionsToMonths
+    handleBulkAddTransactionsToMonths,
+    handleForecastCopyToMonths
   };
 }
 

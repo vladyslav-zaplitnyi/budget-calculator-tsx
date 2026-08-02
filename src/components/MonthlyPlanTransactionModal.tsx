@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
 import { Transaction } from '../types';
 import { sanitizeNumberInput } from '../utils/calculations';
+import { TRANSACTION_CATEGORIES } from '../utils/categories';
 import { AVAILABLE_CURRENCIES, getCurrencyName } from '../utils/currencies';
 import { capitalizeFirstLetter, getMonthYearLabel } from '../utils/dateHelpers';
 import { PlannedMonth } from '../utils/monthlyPlan';
@@ -14,6 +15,7 @@ export interface MonthlyPlanTransactionDraft {
   amount: number;
   currency: string;
   description: string;
+  category?: string;
 }
 
 interface MonthlyPlanTransactionModalProps {
@@ -55,6 +57,7 @@ const MonthlyPlanTransactionModal: React.FC<MonthlyPlanTransactionModalProps> = 
   const [amount, setAmount] = useState('');
   const [currency, setCurrency] = useState(selectedCurrencies[0] || 'UAH');
   const [description, setDescription] = useState('');
+  const [category, setCategory] = useState('');
   const [selectedKeys, setSelectedKeys] = useState<string[]>([]);
   const [showAlertModal, setShowAlertModal] = useState(false);
   const [alertMessage, setAlertMessage] = useState('');
@@ -70,12 +73,14 @@ const MonthlyPlanTransactionModal: React.FC<MonthlyPlanTransactionModalProps> = 
       const txCurrency = transaction.currency || selectedCurrencies[0] || 'UAH';
       setCurrency(selectedCurrencies.includes(txCurrency) ? txCurrency : selectedCurrencies[0] || 'UAH');
       setDescription(transaction.description || '');
+      setCategory(transaction.category || '');
       setSelectedKeys(lockedMonthKey ? [lockedMonthKey] : []);
     } else {
       setType('expense');
       setAmount('');
       setCurrency(selectedCurrencies[0] || 'UAH');
       setDescription('');
+      setCategory('');
       const allowed = new Set(selectableMonths.map((m) => m.key));
       setSelectedKeys(defaultSelectedMonthKeys.filter((k) => allowed.has(k)));
     }
@@ -137,7 +142,8 @@ const MonthlyPlanTransactionModal: React.FC<MonthlyPlanTransactionModalProps> = 
         type,
         amount: numAmount,
         currency: currency.toUpperCase(),
-        description: description.trim()
+        description: description.trim(),
+        ...(category ? { category } : {})
       },
       targets
     );
@@ -253,6 +259,24 @@ const MonthlyPlanTransactionModal: React.FC<MonthlyPlanTransactionModalProps> = 
               required
               maxLength={100}
             />
+          </div>
+
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-2">
+              {t('transaction.category')}
+            </label>
+            <select
+              value={category}
+              onChange={(e) => setCategory(e.target.value)}
+              className="w-full px-4 py-2 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            >
+              <option value="">{t('transaction.noCategory')}</option>
+              {TRANSACTION_CATEGORIES.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.emoji} {locale === 'uk' ? c.name.uk : c.name.en}
+                </option>
+              ))}
+            </select>
           </div>
 
           <div>

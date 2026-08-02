@@ -109,6 +109,7 @@ export default function BudgetTracker() {
     handleExchangeRateChange,
     handleStartBalanceChange,
     handleBulkAddTransactionsToMonths,
+    handleForecastCopyToMonths,
     handleExportToJsonFile,
     handleImportFromJsonFile,
     handleJsonFileSelected,
@@ -512,6 +513,7 @@ export default function BudgetTracker() {
                     monthsByKey={activeBudgetData?.monthsByKey}
                     activeMonthKey={monthKeyFromBudgetDate(budgetDate.year, budgetDate.month)}
                     onBulkAddTransactionsToMonths={handleBulkAddTransactionsToMonths}
+                    onForecastCopyToMonths={handleForecastCopyToMonths}
                     readOnly={isCurrentBookReadOnly}
                   />
 

@@ -80,6 +80,7 @@ export interface BulkAddTransactionDraft {
   amount: number;
   currency: string;
   description: string;
+  category?: string;
 }
 
 export interface MultiMonthBulkTransactionDraft extends BulkAddTransactionDraft {
@@ -133,7 +134,8 @@ export function applyMultiMonthBulkAdd(
         type: draft.type,
         amount: draft.amount,
         currency: draft.currency,
-        description: draft.description
+        description: draft.description,
+        ...(draft.category ? { category: draft.category } : {})
       };
       transactions.push(newTx);
       days = [...days];

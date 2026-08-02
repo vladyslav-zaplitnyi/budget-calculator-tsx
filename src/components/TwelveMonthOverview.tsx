@@ -1,7 +1,10 @@
 import React, { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { Budget, ExchangeRates } from '../types';
-import { getDefaultOverviewWindow } from '../utils/rollingMonthsBudget';
+import {
+  computeSliceEndBalanceDisplay,
+  getDefaultOverviewWindow
+} from '../utils/rollingMonthsBudget';
 import { calculateTotals, convertCurrency, formatNumber } from '../utils/calculations';
 import { getCurrencySymbol } from '../utils/currencies';
 import { capitalizeFirstLetter, getMonthYearLabel } from '../utils/dateHelpers';
@@ -44,13 +47,21 @@ export default function TwelveMonthOverview({
       });
 
       const net = income - expense;
+      const balance = computeSliceEndBalanceDisplay(
+        slice,
+        year,
+        month,
+        selectedCurrencies,
+        displayCurrency,
+        exchangeRates
+      );
       const label = capitalizeFirstLetter(getMonthYearLabel(locale, year, month));
       const txCount = days.reduce(
         (sum, d) => sum + (Array.isArray(d.transactions) ? d.transactions.length : 0),
         0
       );
 
-      return { key, year, month, label, income, expense, net, hasSlice: !!slice, txCount };
+      return { key, year, month, label, income, expense, net, balance, hasSlice: !!slice, txCount };
     });
   }, [activeBudget?.monthsByKey, windowMonths, selectedCurrencies, displayCurrency, exchangeRates, locale]);
 
@@ -106,6 +117,17 @@ export default function TwelveMonthOverview({
                   {row.net >= 0 ? '+' : ''}
                   {symbol}
                   {formatNumber(row.net, 2)}
+                </span>
+              </div>
+              <div className="flex justify-between gap-2 pt-1 border-t border-slate-200">
+                <span className="font-medium text-slate-700">{t('budgetView.endBalance')}</span>
+                <span
+                  className={`font-extrabold ${
+                    row.balance >= 0 ? 'text-indigo-700' : 'text-rose-700'
+                  }`}
+                >
+                  {symbol}
+                  {formatNumber(row.balance, 2)}
                 </span>
               </div>
             </div>
