@@ -5,6 +5,7 @@ import { convertCurrency, formatNumber, calculateDayAmountsFromTransactions } fr
 import { getDaysInMonth } from '../utils/dateHelpers';
 import { Day, ExchangeRates, MonthSlice } from '../types';
 import CurrencyFlag from './CurrencyFlag';
+import InfoTip from './InfoTip';
 import {
   buildTwelveMonthBalanceRows,
   OverviewMonthBalanceRow
@@ -235,9 +236,10 @@ const BudgetStatus: React.FC<BudgetStatusProps> = ({
 
   return (
     <div className="bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 rounded-2xl shadow-xl p-4 sm:p-6 mb-4 sm:mb-6 border border-indigo-100 transition-all hover:shadow-2xl">
-      <h2 className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-800 mb-4 flex items-center font-display tracking-tight">
+      <h2 className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-800 mb-4 flex items-center gap-2 font-display tracking-tight">
         <span className="mr-2 text-2xl">📊</span>
-        {t('budgetStatus.title', { month: selectedBudgetMonthLabel })}
+        <span className="min-w-0">{t('budgetStatus.title', { month: selectedBudgetMonthLabel })}</span>
+        <InfoTip text={t('infoTips.budgetStatus')} />
       </h2>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         {selectedCurrencies.map((currencyCode, index) => {
@@ -272,8 +274,9 @@ const BudgetStatus: React.FC<BudgetStatusProps> = ({
         {/* Total in Display Currency */}
         <div className="bg-gradient-to-br from-indigo-500 to-violet-600 p-4 rounded-xl shadow-lg border-2 border-indigo-300 hover:border-indigo-400 hover:shadow-2xl transition-all !text-white relative">
           <div className="flex items-center justify-between mb-2">
-            <p className="text-xs sm:text-sm font-semibold font-display tracking-tight !text-white ">
+            <p className="text-xs sm:text-sm font-semibold font-display tracking-tight !text-white flex items-center gap-1.5">
               {t('budgetStatus.totalValue')}
+              <InfoTip text={t('infoTips.totalValue')} tone="onDark" />
             </p>
             <span className="text-xl">💎</span>
           </div>
@@ -380,8 +383,9 @@ const BudgetStatus: React.FC<BudgetStatusProps> = ({
             <div className="flex items-center gap-3 flex-1 min-w-0">
               <span className="text-lg flex-shrink-0">📅</span>
               <div className="flex-1 min-w-0">
-                <label className="block text-xs font-semibold text-gray-600 mb-1">
+                <label className="flex items-center gap-1.5 text-xs font-semibold text-gray-600 mb-1">
                   {t('budgetStatus.selectDay')}
+                  <InfoTip text={t('infoTips.selectDay')} />
                 </label>
                 <div className="flex items-center gap-2">
                   <input
@@ -422,8 +426,9 @@ const BudgetStatus: React.FC<BudgetStatusProps> = ({
             <div className="flex items-center gap-3 flex-1 min-w-0">
               <span className="text-lg flex-shrink-0">📅</span>
               <div className="flex-1 min-w-0">
-                <label className="block text-xs font-semibold text-gray-600 mb-1">
+                <label className="flex items-center gap-1.5 text-xs font-semibold text-gray-600 mb-1">
                   {t('budgetStatus.selectMonth')}
+                  <InfoTip text={t('infoTips.selectMonth')} />
                 </label>
                 <div className="flex items-center gap-2">
                   <input
@@ -471,25 +476,25 @@ const BudgetStatus: React.FC<BudgetStatusProps> = ({
       {/* Critical days — days mode */}
       {budgetViewMode === 'days' && criticalDays.length > 0 && (
         <div className="mt-3">
-          <button
-            type="button"
-            onClick={toggleCritical}
-            className="w-full flex items-center justify-between bg-gradient-to-r from-rose-50 to-orange-50 rounded-xl px-4 py-2.5 border border-rose-200 hover:border-rose-300 transition-all text-left"
-          >
-            <span className="flex items-center gap-2 text-xs sm:text-sm font-semibold text-rose-700">
-              <span>⚠️</span>
-              {t('budgetStatus.criticalDays')}
-            </span>
-            <span className="text-xs text-gray-500">
-              {isCriticalExpanded ? '▲' : '▼'}
-            </span>
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={toggleCritical}
+              className="flex-1 flex items-center justify-between bg-gradient-to-r from-rose-50 to-orange-50 rounded-xl px-4 py-2.5 border border-rose-200 hover:border-rose-300 transition-all text-left"
+            >
+              <span className="flex items-center gap-2 text-xs sm:text-sm font-semibold text-rose-700">
+                <span>⚠️</span>
+                {t('budgetStatus.criticalDays')}
+              </span>
+              <span className="text-xs text-gray-500">
+                {isCriticalExpanded ? '▲' : '▼'}
+              </span>
+            </button>
+            <InfoTip text={t('infoTips.criticalDays')} />
+          </div>
 
           {isCriticalExpanded && (
             <div className="mt-2 bg-white/80 rounded-xl border border-rose-100 p-3 space-y-2">
-              <p className="text-[10px] sm:text-xs text-gray-500 mb-2">
-                {t('budgetStatus.criticalDaysHint')}
-              </p>
               {criticalDays.map((cd) => (
                 <div
                   key={cd.day}
@@ -513,25 +518,25 @@ const BudgetStatus: React.FC<BudgetStatusProps> = ({
       {/* Critical months — 12-month plan mode */}
       {budgetViewMode === 'months' && criticalMonths.length > 0 && (
         <div className="mt-3">
-          <button
-            type="button"
-            onClick={toggleCriticalMonths}
-            className="w-full flex items-center justify-between bg-gradient-to-r from-rose-50 to-orange-50 rounded-xl px-4 py-2.5 border border-rose-200 hover:border-rose-300 transition-all text-left"
-          >
-            <span className="flex items-center gap-2 text-xs sm:text-sm font-semibold text-rose-700">
-              <span>⚠️</span>
-              {t('budgetStatus.criticalMonths')}
-            </span>
-            <span className="text-xs text-gray-500">
-              {isCriticalMonthsExpanded ? '▲' : '▼'}
-            </span>
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={toggleCriticalMonths}
+              className="flex-1 flex items-center justify-between bg-gradient-to-r from-rose-50 to-orange-50 rounded-xl px-4 py-2.5 border border-rose-200 hover:border-rose-300 transition-all text-left"
+            >
+              <span className="flex items-center gap-2 text-xs sm:text-sm font-semibold text-rose-700">
+                <span>⚠️</span>
+                {t('budgetStatus.criticalMonths')}
+              </span>
+              <span className="text-xs text-gray-500">
+                {isCriticalMonthsExpanded ? '▲' : '▼'}
+              </span>
+            </button>
+            <InfoTip text={t('infoTips.criticalMonths')} />
+          </div>
 
           {isCriticalMonthsExpanded && (
             <div className="mt-2 bg-white/80 rounded-xl border border-rose-100 p-3 space-y-2">
-              <p className="text-[10px] sm:text-xs text-gray-500 mb-2">
-                {t('budgetStatus.criticalMonthsHint')}
-              </p>
               {criticalMonths.map((cm) => {
                 const locale = i18nInstance.language || 'en';
                 const label = capitalizeFirstLetter(getMonthYearLabel(locale, cm.year, cm.month));

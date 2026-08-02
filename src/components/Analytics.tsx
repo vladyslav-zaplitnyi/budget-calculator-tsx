@@ -11,6 +11,7 @@ import {
 } from '../utils/budgetInsights';
 import { buildTwelveMonthBalanceRows } from '../utils/rollingMonthsBudget';
 import CurrencyFlag from './CurrencyFlag';
+import InfoTip from './InfoTip';
 import type { BudgetViewMode } from './BudgetViewToggle';
 import {
   TRANSACTION_CATEGORIES,
@@ -445,11 +446,11 @@ const Analytics: React.FC<AnalyticsProps> = ({
 
   return (
     <div className="bg-white/90 backdrop-blur rounded-2xl shadow-xl p-4 sm:p-6 mt-4 sm:mt-6 border border-gray-100">
-      <h2 className="text-lg sm:text-xl font-bold text-gray-800 mb-4 flex items-center font-display">
+      <h2 className="text-lg sm:text-xl font-bold text-gray-800 mb-4 flex items-center gap-2 font-display">
         <button
           type="button"
           onClick={toggleExpanded}
-          className="w-full flex items-center justify-between text-left"
+          className="flex-1 flex items-center justify-between text-left min-w-0"
           aria-expanded={isExpanded}
         >
           <span className="flex items-center min-w-0">
@@ -461,6 +462,7 @@ const Analytics: React.FC<AnalyticsProps> = ({
             <span aria-hidden>{isExpanded ? '▲' : '▼'}</span>
           </span>
         </button>
+        <InfoTip text={t('infoTips.analytics')} />
       </h2>
 
       {isExpanded && (
@@ -469,8 +471,9 @@ const Analytics: React.FC<AnalyticsProps> = ({
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3 mb-4">
         {/* Середні щоденні витрати */}
         <div className="bg-gradient-to-br from-orange-50 to-amber-100/70 p-3 sm:p-4 rounded-xl border-l-4 border-orange-400 shadow-md hover:shadow-lg transition-all">
-          <p className="text-[10px] sm:text-xs font-semibold text-gray-600 mb-1">
+          <p className="text-[10px] sm:text-xs font-semibold text-gray-600 mb-1 flex items-center gap-1">
             {t('analytics.avgDailyExpense')}
+            <InfoTip text={t('infoTips.avgDailyExpense')} />
           </p>
           <p className="text-base sm:text-xl font-bold text-orange-600 tabular-nums break-words overflow-hidden">
             {displaySymbol}{formatNumber(analytics.avgDailyExpense, 2)}
@@ -482,8 +485,9 @@ const Analytics: React.FC<AnalyticsProps> = ({
 
         {/* Прогнозований баланс */}
         <div className="bg-gradient-to-br from-cyan-50 to-sky-100/70 p-3 sm:p-4 rounded-xl border-l-4 border-cyan-500 shadow-md hover:shadow-lg transition-all">
-          <p className="text-[10px] sm:text-xs font-semibold text-gray-600 mb-1">
+          <p className="text-[10px] sm:text-xs font-semibold text-gray-600 mb-1 flex items-center gap-1">
             {t('analytics.projectedBalance')}
+            <InfoTip text={t('infoTips.projectedBalance')} />
           </p>
           <p className={`text-base sm:text-xl font-bold tabular-nums break-words overflow-hidden ${
             analytics.projectedEndBalance >= 0 ? 'text-emerald-600' : 'text-rose-600'
@@ -497,8 +501,9 @@ const Analytics: React.FC<AnalyticsProps> = ({
 
         {/* Дні без витрат */}
         <div className="bg-gradient-to-br from-green-50 to-emerald-100/70 p-3 sm:p-4 rounded-xl border-l-4 border-green-500 shadow-md hover:shadow-lg transition-all">
-          <p className="text-[10px] sm:text-xs font-semibold text-gray-600 mb-1">
+          <p className="text-[10px] sm:text-xs font-semibold text-gray-600 mb-1 flex items-center gap-1">
             {t('analytics.noSpendDays')}
+            <InfoTip text={t('infoTips.noSpendDays')} />
           </p>
           <p className="text-base sm:text-xl font-bold text-green-600 tabular-nums">
             {analytics.noSpendDayCount}
@@ -511,8 +516,9 @@ const Analytics: React.FC<AnalyticsProps> = ({
 
         {/* Рівень заощаджень */}
         <div className="bg-gradient-to-br from-violet-50 to-purple-100/70 p-3 sm:p-4 rounded-xl border-l-4 border-violet-500 shadow-md hover:shadow-lg transition-all">
-          <p className="text-[10px] sm:text-xs font-semibold text-gray-600 mb-1">
+          <p className="text-[10px] sm:text-xs font-semibold text-gray-600 mb-1 flex items-center gap-1">
             {t('analytics.savingsRate')}
+            <InfoTip text={t('infoTips.savingsRate')} />
           </p>
           <p className={`text-base sm:text-xl font-bold tabular-nums ${
             analytics.savingsRate >= 0 ? 'text-violet-600' : 'text-rose-600'
@@ -528,8 +534,9 @@ const Analytics: React.FC<AnalyticsProps> = ({
       {/* Ряд 2: Прогрес-бар витрати vs дохід */}
       <div className="bg-gradient-to-br from-slate-50 to-gray-100/70 p-4 rounded-xl border border-gray-200 shadow-sm mb-4">
         <div className="flex items-center justify-between mb-2">
-          <p className="text-xs sm:text-sm font-semibold text-gray-700">
+          <p className="text-xs sm:text-sm font-semibold text-gray-700 flex items-center gap-1.5">
             {t('analytics.spendingVsIncome')}
+            <InfoTip text={t('infoTips.spendingVsIncome')} />
           </p>
           <p className="text-xs sm:text-sm font-bold text-gray-700 tabular-nums">
             {analytics.spendingProgress.toFixed(1)}%
@@ -560,8 +567,9 @@ const Analytics: React.FC<AnalyticsProps> = ({
       {/* Ряд 3: Топ-5 найбільших витрат */}
       {analytics.topExpenses.length > 0 && (
         <div className="bg-gradient-to-br from-rose-50 to-pink-100/70 p-4 rounded-xl border border-rose-200 shadow-sm">
-          <h3 className="text-xs sm:text-sm font-bold text-gray-800 mb-3 flex items-center">
+          <h3 className="text-xs sm:text-sm font-bold text-gray-800 mb-3 flex items-center gap-1.5">
             <span className="mr-2">🏆</span> {t('analytics.topExpenses')}
+            <InfoTip text={t('infoTips.topExpenses')} />
           </h3>
           <div className="space-y-2">
             {analytics.topExpenses.map((expense, idx) => {
@@ -610,8 +618,9 @@ const Analytics: React.FC<AnalyticsProps> = ({
       {analytics.totalExpenseConverted > 0 && (
         <div className="bg-gradient-to-br from-amber-50 to-yellow-100/70 p-4 rounded-xl border border-amber-200 shadow-sm mt-4">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-3">
-            <h3 className="text-xs sm:text-sm font-bold text-gray-800 flex items-center">
+            <h3 className="text-xs sm:text-sm font-bold text-gray-800 flex items-center gap-1.5">
               <span className="mr-2">📦</span> {t('analytics.categoryBreakdown')}
+              <InfoTip text={t('infoTips.byCategory')} />
             </h3>
             <label className="flex items-center gap-2 text-xs text-gray-600">
               <span className="whitespace-nowrap font-semibold">{t('analytics.categoryFilterLabel')}</span>
@@ -700,9 +709,10 @@ const Analytics: React.FC<AnalyticsProps> = ({
       {/* Ряд 5: Тижневий розподіл витрат */}
       {analytics.weeks.length > 0 && analytics.totalExpenseConverted > 0 && (
         <div className="bg-gradient-to-br from-sky-50 to-blue-100/70 p-4 rounded-xl border border-sky-200 shadow-sm mt-4">
-          <h3 className="text-xs sm:text-sm font-bold text-gray-800 mb-3 flex items-center">
+          <h3 className="text-xs sm:text-sm font-bold text-gray-800 mb-3 flex items-center gap-1.5">
             <span className="mr-2">📅</span>{' '}
             {t(analytics.isTwelveMonthView ? 'analytics.monthlyBreakdown' : 'analytics.weeklyBreakdown')}
+            <InfoTip text={t('infoTips.weeklyBreakdown')} />
           </h3>
           <div className="space-y-3">
             {analytics.weeks.map((week, idx) => {

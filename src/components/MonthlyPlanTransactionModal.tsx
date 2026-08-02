@@ -8,6 +8,7 @@ import { AVAILABLE_CURRENCIES, getCurrencyName } from '../utils/currencies';
 import { capitalizeFirstLetter, getMonthYearLabel } from '../utils/dateHelpers';
 import { PlannedMonth } from '../utils/monthlyPlan';
 import AlertModal from './AlertModal';
+import InfoTip from './InfoTip';
 
 export interface MonthlyPlanTransactionDraft {
   id?: string;
@@ -281,10 +282,17 @@ const MonthlyPlanTransactionModal: React.FC<MonthlyPlanTransactionModalProps> = 
 
           <div>
             <div className="flex items-center justify-between mb-2">
-              <label className="block text-sm font-semibold text-gray-700">
+              <label className="flex items-center gap-1.5 text-sm font-semibold text-gray-700">
                 {isEditMode
                   ? t('monthlyPlanner.modal.forMonth')
                   : t('monthlyPlanner.modal.forMonths')}
+                <InfoTip
+                  text={
+                    isEditMode
+                      ? t('monthlyPlanner.modal.editLockHint')
+                      : t('infoTips.plannerMultiMonth')
+                  }
+                />
               </label>
               {!isEditMode && (
                 <div className="flex gap-2 text-xs">
@@ -305,11 +313,6 @@ const MonthlyPlanTransactionModal: React.FC<MonthlyPlanTransactionModalProps> = 
                 </div>
               )}
             </div>
-            <p className="text-[11px] text-gray-500 mb-2">
-              {isEditMode
-                ? t('monthlyPlanner.modal.editLockHint')
-                : t('monthlyPlanner.modal.multiMonthHint')}
-            </p>
             <div className="bg-gradient-to-br from-indigo-50 to-blue-50 rounded-lg p-2 border-2 border-indigo-200 max-h-56 overflow-y-auto">
               {selectableMonths.length === 0 ? (
                 <p className="text-sm text-gray-500 text-center py-4">

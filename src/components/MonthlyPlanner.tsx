@@ -15,6 +15,7 @@ import { generateTransactionId } from '../utils/dayHelpers';
 import { capitalizeFirstLetter, getMonthYearLabel } from '../utils/dateHelpers';
 import CurrencyFlag from './CurrencyFlag';
 import ConfirmModal from './ConfirmModal';
+import InfoTip from './InfoTip';
 import MonthlyPlanTransactionModal, {
   MonthlyPlanTransactionDraft
 } from './MonthlyPlanTransactionModal';
@@ -286,8 +287,9 @@ const MonthlyPlanner = forwardRef<MonthlyPlannerHandle, MonthlyPlannerProps>(fun
       <div className="bg-gradient-to-r from-indigo-600 via-blue-600 to-violet-600 p-4 sm:p-6 text-white">
         <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-3">
           <div>
-            <h2 className="text-lg sm:text-2xl font-extrabold font-display">
+            <h2 className="text-lg sm:text-2xl font-extrabold font-display flex items-center gap-2">
               {t('monthlyPlanner.title')}
+              <InfoTip text={t('infoTips.monthlyPlanner')} tone="onDark" />
             </h2>
             <p className="text-sm text-blue-100 mt-1">
               {t('monthlyPlanner.subtitle')}

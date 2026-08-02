@@ -16,6 +16,7 @@ import {
 } from '../utils/budgetForecast';
 import { MAX_TRANSACTIONS_PER_MONTH } from '../utils/transactionLimits';
 import AlertModal from './AlertModal';
+import InfoTip from './InfoTip';
 
 interface EditableRow extends ForecastCopyItem {
   /** Stable UI key (original fingerprint). */
@@ -392,14 +393,14 @@ const BudgetForecastModal: React.FC<BudgetForecastModalProps> = ({
   ) => (
     <div>
       <div className="flex items-center justify-between mb-2 gap-2 flex-wrap">
-        <div>
+        <div className="flex items-center gap-1.5 min-w-0">
           <h3 className="text-sm font-bold text-gray-800">
             {title}
             {groupRows.length > 0 && (
               <span className="ml-2 font-semibold text-gray-500">({groupRows.length})</span>
             )}
           </h3>
-          <p className="text-[11px] text-gray-500">{hint}</p>
+          <InfoTip text={hint} />
         </div>
         {groupRows.length > 0 && (
           <div className="flex gap-2 text-xs">
@@ -457,8 +458,9 @@ const BudgetForecastModal: React.FC<BudgetForecastModalProps> = ({
         <form onSubmit={handleSubmit} className="space-y-5">
           <div>
             <div className="flex items-center justify-between mb-2">
-              <label className="block text-sm font-semibold text-gray-700">
+              <label className="flex items-center gap-1.5 text-sm font-semibold text-gray-700">
                 {t('budgetForecast.selectTargetMonths')}
+                <InfoTip text={t('infoTips.forecastMonths')} />
               </label>
               <div className="flex gap-2 text-xs">
                 <button
@@ -477,7 +479,6 @@ const BudgetForecastModal: React.FC<BudgetForecastModalProps> = ({
                 </button>
               </div>
             </div>
-            <p className="text-[11px] text-gray-500 mb-2">{t('budgetForecast.monthHint')}</p>
             <div className="bg-gradient-to-br from-indigo-50 to-blue-50 rounded-lg p-2 border-2 border-indigo-200 max-h-40 overflow-y-auto">
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5">
                 {overviewMonths.map((m) => {

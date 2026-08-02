@@ -11,6 +11,7 @@ import { capitalizeFirstLetter, formatBudgetTransactionDate, getMonthYearLabel, 
 import { getCurrencySymbol } from '../utils/currencies';
 import { getDefaultOverviewWindow } from '../utils/rollingMonthsBudget';
 import CurrencyFlag from './CurrencyFlag';
+import InfoTip from './InfoTip';
 
 interface MultiMonthTransactionExplorerProps {
   monthsByKey: Record<string, MonthSlice> | undefined;
@@ -194,8 +195,9 @@ const MultiMonthTransactionExplorer: React.FC<MultiMonthTransactionExplorerProps
     <div className="bg-white/90 backdrop-blur rounded-2xl shadow-xl p-4 sm:p-6 border border-gray-100 mb-4 sm:mb-6">
       <div className={`flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3 ${isExpanded ? 'mb-4' : ''}`}>
         <div>
-          <h2 className="text-lg sm:text-xl font-bold text-gray-800 font-display">
+          <h2 className="text-lg sm:text-xl font-bold text-gray-800 font-display flex items-center gap-2">
             {t('multiMonthTransactionExplorer.title')}
+            <InfoTip text={t('infoTips.multiMonthExplorer')} />
           </h2>
           <p className="text-sm text-gray-500 mt-1">
             {t('multiMonthTransactionExplorer.subtitle')}

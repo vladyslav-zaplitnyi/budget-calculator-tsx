@@ -5,6 +5,7 @@ import { translate } from '../i18n/config';
 import i18n from '../i18n/config';
 import SettingsModal from './SettingsModal';
 import CurrencyFlag from './CurrencyFlag';
+import InfoTip from './InfoTip';
 import { useTheme } from '../contexts/ThemeContext';
 
 interface HeaderProps {
@@ -431,6 +432,7 @@ const Header: React.FC<HeaderProps> = ({
           <span className="inline-flex items-center gap-1.5 text-[11px] sm:text-xs font-semibold text-blue-100/90 whitespace-nowrap">
             <span aria-hidden="true">📚</span>
             {t('budgetBook.selectLabel')}
+            <InfoTip text={t('infoTips.budgetBook')} tone="onDark" />
           </span>
 
           <select

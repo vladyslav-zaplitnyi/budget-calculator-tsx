@@ -8,6 +8,7 @@ import {
 import { calculateTotals, convertCurrency, formatNumber } from '../utils/calculations';
 import { getCurrencySymbol } from '../utils/currencies';
 import { capitalizeFirstLetter, getMonthYearLabel } from '../utils/dateHelpers';
+import InfoTip from './InfoTip';
 
 interface TwelveMonthOverviewProps {
   activeBudget: Budget | undefined;
@@ -70,13 +71,11 @@ export default function TwelveMonthOverview({
       className="rounded-2xl bg-white shadow-md border border-slate-200 p-4 sm:p-6 mb-6"
       aria-label={t('budgetView.months')}
     >
-      <h2 className="text-lg sm:text-xl font-bold text-slate-800 mb-1">
+      <h2 className="text-lg sm:text-xl font-bold text-slate-800 mb-1 flex items-center gap-2">
         {t('budgetView.months')}
+        <InfoTip text={t('infoTips.twelveMonthOverview')} />
       </h2>
-      <p className="text-sm text-slate-500 mb-4">
-        {t('budgetView.monthsReadOnlyHint')}
-      </p>
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 mt-4">
         {rows.map((row) => (
           <button
             key={row.key}

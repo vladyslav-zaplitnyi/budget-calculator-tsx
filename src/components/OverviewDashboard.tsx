@@ -10,6 +10,7 @@ import { formatNumber } from '../utils/calculations';
 import { getCurrencySymbol } from '../utils/currencies';
 import { capitalizeFirstLetter, getMonthYearLabel } from '../utils/dateHelpers';
 import CurrencyFlag from './CurrencyFlag';
+import InfoTip from './InfoTip';
 import type { BudgetViewMode } from './BudgetViewToggle';
 
 interface OverviewDashboardProps {
@@ -122,13 +123,16 @@ const OverviewDashboard: React.FC<OverviewDashboardProps> = ({
   return (
     <div className="bg-white/90 backdrop-blur rounded-2xl shadow-xl p-4 sm:p-6 border border-gray-100 mb-4 sm:mb-6">
       <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3 mb-4">
-        <div>
-          <h2 className="text-lg sm:text-xl font-bold text-gray-800 font-display">
-            {t(isTwelveMonthView ? 'overviewDashboard.titleTwelveMonths' : 'overviewDashboard.title')}
-          </h2>
-          <p className="text-sm text-gray-500 mt-1">
-            {t(isTwelveMonthView ? 'overviewDashboard.subtitleTwelveMonths' : 'overviewDashboard.subtitle')}
-          </p>
+        <div className="flex items-start gap-2 min-w-0">
+          <div className="min-w-0">
+            <h2 className="text-lg sm:text-xl font-bold text-gray-800 font-display">
+              {t(isTwelveMonthView ? 'overviewDashboard.titleTwelveMonths' : 'overviewDashboard.title')}
+            </h2>
+            <p className="text-sm text-gray-500 mt-1">
+              {t(isTwelveMonthView ? 'overviewDashboard.subtitleTwelveMonths' : 'overviewDashboard.subtitle')}
+            </p>
+          </div>
+          <InfoTip text={t('infoTips.overview')} className="mt-1" />
         </div>
         <div className="inline-flex items-center gap-2 bg-indigo-50 text-indigo-700 px-3 py-2 rounded-full text-sm font-bold border border-indigo-100 w-fit">
           <CurrencyFlag currencyCode={displayCurrency} size={16} />

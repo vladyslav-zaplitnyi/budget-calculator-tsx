@@ -1,5 +1,6 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
+import InfoTip from './InfoTip';
 
 export type BudgetViewMode = 'days' | 'months';
 
@@ -20,6 +21,12 @@ const BudgetViewToggle: React.FC<BudgetViewToggleProps> = ({
 
   return (
     <div className={`rounded-2xl bg-white shadow-md p-1.5 ${className}`}>
+      <div className="flex items-center gap-1.5 px-1.5 pb-1.5">
+        <span className="text-[11px] sm:text-xs font-semibold text-slate-500">
+          {t('budgetView.ariaLabel')}
+        </span>
+        <InfoTip text={t('infoTips.budgetView')} />
+      </div>
       <div
         className="grid grid-cols-2 gap-1.5"
         role="tablist"

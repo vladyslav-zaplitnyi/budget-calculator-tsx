@@ -4,6 +4,7 @@ import { convertCurrency, formatNumber, Totals } from '../utils/calculations';
 import { getCurrencyInfo, getCurrencySymbol } from '../utils/currencies';
 import { ExchangeRates } from '../types';
 import CurrencyFlag from './CurrencyFlag';
+import InfoTip from './InfoTip';
 
 interface StatisticsProps {
   isUk: boolean;
@@ -66,23 +67,26 @@ const Statistics: React.FC<StatisticsProps> = ({
   
   return (
     <div className="bg-white/90 backdrop-blur rounded-2xl shadow-xl p-4 sm:p-6 border border-gray-100">
-      <h2 className="text-lg sm:text-xl font-bold text-gray-800 mb-4 flex items-center font-display">
-        <button
-          type="button"
-          onClick={toggleExpanded}
-          className="w-full flex items-center justify-between text-left"
-          aria-expanded={isExpanded}
-        >
-          <span className="flex items-center min-w-0">
-            <span className="mr-2 flex-shrink-0">📈</span>{' '}
-            <span className="truncate">{t('statistics.title')}</span>
-          </span>
-          <span className="text-xs font-semibold text-gray-500 font-sans flex-shrink-0 ml-3">
-            {isExpanded ? t('common.collapse') : t('common.expand')}{' '}
-            <span aria-hidden>{isExpanded ? '▲' : '▼'}</span>
-          </span>
-        </button>
-      </h2>
+      <div className="flex items-center gap-2 mb-4">
+        <h2 className="flex-1 text-lg sm:text-xl font-bold text-gray-800 font-display min-w-0">
+          <button
+            type="button"
+            onClick={toggleExpanded}
+            className="w-full flex items-center justify-between text-left min-w-0"
+            aria-expanded={isExpanded}
+          >
+            <span className="flex items-center min-w-0">
+              <span className="mr-2 flex-shrink-0">📈</span>{' '}
+              <span className="truncate">{t('statistics.title')}</span>
+            </span>
+            <span className="text-xs font-semibold text-gray-500 font-sans flex-shrink-0 ml-3">
+              {isExpanded ? t('common.collapse') : t('common.expand')}{' '}
+              <span aria-hidden>{isExpanded ? '▲' : '▼'}</span>
+            </span>
+          </button>
+        </h2>
+        <InfoTip text={t('infoTips.statistics')} />
+      </div>
 
       {isExpanded && (
         <>

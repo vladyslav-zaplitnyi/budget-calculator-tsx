@@ -21,6 +21,7 @@ import BulkTransactionModal from './BulkTransactionModal';
 import MultiMonthBulkTransactionModal from './MultiMonthBulkTransactionModal';
 import BudgetForecastModal from './BudgetForecastModal';
 import CsvImportModal from './CsvImportModal';
+import InfoTip from './InfoTip';
 import { parseTransactionsCsv, CsvParseResult } from '../utils/csvImport';
 import { TOUR_EXPAND_SECTIONS_EVENT } from './GuidedTour';
 import type { ClearDaysScope } from '../hooks/useBudgetSettings';
@@ -426,36 +427,40 @@ const SettingsCard: React.FC<SettingsCardProps> = ({
         readOnly ? 'opacity-[0.88] pointer-events-none' : ''
       }`}
     >
-      <button
-        type="button"
-        onClick={() => {
-          const next = !isSettingsPanelExpanded;
-          setIsSettingsPanelExpanded(next);
-          try {
-            if (typeof window !== 'undefined') {
-              window.localStorage.setItem(settingsPanelExpandedStorageKey, String(next));
+      <div className="flex items-center gap-2 mb-0">
+        <button
+          type="button"
+          onClick={() => {
+            const next = !isSettingsPanelExpanded;
+            setIsSettingsPanelExpanded(next);
+            try {
+              if (typeof window !== 'undefined') {
+                window.localStorage.setItem(settingsPanelExpandedStorageKey, String(next));
+              }
+            } catch {
+              // ignore storage errors
             }
-          } catch {
-            // ignore storage errors
-          }
-        }}
-        className="w-full flex items-center justify-between gap-2 text-left mb-0 focus:outline-none rounded-lg"
-        aria-expanded={isSettingsPanelExpanded}
-      >
-        <h2 className="text-lg sm:text-xl font-bold text-gray-800 flex items-center">
-          <span className="mr-2">⚙️</span> {t('settings.title')}
-        </h2>
-        <span className="text-gray-600 text-lg transition-transform duration-200 shrink-0" aria-hidden="true">
-          {isSettingsPanelExpanded ? '▼' : '▶'}
-        </span>
-      </button>
+          }}
+          className="flex-1 flex items-center justify-between gap-2 text-left focus:outline-none rounded-lg"
+          aria-expanded={isSettingsPanelExpanded}
+        >
+          <h2 className="text-lg sm:text-xl font-bold text-gray-800 flex items-center">
+            <span className="mr-2">⚙️</span> {t('settings.title')}
+          </h2>
+          <span className="text-gray-600 text-lg transition-transform duration-200 shrink-0" aria-hidden="true">
+            {isSettingsPanelExpanded ? '▼' : '▶'}
+          </span>
+        </button>
+        <InfoTip text={t('infoTips.settings')} />
+      </div>
 
       {isSettingsPanelExpanded && (
       <div className="mt-4">
       {/* Currency Selector */}
       <div className="mb-4 sm:mb-6" data-tour="settings-currency">
-        <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-2">
+        <label className="flex items-center gap-1.5 text-xs sm:text-sm font-semibold text-gray-700 mb-2">
           {t('settings.currency.selection')}
+          <InfoTip text={t('infoTips.currency')} />
         </label>
         <div className="grid grid-cols-3 gap-2 sm:gap-3">
           {displayCurrencies.map((currencyCode, index) => {
@@ -486,16 +491,14 @@ const SettingsCard: React.FC<SettingsCardProps> = ({
             );
           })}
         </div>
-        <p className="mt-1 text-[10px] sm:text-xs text-gray-500">
-          {t('settings.currency.description')}
-        </p>
       </div>
 
       {/* Initial Balances */}
       <div className="mb-4 sm:mb-6" data-tour="settings-balances">
         <div className="flex items-center justify-between gap-2 mb-2">
-          <label className="text-xs sm:text-sm font-semibold text-gray-700">
+          <label className="text-xs sm:text-sm font-semibold text-gray-700 flex items-center gap-1.5">
             {t('settings.balances.title')}
+            <InfoTip text={t('infoTips.balances')} />
           </label>
           <button
             type="button"
@@ -605,25 +608,29 @@ const SettingsCard: React.FC<SettingsCardProps> = ({
 
       {/* Exchange Rates */}
       <div className="mb-4 sm:mb-6">
-        <button
-          type="button"
-          onClick={toggleExchangeRatesExpanded}
-          className="w-full flex items-center justify-between text-left mb-2 focus:outline-none focus:ring-2 focus:ring-indigo-400 rounded-lg p-1 -m-1"
-        >
-          <span className="block text-xs sm:text-sm font-semibold text-gray-700">
-            {t('settings.exchangeRates.title')}
-          </span>
-          <span className="text-gray-600 text-lg transition-transform duration-200">
-            {isExchangeRatesExpanded ? '▼' : '▶'}
-          </span>
-        </button>
+        <div className="flex items-center gap-2 mb-2">
+          <button
+            type="button"
+            onClick={toggleExchangeRatesExpanded}
+            className="flex-1 flex items-center justify-between text-left focus:outline-none focus:ring-2 focus:ring-indigo-400 rounded-lg p-1 -m-1"
+          >
+            <span className="block text-xs sm:text-sm font-semibold text-gray-700">
+              {t('settings.exchangeRates.title')}
+            </span>
+            <span className="text-gray-600 text-lg transition-transform duration-200">
+              {isExchangeRatesExpanded ? '▼' : '▶'}
+            </span>
+          </button>
+          <InfoTip text={t('infoTips.exchangeRates')} />
+        </div>
 
         {isExchangeRatesExpanded && (
           <>
             {/* Region selector */}
             <div className="mb-3 rounded-xl border border-slate-200 bg-slate-50 px-3 py-3" data-tour="settings-region">
-              <label className="block text-xs sm:text-sm font-semibold text-gray-800 mb-1">
+              <label className="flex items-center gap-1.5 text-xs sm:text-sm font-semibold text-gray-800 mb-1">
                 {t('settings.exchangeRates.region.label')}
+                <InfoTip text={t('infoTips.region')} />
               </label>
               <select
                 value={selectedRegionCode}
@@ -653,11 +660,9 @@ const SettingsCard: React.FC<SettingsCardProps> = ({
             {handleUpdateNbuRates && (
               <div className="mb-3 flex items-start justify-between gap-3 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2" data-tour="settings-autofetch">
                 <div className="min-w-0">
-                  <div className="text-xs sm:text-sm font-semibold text-gray-800">
+                  <div className="text-xs sm:text-sm font-semibold text-gray-800 flex items-center gap-1.5">
                     {t('settings.exchangeRates.autoFetch.label')}
-                  </div>
-                  <div className="mt-0.5 text-[10px] sm:text-xs text-gray-600">
-                    {t('settings.exchangeRates.autoFetch.hint')}
+                    <InfoTip text={t('infoTips.autoFetch')} />
                   </div>
                 </div>
                 <label className="inline-flex items-center cursor-pointer select-none">
@@ -833,24 +838,24 @@ const SettingsCard: React.FC<SettingsCardProps> = ({
       <div className="space-y-3 sm:space-y-4">
         {/* Для локальної взаємодії */}
         <div className="bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 p-3 sm:p-4 rounded-xl border-2 border-slate-200" data-tour="settings-local">
-          <button
-            type="button"
-            onClick={() => setIsLocalInteractionExpanded(!isLocalInteractionExpanded)}
-            className="w-full flex items-center justify-between text-left mb-1 focus:outline-none focus:ring-2 focus:ring-indigo-400 rounded-lg p-1 -m-1"
-          >
-            <h3 className="text-xs sm:text-sm font-bold text-gray-800 flex items-center">
-              <span className="mr-2">💾</span>{' '}
-              {t('settings.localInteraction.title')}
-            </h3>
-            <span className="text-gray-600 text-lg transition-transform duration-200">
-              {isLocalInteractionExpanded ? '▼' : '▶'}
-            </span>
-          </button>
+          <div className="flex items-center gap-2 mb-1">
+            <button
+              type="button"
+              onClick={() => setIsLocalInteractionExpanded(!isLocalInteractionExpanded)}
+              className="flex-1 flex items-center justify-between text-left focus:outline-none focus:ring-2 focus:ring-indigo-400 rounded-lg p-1 -m-1"
+            >
+              <h3 className="text-xs sm:text-sm font-bold text-gray-800 flex items-center">
+                <span className="mr-2">💾</span>{' '}
+                {t('settings.localInteraction.title')}
+              </h3>
+              <span className="text-gray-600 text-lg transition-transform duration-200">
+                {isLocalInteractionExpanded ? '▼' : '▶'}
+              </span>
+            </button>
+            <InfoTip text={t('infoTips.localInteraction')} />
+          </div>
           {isLocalInteractionExpanded && (
             <div className="space-y-3 mt-3">
-              <p className="text-[10px] sm:text-xs text-gray-500">
-                {t('settings.localInteraction.description')}
-              </p>
               <div className="flex flex-col sm:flex-row gap-2">
                 <button
                   onClick={handleExportToJsonFile}
@@ -873,21 +878,21 @@ const SettingsCard: React.FC<SettingsCardProps> = ({
                     : t('settings.localInteraction.import')}
                 </button>
               </div>
-              <button
-                type="button"
-                onClick={() => csvFileInputRef.current?.click()}
-                disabled={!updateDay || !days || days.length === 0 || readOnly}
-                className={`w-full px-4 sm:px-6 py-2 sm:py-3 rounded-xl font-bold transition-all text-xs sm:text-sm ${
-                  !updateDay || !days || days.length === 0 || readOnly
-                    ? 'bg-gray-400 cursor-not-allowed text-white'
-                    : 'bg-gradient-to-r from-sky-500 to-blue-500 hover:from-sky-600 hover:to-blue-600 text-white shadow-lg hover:shadow-xl active:scale-95'
-                }`}
-              >
-                {t('csvImport.importButtonLabel')}
-              </button>
-              <p className="text-[10px] sm:text-xs text-gray-500">
-                {t('csvImport.importButtonHint')}
-              </p>
+              <div className="flex items-center gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => csvFileInputRef.current?.click()}
+                  disabled={!updateDay || !days || days.length === 0 || readOnly}
+                  className={`flex-1 px-4 sm:px-6 py-2 sm:py-3 rounded-xl font-bold transition-all text-xs sm:text-sm ${
+                    !updateDay || !days || days.length === 0 || readOnly
+                      ? 'bg-gray-400 cursor-not-allowed text-white'
+                      : 'bg-gradient-to-r from-sky-500 to-blue-500 hover:from-sky-600 hover:to-blue-600 text-white shadow-lg hover:shadow-xl active:scale-95'
+                  }`}
+                >
+                  {t('csvImport.importButtonLabel')}
+                </button>
+                <InfoTip text={t('infoTips.csvImport')} />
+              </div>
               <input
                 type="file"
                 accept="application/json"
@@ -932,58 +937,67 @@ const SettingsCard: React.FC<SettingsCardProps> = ({
         {/* Очищення даних */}
         <div className="space-y-2 sm:space-y-4">
           <div className="flex flex-col sm:flex-row sm:flex-wrap items-stretch sm:items-center gap-2 sm:gap-4">
-            <button
-              onClick={() =>
-                handleClearAllDays(budgetViewMode === 'months' ? 'all-months' : 'current-month')
-              }
-              className="w-full sm:flex-1 min-w-[10rem] px-4 sm:px-6 py-3 rounded-xl font-bold transition-all text-sm sm:text-base bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white shadow-lg hover:shadow-xl active:scale-95"
-            >
-              {budgetViewMode === 'months'
-                ? t('settings.clearAllDays')
-                : t('settings.clearMonthDays')}
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                if (budgetViewMode === 'months') {
-                  setShowMultiMonthModal(true);
-                } else {
-                  setShowRecurringModal(true);
+            <div className="w-full sm:flex-1 min-w-[10rem] flex items-center gap-1.5">
+              <button
+                onClick={() =>
+                  handleClearAllDays(budgetViewMode === 'months' ? 'all-months' : 'current-month')
                 }
-              }}
-              disabled={
-                budgetViewMode === 'months'
-                  ? !onBulkAddTransactionsToMonths || readOnly
-                  : !updateDay || !days || days.length === 0
-              }
-              className={`w-full sm:flex-1 min-w-[10rem] px-4 sm:px-6 py-3 rounded-xl font-bold transition-all text-sm sm:text-base text-white shadow-lg hover:shadow-xl active:scale-95 ${
-                budgetViewMode === 'months'
-                  ? onBulkAddTransactionsToMonths && !readOnly
-                    ? 'bg-emerald-500 hover:bg-emerald-600'
+                className="flex-1 px-4 sm:px-6 py-3 rounded-xl font-bold transition-all text-sm sm:text-base bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white shadow-lg hover:shadow-xl active:scale-95"
+              >
+                {budgetViewMode === 'months'
+                  ? t('settings.clearAllDays')
+                  : t('settings.clearMonthDays')}
+              </button>
+              <InfoTip text={t('infoTips.clearDays')} />
+            </div>
+            <div className="w-full sm:flex-1 min-w-[10rem] flex items-center gap-1.5">
+              <button
+                type="button"
+                onClick={() => {
+                  if (budgetViewMode === 'months') {
+                    setShowMultiMonthModal(true);
+                  } else {
+                    setShowRecurringModal(true);
+                  }
+                }}
+                disabled={
+                  budgetViewMode === 'months'
+                    ? !onBulkAddTransactionsToMonths || readOnly
+                    : !updateDay || !days || days.length === 0
+                }
+                className={`flex-1 px-4 sm:px-6 py-3 rounded-xl font-bold transition-all text-sm sm:text-base text-white shadow-lg hover:shadow-xl active:scale-95 ${
+                  budgetViewMode === 'months'
+                    ? onBulkAddTransactionsToMonths && !readOnly
+                      ? 'bg-emerald-500 hover:bg-emerald-600'
+                      : 'bg-gray-400 cursor-not-allowed'
+                    : !updateDay || !days || days.length === 0
+                      ? 'bg-gray-400 cursor-not-allowed'
+                      : 'bg-emerald-500 hover:bg-emerald-600'
+                }`}
+                title={t('transaction.add')}
+              >
+                <span className="mr-2">➕</span>
+                {t('transaction.add')}
+              </button>
+              <InfoTip text={t('infoTips.addTransaction')} />
+            </div>
+            <div className="w-full sm:flex-1 min-w-[10rem] flex items-center gap-1.5">
+              <button
+                type="button"
+                onClick={() => setShowForecastModal(true)}
+                disabled={!onForecastCopyToMonths || readOnly}
+                className={`flex-1 px-4 sm:px-6 py-3 rounded-xl font-bold transition-all text-sm sm:text-base text-white shadow-lg hover:shadow-xl active:scale-95 ${
+                  onForecastCopyToMonths && !readOnly
+                    ? 'bg-indigo-500 hover:bg-indigo-600'
                     : 'bg-gray-400 cursor-not-allowed'
-                  : !updateDay || !days || days.length === 0
-                    ? 'bg-gray-400 cursor-not-allowed'
-                    : 'bg-emerald-500 hover:bg-emerald-600'
-              }`}
-              title={t('transaction.add')}
-            >
-              <span className="mr-2">➕</span>
-              {t('transaction.add')}
-            </button>
-            <button
-              type="button"
-              onClick={() => setShowForecastModal(true)}
-              disabled={!onForecastCopyToMonths || readOnly}
-              className={`w-full sm:flex-1 min-w-[10rem] px-4 sm:px-6 py-3 rounded-xl font-bold transition-all text-sm sm:text-base text-white shadow-lg hover:shadow-xl active:scale-95 ${
-                onForecastCopyToMonths && !readOnly
-                  ? 'bg-indigo-500 hover:bg-indigo-600'
-                  : 'bg-gray-400 cursor-not-allowed'
-              }`}
-              title={t('budgetForecast.button')}
-            >
-              <span className="mr-2">📅</span>
-              {t('budgetForecast.button')}
-            </button>
+                }`}
+                title={t('budgetForecast.button')}
+              >
+                <span className="mr-2">📅</span>
+                {t('budgetForecast.button')}
+              </button>
+              <InfoTip text={t('infoTips.forecast')} />
+            </div>
           </div>
         </div>
       </div>

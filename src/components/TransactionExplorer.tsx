@@ -9,6 +9,7 @@ import {
 import { formatNumber } from '../utils/calculations';
 import { getCurrencySymbol } from '../utils/currencies';
 import CurrencyFlag from './CurrencyFlag';
+import InfoTip from './InfoTip';
 
 interface TransactionExplorerProps {
   days: Day[];
@@ -130,8 +131,9 @@ const TransactionExplorer: React.FC<TransactionExplorerProps> = ({
     <div className="bg-white/90 backdrop-blur rounded-2xl shadow-xl p-4 sm:p-6 border border-gray-100 mb-4 sm:mb-6">
       <div className={`flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3 ${isExpanded ? 'mb-4' : ''}`}>
         <div>
-          <h2 className="text-lg sm:text-xl font-bold text-gray-800 font-display">
+          <h2 className="text-lg sm:text-xl font-bold text-gray-800 font-display flex items-center gap-2">
             {t('transactionExplorer.title')}
+            <InfoTip text={t('infoTips.transactionExplorer')} />
           </h2>
           <p className="text-sm text-gray-500 mt-1">
             {t('transactionExplorer.subtitle')}

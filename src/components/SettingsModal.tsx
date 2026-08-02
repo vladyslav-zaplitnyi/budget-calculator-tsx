@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { User } from 'firebase/auth';
 import DeleteAccountModal from './DeleteAccountModal';
 import PasswordModal from './PasswordModal';
+import InfoTip from './InfoTip';
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -88,8 +89,9 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
               {/* Security Section - тільки для авторизованих користувачів */}
               {user && (
                 <div className="bg-gradient-to-br from-amber-50 via-yellow-50 to-orange-50 p-4 sm:p-6 rounded-xl border-2 border-amber-200">
-                  <h3 className="text-sm sm:text-base font-bold text-gray-800 mb-3 flex items-center">
+                  <h3 className="text-sm sm:text-base font-bold text-gray-800 mb-3 flex items-center gap-1.5">
                     <span className="mr-2">🔒</span> {t('settings.security.title')}
+                    <InfoTip text={t('infoTips.security')} />
                   </h3>
                   <p className="text-xs sm:text-sm text-gray-600 mb-4">
                     {t('settings.security.description')}
@@ -115,8 +117,9 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
 
               {/* Опція видалення акаунта */}
               <div className="border-2 border-red-200 rounded-lg p-4 bg-red-50">
-                <h3 className="text-lg font-semibold text-red-700 mb-2">
+                <h3 className="text-lg font-semibold text-red-700 mb-2 flex items-center gap-1.5">
                   {t('settings.deleteAccount.dangerZone')}
+                  <InfoTip text={t('infoTips.deleteAccount')} />
                 </h3>
                 <p className="text-sm text-red-600 mb-4">
                   {t('settings.deleteAccount.irreversible')}

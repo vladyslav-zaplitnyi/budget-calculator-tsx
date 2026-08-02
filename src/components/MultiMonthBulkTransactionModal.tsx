@@ -11,6 +11,7 @@ import { validateMultiMonthBulkAdd } from '../utils/multiMonthBulkTransactions';
 import { MAX_TRANSACTIONS_PER_MONTH } from '../utils/transactionLimits';
 import type { MultiMonthBulkTransactionDraft } from '../utils/multiMonthBulkTransactions';
 import AlertModal from './AlertModal';
+import InfoTip from './InfoTip';
 
 export type { MultiMonthBulkTransactionDraft };
 
@@ -307,8 +308,9 @@ const MultiMonthBulkTransactionModal: React.FC<MultiMonthBulkTransactionModalPro
 
           <div>
             <div className="flex items-center justify-between mb-2">
-              <label className="block text-sm font-semibold text-gray-700">
+              <label className="flex items-center gap-1.5 text-sm font-semibold text-gray-700">
                 {t('multiMonthBulk.selectMonths')}
+                <InfoTip text={t('infoTips.multiMonthMonths')} />
               </label>
               <div className="flex gap-2 text-xs">
                 <button
@@ -327,9 +329,6 @@ const MultiMonthBulkTransactionModal: React.FC<MultiMonthBulkTransactionModalPro
                 </button>
               </div>
             </div>
-            <p className="text-[11px] text-gray-500 mb-2">
-              {t('multiMonthBulk.monthHint')}
-            </p>
             <div className="bg-gradient-to-br from-indigo-50 to-blue-50 rounded-lg p-2 border-2 border-indigo-200 max-h-40 overflow-y-auto">
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5">
                 {overviewMonths.map((m) => {
@@ -356,12 +355,10 @@ const MultiMonthBulkTransactionModal: React.FC<MultiMonthBulkTransactionModalPro
           </div>
 
           <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2">
+            <label className="flex items-center gap-1.5 text-sm font-semibold text-gray-700 mb-2">
               {t('bulkTransactions.selectDays')}
+              <InfoTip text={t('infoTips.multiMonthDays')} />
             </label>
-            <p className="text-[11px] text-gray-500 mb-2">
-              {t('multiMonthBulk.dayHint')}
-            </p>
             <div className="bg-gray-50 border-2 border-gray-200 rounded-xl p-3">
               <div className="grid grid-cols-7 gap-2">
                 {DAY_NUMBERS.map((dayNumber) => {

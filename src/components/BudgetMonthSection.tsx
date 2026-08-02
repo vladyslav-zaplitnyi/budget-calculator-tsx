@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import ConfirmModal from './ConfirmModal';
 import MonthTransactionCounter from './MonthTransactionCounter';
+import InfoTip from './InfoTip';
 import type { RollingMonthNavigationPreview } from '../types';
 import { simulateMonthsAfterNavigation } from '../utils/balanceWaterfall';
 
@@ -124,12 +125,10 @@ const BudgetMonthSection: React.FC<BudgetMonthSectionProps> = ({
         aria-label={t('monthYearPicker.title')}
       >
         <div className="w-full max-w-none">
-          <h2 className="w-full text-lg sm:text-xl font-bold text-gray-800 font-display">
+          <h2 className="w-full text-lg sm:text-xl font-bold text-gray-800 font-display flex items-center gap-2">
             {t('monthYearPicker.title')}
+            <InfoTip text={t('infoTips.budgetMonth')} />
           </h2>
-          <p className="w-full max-w-none text-sm text-gray-600 mt-2 leading-relaxed">
-            {t('settings.budgetMonth.tooltip')}
-          </p>
           <MonthTransactionCounter count={monthTransactionCount} className="mt-3" />
         </div>
 

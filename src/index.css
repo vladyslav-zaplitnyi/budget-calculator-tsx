@@ -2198,3 +2198,97 @@ html.theme-neon .tour-btn--ghost {
 html.theme-neon .tour-btn--ghost:hover {
   color: #cdeadd;
 }
+
+/* ===== InfoTip (i) hints ===== */
+.info-tip {
+  display: inline-flex;
+  align-items: center;
+  vertical-align: middle;
+  flex-shrink: 0;
+}
+
+.info-tip__btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.125rem;
+  height: 1.125rem;
+  padding: 0;
+  border-radius: 9999px;
+  border: 1.5px solid rgba(79, 70, 229, 0.45);
+  background: rgba(238, 242, 255, 0.95);
+  color: #4338ca;
+  cursor: help;
+  transition: background 0.15s ease, border-color 0.15s ease, transform 0.15s ease;
+  line-height: 1;
+}
+
+.info-tip__btn:hover,
+.info-tip__btn:focus-visible {
+  background: #e0e7ff;
+  border-color: #4f46e5;
+  outline: none;
+  transform: scale(1.06);
+}
+
+.info-tip__glyph {
+  font-size: 0.6875rem;
+  font-weight: 800;
+  font-style: italic;
+  font-family: Georgia, 'Times New Roman', serif;
+  line-height: 1;
+  pointer-events: none;
+}
+
+.info-tip[data-tone='onDark'] .info-tip__btn {
+  border-color: rgba(255, 255, 255, 0.55);
+  background: rgba(255, 255, 255, 0.18);
+  color: #fff;
+}
+
+.info-tip[data-tone='onDark'] .info-tip__btn:hover,
+.info-tip[data-tone='onDark'] .info-tip__btn:focus-visible {
+  background: rgba(255, 255, 255, 0.28);
+  border-color: rgba(255, 255, 255, 0.85);
+}
+
+.info-tip__bubble {
+  position: fixed;
+  z-index: 10050;
+  max-width: min(20rem, calc(100vw - 24px));
+  padding: 0.625rem 0.75rem;
+  border-radius: 0.75rem;
+  background: #1e1b4b;
+  color: #eef2ff;
+  font-size: 0.75rem;
+  font-weight: 500;
+  line-height: 1.4;
+  box-shadow: 0 12px 28px -8px rgba(15, 23, 42, 0.45), 0 0 0 1px rgba(99, 102, 241, 0.35);
+  pointer-events: auto;
+  text-align: left;
+  white-space: normal;
+}
+
+html.theme-neon .info-tip__btn {
+  border-color: rgba(52, 211, 153, 0.45);
+  background: rgba(16, 185, 129, 0.12);
+  color: #6ee7b7;
+}
+
+html.theme-neon .info-tip__btn:hover,
+html.theme-neon .info-tip__btn:focus-visible {
+  background: rgba(16, 185, 129, 0.22);
+  border-color: #34d399;
+}
+
+html.theme-neon .info-tip[data-tone='onDark'] .info-tip__btn {
+  border-color: rgba(110, 231, 183, 0.55);
+  background: rgba(6, 78, 59, 0.55);
+  color: #a7f3d0;
+}
+
+html.theme-neon .info-tip__bubble {
+  background: #0d1f17;
+  color: #d1fae5;
+  box-shadow: 0 12px 28px -8px rgba(0, 0, 0, 0.65), 0 0 0 1px rgba(52, 211, 153, 0.35);
+}
