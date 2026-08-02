@@ -5,17 +5,18 @@ import { validateSelectedCurrencies, DEFAULT_CURRENCIES } from '../utils/currenc
 import { Budgets, ExchangeRates, Budget } from '../types';
 import { isExchangeRatePair } from '../utils/typeGuards';
 import { saveToFirestore, saveToLocalStorage } from '../utils/storageHelpers';
-import { calculateFinalBalances, calculateTotals, sanitizeNumberInput } from '../utils/calculations';
+import { sanitizeNumberInput } from '../utils/calculations';
 import { translate } from '../i18n/config';
 import {
   monthKeyFromBudgetDate,
   trimOldestMonthKeys,
   buildEmptyMonthSlice,
-  isViewingCurrentCalendarMonth,
-  getDefaultOverviewWindow
+  getDefaultOverviewWindow,
+  getCurrentCalendarBudgetDate
 } from '../utils/rollingMonthsBudget';
 import { parseMonthKey } from '../utils/monthlyPlan';
-import { applyBalanceWaterfallToBudget } from '../utils/balanceWaterfall';
+import { applyBalanceWaterfallToBudget, buildMonthSlice } from '../utils/balanceWaterfall';
+import { roundToDecimals } from '../utils/rounding';
 import {
   applyMultiMonthBulkAdd,
   validateMultiMonthBulkAdd
@@ -260,7 +261,9 @@ export function useBudgetSettings() {
       year: new Date().getFullYear(),
       month: new Date().getMonth()
     };
-    if (!isViewingCurrentCalendarMonth(budgetDate.year, budgetDate.month)) return;
+    const viewedKey = monthKeyFromBudgetDate(budgetDate.year, budgetDate.month);
+    const anchor = getCurrentCalendarBudgetDate();
+    const anchorKey = monthKeyFromBudgetDate(anchor.year, anchor.month);
 
     const clearedStartBalances: Record<string, number | null> = {};
     (existingBudget.selectedCurrencies || selectedCurrencies || DEFAULT_CURRENCIES).forEach(
@@ -269,14 +272,22 @@ export function useBudgetSettings() {
       }
     );
 
-    const mk = monthKeyFromBudgetDate(budgetDate.year, budgetDate.month);
-    const monthsByKey = trimOldestMonthKeys({
-      ...(existingBudget.monthsByKey || {}),
-      [mk]: {
-        days: existingBudget.days || [],
-        startBalances: { ...clearedStartBalances }
-      }
-    });
+    let monthsByKey = { ...(existingBudget.monthsByKey || {}) };
+    // Keep viewed month days; write cleared seed onto the calendar-month anchor.
+    monthsByKey[viewedKey] = buildMonthSlice(
+      existingBudget.days || [],
+      viewedKey === anchorKey
+        ? clearedStartBalances
+        : { ...(monthsByKey[viewedKey]?.startBalances || {}) }
+    );
+    if (viewedKey !== anchorKey) {
+      const anchorSlice = monthsByKey[anchorKey];
+      monthsByKey[anchorKey] = buildMonthSlice(
+        anchorSlice?.days || buildEmptyMonthSlice(anchor.year, anchor.month, selectedCurrencies || DEFAULT_CURRENCIES).days,
+        clearedStartBalances
+      );
+    }
+    monthsByKey = trimOldestMonthKeys(monthsByKey);
 
     const draft: Budget = {
       ...existingBudget,
@@ -337,10 +348,12 @@ export function useBudgetSettings() {
 
     const oldKey = monthKeyFromBudgetDate(currentBudgetDate.year, currentBudgetDate.month);
     let monthsByKey = trimOldestMonthKeys({ ...(existingBudget.monthsByKey || {}) });
-    monthsByKey[oldKey] = {
-      days: days || [],
-      startBalances: { ...(existingBudget.startBalances || {}) }
-    };
+    const anchor = getCurrentCalendarBudgetDate();
+    const anchorKey = monthKeyFromBudgetDate(anchor.year, anchor.month);
+    const seed = { ...(existingBudget.startBalances || {}) };
+    const oldStarts =
+      oldKey === anchorKey ? seed : { ...(monthsByKey[oldKey]?.startBalances || seed) };
+    monthsByKey[oldKey] = buildMonthSlice(days || [], oldStarts);
 
     // Обчислюємо наступний місяць
     let newMonth = currentBudgetDate.month + 1;
@@ -358,36 +371,12 @@ export function useBudgetSettings() {
 
     const newKey = monthKeyFromBudgetDate(newYear, newMonth);
 
-    // Отримуємо поточні початкові баланси
-    const currentStartBalances = existingBudget.startBalances || {};
-
-    // Обчислюємо поточні фінальні баланси
-    const totals = calculateTotals(days || [], selectedCurrencies);
-    const finalBalances = calculateFinalBalances(
-      days || [],
-      selectedCurrencies,
-      currentStartBalances,
-      totals
+    // New month starts empty; waterfall fills opening from previous month closing.
+    // Seed (initial budget inputs) stays unchanged.
+    const nextSlice = buildMonthSlice(
+      createEmptyMonthDays(newYear, newMonth),
+      {}
     );
-
-    // Створюємо нові початкові баланси з поточних фінальних балансів
-    const newStartBalances: Record<string, number | null> = {};
-    selectedCurrencies.forEach(currencyCode => {
-      const finalBalanceKey = `finalBalance${currencyCode}`;
-      const finalBalance = finalBalances[finalBalanceKey] || 0;
-      newStartBalances[currencyCode] = finalBalance;
-    });
-
-    let nextSlice = monthsByKey[newKey];
-    if (!nextSlice) {
-      nextSlice = buildEmptyMonthSlice(newYear, newMonth, selectedCurrencies);
-      nextSlice.startBalances = { ...newStartBalances };
-    } else {
-      nextSlice = {
-        days: createEmptyMonthDays(newYear, newMonth),
-        startBalances: { ...newStartBalances }
-      };
-    }
 
     monthsByKey = trimOldestMonthKeys({
       ...monthsByKey,
@@ -396,7 +385,7 @@ export function useBudgetSettings() {
 
     const updatedBudgetRaw = {
       ...existingBudget,
-      startBalances: nextSlice.startBalances,
+      startBalances: seed,
       days: nextSlice.days,
       budgetDate: newBudgetDate,
       monthsByKey
@@ -534,18 +523,12 @@ export function useBudgetSettings() {
   const handleStartBalanceChange = useCallback((currencyCode: string, value: string) => {
     if (user && isCurrentBookReadOnly) return;
     const currentId = activeBudgetId || 'default';
-    const existingForDate = budgets?.[currentId];
-    const bd = existingForDate?.budgetDate || {
-      year: new Date().getFullYear(),
-      month: new Date().getMonth()
-    };
-    if (!isViewingCurrentCalendarMonth(bd.year, bd.month)) return;
 
     let numValue: number | null = null;
     if (value !== '' && value !== null && value !== undefined) {
       const parsed = parseFloat(sanitizeNumberInput(value));
       if (!isNaN(parsed)) {
-        numValue = parsed;
+        numValue = roundToDecimals(parsed, 2);
       }
     }
 
@@ -568,20 +551,32 @@ export function useBudgetSettings() {
         year: new Date().getFullYear(),
         month: new Date().getMonth()
       };
-      const mk = monthKeyFromBudgetDate(bd.year, bd.month);
-      const monthsByKey = trimOldestMonthKeys({
-        ...(existingBudget.monthsByKey || {}),
-        [mk]: {
-          days: existingBudget.days || [],
-          startBalances: { ...startBalances }
-        }
-      });
+      const viewedKey = monthKeyFromBudgetDate(bd.year, bd.month);
+      const anchor = getCurrentCalendarBudgetDate();
+      const anchorKey = monthKeyFromBudgetDate(anchor.year, anchor.month);
+      const codes = existingBudget.selectedCurrencies || selectedCurrencies || DEFAULT_CURRENCIES;
+
+      let monthsByKey = { ...(existingBudget.monthsByKey || {}) };
+      monthsByKey[viewedKey] = buildMonthSlice(
+        existingBudget.days || [],
+        viewedKey === anchorKey
+          ? startBalances
+          : { ...(monthsByKey[viewedKey]?.startBalances || {}) }
+      );
+      if (viewedKey !== anchorKey) {
+        const anchorSlice = monthsByKey[anchorKey];
+        monthsByKey[anchorKey] = buildMonthSlice(
+          anchorSlice?.days || buildEmptyMonthSlice(anchor.year, anchor.month, codes).days,
+          startBalances
+        );
+      }
+      monthsByKey = trimOldestMonthKeys(monthsByKey);
 
       const draft: Budget = {
         ...existingBudget,
         startBalances,
         monthsByKey,
-        selectedCurrencies: existingBudget.selectedCurrencies || selectedCurrencies || DEFAULT_CURRENCIES,
+        selectedCurrencies: codes,
         days: existingBudget.days || [],
         budgetDate: existingBudget.budgetDate,
         exchangeRates: existingBudget.exchangeRates || {}
@@ -593,7 +588,7 @@ export function useBudgetSettings() {
         [currentId]: { ...existingBudget, ...after }
       };
     });
-  }, [activeBudgetId, budgets, setBudgets, user, isCurrentBookReadOnly, selectedCurrencies]);
+  }, [activeBudgetId, setBudgets, user, isCurrentBookReadOnly, selectedCurrencies]);
 
   // Обробники для шифрування
   const handleEnableEncryptionClick = useCallback(() => {

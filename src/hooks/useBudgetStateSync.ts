@@ -8,7 +8,7 @@ import {
   trimOldestMonthKeys,
   getCurrentCalendarBudgetDate
 } from '../utils/rollingMonthsBudget';
-import { applyBalanceWaterfallToBudget } from '../utils/balanceWaterfall';
+import { applyBalanceWaterfallToBudget, buildMonthSlice } from '../utils/balanceWaterfall';
 
 /**
  * Hook для синхронізації стану бюджету (баланси, курси, дні) в об'єкт budgets
@@ -122,14 +122,24 @@ export function useBudgetStateSync(
       });
 
       const bd = existingBudget.budgetDate || getCurrentCalendarBudgetDate();
-      const mk = monthKeyFromBudgetDate(bd.year, bd.month);
-      const monthsByKey = trimOldestMonthKeys({
-        ...(existingBudget.monthsByKey || {}),
-        [mk]: {
-          days: existingBudget.days || [],
-          startBalances: updatedStartBalances
-        }
-      });
+      const viewedKey = monthKeyFromBudgetDate(bd.year, bd.month);
+      const anchor = getCurrentCalendarBudgetDate();
+      const anchorKey = monthKeyFromBudgetDate(anchor.year, anchor.month);
+
+      let monthsByKey = { ...(existingBudget.monthsByKey || {}) };
+      monthsByKey[viewedKey] = buildMonthSlice(
+        existingBudget.days || [],
+        viewedKey === anchorKey
+          ? updatedStartBalances
+          : { ...(monthsByKey[viewedKey]?.startBalances || {}) }
+      );
+      if (viewedKey !== anchorKey && monthsByKey[anchorKey]) {
+        monthsByKey[anchorKey] = buildMonthSlice(
+          monthsByKey[anchorKey].days || [],
+          updatedStartBalances
+        );
+      }
+      monthsByKey = trimOldestMonthKeys(monthsByKey);
 
       const draftBudget: Budget = {
         ...existingBudget,
@@ -193,13 +203,17 @@ export function useBudgetStateSync(
       };
 
       const bd = existingBudget.budgetDate || getCurrentCalendarBudgetDate();
-      const mk = monthKeyFromBudgetDate(bd.year, bd.month);
+      const viewedKey = monthKeyFromBudgetDate(bd.year, bd.month);
+      const anchor = getCurrentCalendarBudgetDate();
+      const anchorKey = monthKeyFromBudgetDate(anchor.year, anchor.month);
       const monthsByKey = trimOldestMonthKeys({
         ...(existingBudget.monthsByKey || {}),
-        [mk]: {
-          days: existingBudget.days || [],
-          startBalances: { ...(existingBudget.startBalances || {}) }
-        }
+        [viewedKey]: buildMonthSlice(
+          existingBudget.days || [],
+          viewedKey === anchorKey
+            ? { ...(existingBudget.startBalances || {}) }
+            : { ...(existingBudget.monthsByKey?.[viewedKey]?.startBalances || {}) }
+        )
       });
       
       return {
@@ -252,13 +266,17 @@ export function useBudgetStateSync(
       const preservedExchangeRates = existingBudget.exchangeRates || {};
 
       const bd = existingBudget.budgetDate || getCurrentCalendarBudgetDate();
-      const mk = monthKeyFromBudgetDate(bd.year, bd.month);
+      const viewedKey = monthKeyFromBudgetDate(bd.year, bd.month);
+      const anchor = getCurrentCalendarBudgetDate();
+      const anchorKey = monthKeyFromBudgetDate(anchor.year, anchor.month);
       const monthsByKey = trimOldestMonthKeys({
         ...(existingBudget.monthsByKey || {}),
-        [mk]: {
-          days: days || [],
-          startBalances: { ...(existingBudget.startBalances || {}) }
-        }
+        [viewedKey]: buildMonthSlice(
+          days || [],
+          viewedKey === anchorKey
+            ? { ...(existingBudget.startBalances || {}) }
+            : { ...(existingBudget.monthsByKey?.[viewedKey]?.startBalances || {}) }
+        )
       });
 
       const draftBudget: Budget = {
@@ -316,13 +334,17 @@ export function useBudgetStateSync(
       const preservedExchangeRates = existingBudget.exchangeRates || {};
 
       const bd = existingBudget.budgetDate || getCurrentCalendarBudgetDate();
-      const mk = monthKeyFromBudgetDate(bd.year, bd.month);
+      const viewedKey = monthKeyFromBudgetDate(bd.year, bd.month);
+      const anchor = getCurrentCalendarBudgetDate();
+      const anchorKey = monthKeyFromBudgetDate(anchor.year, anchor.month);
       const monthsByKey = trimOldestMonthKeys({
         ...(existingBudget.monthsByKey || {}),
-        [mk]: {
-          days: existingBudget.days || [],
-          startBalances: { ...(existingBudget.startBalances || {}) }
-        }
+        [viewedKey]: buildMonthSlice(
+          existingBudget.days || [],
+          viewedKey === anchorKey
+            ? { ...(existingBudget.startBalances || {}) }
+            : { ...(existingBudget.monthsByKey?.[viewedKey]?.startBalances || {}) }
+        )
       });
       
       return {

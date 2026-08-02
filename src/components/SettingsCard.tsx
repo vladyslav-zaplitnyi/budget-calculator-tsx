@@ -14,7 +14,7 @@ import { User } from 'firebase/auth';
 import { Budgets, ExchangeRates, Day, MonthSlice } from '../types';
 import { isExchangeRatePair, getBuyRate } from '../utils/typeGuards';
 import { roundToDecimals } from '../utils/rounding';
-import { sanitizeNumberInput } from '../utils/calculations';
+import { sanitizeNumberInput, formatNumber } from '../utils/calculations';
 import ConfirmModal from './ConfirmModal';
 import CurrencyFlag from './CurrencyFlag';
 import BulkTransactionModal from './BulkTransactionModal';
@@ -67,8 +67,6 @@ interface SettingsCardProps {
   activeMonthKey?: string;
   onBulkAddTransactionsToMonths?: (draft: MultiMonthBulkTransactionDraft) => void;
   readOnly?: boolean;
-  /** When true, starting balances follow the linked-month chain and are not editable for this view. */
-  startingBalancesReadOnly?: boolean;
 }
 
 const SettingsCard: React.FC<SettingsCardProps> = ({
@@ -111,8 +109,7 @@ const SettingsCard: React.FC<SettingsCardProps> = ({
   monthsByKey,
   activeMonthKey = '',
   onBulkAddTransactionsToMonths,
-  readOnly = false,
-  startingBalancesReadOnly = false
+  readOnly = false
 }) => {
   const { t, i18n: i18nInstance } = useTranslation();
   const currencyLanguage = i18nInstance.language === 'uk' ? 'uk' : 'en';
@@ -129,6 +126,38 @@ const SettingsCard: React.FC<SettingsCardProps> = ({
     ])),
     [selectedCurrencies, regionalCurrency]
   );
+
+  const monthNames = t('calendar.monthsLong', { returnObjects: true }) as string[];
+  const selectedMonthLabel = monthNames[budgetMonth] || '';
+
+  const calculatedMonthBudgets = React.useMemo(() => {
+    if (!activeMonthKey) return null;
+    const safeBudgetsForCalc = budgets || {};
+    const activeBudget = safeBudgetsForCalc[activeBudgetId || 'default'];
+    const sourceMonths = monthsByKey || activeBudget?.monthsByKey;
+    const sliceStarts = sourceMonths?.[activeMonthKey]?.startBalances;
+    const seedStarts = activeBudget?.startBalances || {};
+
+    const balances: Record<string, number | null> = {};
+    let hasAny = false;
+    selectedCurrencies.forEach((code) => {
+      const value = sliceStarts?.[code] ?? seedStarts[code] ?? null;
+      balances[code] = value;
+      if (value !== null && value !== undefined) hasAny = true;
+    });
+
+    // Always show the month line when we know the selected month (seed or carry-over).
+    return hasAny || Boolean(sourceMonths?.[activeMonthKey]) || Boolean(activeBudget)
+      ? balances
+      : null;
+  }, [
+    activeMonthKey,
+    budgets,
+    activeBudgetId,
+    monthsByKey,
+    selectedCurrencies
+  ]);
+
 
   /** Raw string while editing — avoids collapsing "3." / "3," to a number before the user finishes typing. */
   const [startBalanceFocusCode, setStartBalanceFocusCode] = useState<string | null>(null);
@@ -470,14 +499,9 @@ const SettingsCard: React.FC<SettingsCardProps> = ({
               setStartBalanceDraftByCode({});
               handleClearStartBalances();
             }}
-            disabled={readOnly || startingBalancesReadOnly}
-            title={
-              startingBalancesReadOnly && !readOnly
-                ? t('settings.balances.linkedReadOnlyHint')
-                : undefined
-            }
+            disabled={readOnly}
             className={`shrink-0 px-2.5 sm:px-3 py-1 sm:py-1.5 text-xs sm:text-sm font-bold rounded-lg transition-all ${
-              readOnly || startingBalancesReadOnly
+              readOnly
                 ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
                 : 'bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white border border-orange-500 shadow-md hover:shadow-lg active:scale-95'
             }`}
@@ -498,7 +522,8 @@ const SettingsCard: React.FC<SettingsCardProps> = ({
                 ? (startBalanceDraftByCode[currencyCode] ?? '')
                 : currentBalance === null || currentBalance === undefined
                   ? ''
-                  : String(currentBalance);
+                  : formatNumber(currentBalance, 2);
+            const calculatedBalance = calculatedMonthBudgets?.[currencyCode];
             
             const colors = [
               'from-blue-50 to-blue-100/70 border-blue-200 hover:border-blue-300',
@@ -506,7 +531,7 @@ const SettingsCard: React.FC<SettingsCardProps> = ({
               'from-amber-50 to-yellow-100/70 border-amber-200 hover:border-amber-300'
             ];
             const colorClass = colors[index % colors.length];
-            const balancesLocked = readOnly || startingBalancesReadOnly;
+            const balancesLocked = readOnly;
             
             return (
               <div key={currencyCode} className={`bg-gradient-to-br ${colorClass} p-3 sm:p-4 rounded-xl border-2 transition-all`}>
@@ -517,11 +542,6 @@ const SettingsCard: React.FC<SettingsCardProps> = ({
                   type="text"
                   inputMode="decimal"
                   disabled={balancesLocked}
-                  title={
-                    startingBalancesReadOnly && !readOnly
-                      ? t('settings.balances.linkedReadOnlyHint')
-                      : undefined
-                  }
                   value={startBalanceDisplayValue}
                   onFocus={() => {
                     if (balancesLocked) return;
@@ -531,7 +551,7 @@ const SettingsCard: React.FC<SettingsCardProps> = ({
                       [currencyCode]:
                         currentBalance === null || currentBalance === undefined
                           ? ''
-                          : String(currentBalance)
+                          : formatNumber(currentBalance, 2)
                     }));
                   }}
                   onBlur={() => {
@@ -546,6 +566,32 @@ const SettingsCard: React.FC<SettingsCardProps> = ({
                   placeholder="0.00"
                   className="w-full px-3 sm:px-4 py-2 sm:py-3 text-base sm:text-lg font-semibold border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 transition-all"
                 />
+                {calculatedMonthBudgets && (() => {
+                  const amountText =
+                    calculatedBalance === null || calculatedBalance === undefined
+                      ? '—'
+                      : formatNumber(calculatedBalance, 2);
+                  const amountTone =
+                    calculatedBalance === null || calculatedBalance === undefined
+                      ? 'text-gray-400'
+                      : calculatedBalance < 0
+                        ? 'text-rose-600'
+                        : 'text-emerald-700';
+                  const monthLabel = t('settings.balances.monthBudget', {
+                    month: selectedMonthLabel
+                  });
+
+                  return (
+                    <div className="mt-2 rounded-lg border border-dashed border-slate-300 bg-white/70 px-2.5 py-1.5">
+                      <div className="flex items-baseline justify-between gap-2">
+                        <span className="text-[11px] sm:text-xs text-slate-600">{monthLabel}</span>
+                        <span className={`text-sm font-bold tabular-nums ${amountTone}`}>
+                          {amountText}
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })()}
               </div>
             );
           })}

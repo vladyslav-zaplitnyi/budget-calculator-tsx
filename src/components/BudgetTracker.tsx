@@ -25,7 +25,7 @@ import { calculateTotals, calculateFinalBalances, convertCurrency } from '../uti
 import { aggregateTotalsForOverviewWindow } from '../utils/budgetInsights';
 import { translate } from '../i18n/config';
 import { BUDGET_VIEW_MODE_IMPORT_EVENT } from '../hooks/useBudgetImportExport';
-import { isViewingCurrentCalendarMonth, monthKeyFromBudgetDate } from '../utils/rollingMonthsBudget';
+import { monthKeyFromBudgetDate } from '../utils/rollingMonthsBudget';
 import { simulateMonthsAfterNavigation } from '../utils/balanceWaterfall';
 import { BUDGET_BOOK_CREATE_ENABLED } from '../utils/constants';
 import { countTransactionsInDays } from '../utils/transactionLimits';
@@ -206,11 +206,6 @@ export default function BudgetTracker() {
   const activeBudgetData = budgets && budgets[activeBudgetIdSafe];
   const activeMonthKey = monthKeyFromBudgetDate(budgetDate.year, budgetDate.month);
 
-  const startingBalancesReadOnly = !isViewingCurrentCalendarMonth(
-    budgetDate.year,
-    budgetDate.month
-  );
-
   const monthRollingPreview = useMemo(
     () => ({
       monthsByKey: activeBudgetData?.monthsByKey,
@@ -306,7 +301,7 @@ export default function BudgetTracker() {
     setDeleteBookId(null);
   }, [deleteBookId, deleteBook]);
 
-  // Створюємо об'єкт початкових балансів для вибраних валют
+  // Seed initial budget (inputs) — does not change when switching viewed months
   const startBalances = useMemo(() => {
     const activeBudget = budgets && budgets[activeBudgetId || 'default'];
     const budgetStartBalances = activeBudget?.startBalances || {};
@@ -317,6 +312,22 @@ export default function BudgetTracker() {
     });
     return balances;
   }, [selectedCurrencies, budgets, activeBudgetId]);
+
+  // Effective opening for the selected month (carry-over) — used for day/status math
+  const effectiveStartBalances = useMemo(() => {
+    const sliceStarts = activeBudgetData?.monthsByKey?.[activeMonthKey]?.startBalances;
+    const balances: Record<string, number | null> = {};
+    selectedCurrencies.forEach((code) => {
+      balances[code] =
+        sliceStarts?.[code] ?? activeBudgetData?.startBalances?.[code] ?? null;
+    });
+    return balances;
+  }, [
+    selectedCurrencies,
+    activeBudgetData?.monthsByKey,
+    activeBudgetData?.startBalances,
+    activeMonthKey
+  ]);
 
   // Calculations
   const totals = useMemo(
@@ -340,8 +351,8 @@ export default function BudgetTracker() {
   const insightsTotals = budgetViewMode === 'months' ? twelveMonthTotals : totals;
 
   const finalBalances = useMemo(
-    () => calculateFinalBalances(days, selectedCurrencies, startBalances, totals),
-    [days, selectedCurrencies, startBalances, totals]
+    () => calculateFinalBalances(days, selectedCurrencies, effectiveStartBalances, totals),
+    [days, selectedCurrencies, effectiveStartBalances, totals]
   );
   
   // Обчислюємо загальну вартість у базовій валюті
@@ -461,7 +472,7 @@ export default function BudgetTracker() {
                     selectedCurrencies={selectedCurrencies}
                     displayCurrency={displayCurrency}
                     exchangeRates={exchangeRates}
-                    startBalances={startBalances}
+                    startBalances={effectiveStartBalances}
                     budgetYear={budgetDate.year}
                     budgetMonth={budgetDate.month}
                     budgetViewMode={budgetViewMode}
@@ -514,13 +525,12 @@ export default function BudgetTracker() {
                     activeMonthKey={monthKeyFromBudgetDate(budgetDate.year, budgetDate.month)}
                     onBulkAddTransactionsToMonths={handleBulkAddTransactionsToMonths}
                     readOnly={isCurrentBookReadOnly}
-                    startingBalancesReadOnly={startingBalancesReadOnly}
                   />
 
                   <div data-tour="budget-status">
                     <BudgetStatus
                       finalBalances={finalBalances}
-                      startBalances={startBalances}
+                      startBalances={effectiveStartBalances}
                       selectedCurrencies={selectedCurrencies}
                       exchangeRates={exchangeRates}
                       totalInUAH={totalInUAH}
@@ -556,7 +566,7 @@ export default function BudgetTracker() {
                           isUk={language === 'uk'}
                           days={days}
                           updateDay={updateDay}
-                          startBalances={startBalances}
+                          startBalances={effectiveStartBalances}
                           selectedCurrencies={selectedCurrencies}
                           displayCurrency={displayCurrency}
                           exchangeRates={exchangeRates}
@@ -569,7 +579,7 @@ export default function BudgetTracker() {
                           isUk={language === 'uk'}
                           days={days}
                           updateDay={updateDay}
-                          startBalances={startBalances}
+                          startBalances={effectiveStartBalances}
                           selectedCurrencies={selectedCurrencies}
                           displayCurrency={displayCurrency}
                           exchangeRates={exchangeRates}
@@ -631,7 +641,7 @@ export default function BudgetTracker() {
                       selectedCurrencies={selectedCurrencies}
                       displayCurrency={displayCurrency}
                       exchangeRates={exchangeRates}
-                      startBalances={startBalances}
+                      startBalances={effectiveStartBalances}
                       budgetYear={budgetDate.year}
                       budgetMonth={budgetDate.month}
                       budgetViewMode={budgetViewMode}

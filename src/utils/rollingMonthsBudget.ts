@@ -131,7 +131,14 @@ export function applyBootToCurrentCalendarMonth(budget: Budget): Budget {
   let monthsByKey = { ...(b.monthsByKey || {}) };
   monthsByKey[savedKey] = {
     days: b.days || [],
-    startBalances: { ...(b.startBalances || {}) }
+    startBalances: {
+      ...(savedKey === nowKey
+        ? b.startBalances || {}
+        : monthsByKey[savedKey]?.startBalances || {})
+    },
+    ...(savedKey !== nowKey && monthsByKey[savedKey]?.startBalancesManual
+      ? { startBalancesManual: true as const }
+      : {})
   };
 
   const existingNow = monthsByKey[nowKey];
@@ -141,17 +148,24 @@ export function applyBootToCurrentCalendarMonth(budget: Budget): Budget {
           days: normalizeDaysArray(existingNow.days, now.year, now.month),
           startBalances: {
             ...(existingNow.startBalances || {})
-          }
+          },
+          ...(existingNow.startBalancesManual ? { startBalancesManual: true as const } : {})
         }
       : buildEmptyMonthSlice(now.year, now.month, b.selectedCurrencies || DEFAULT_CURRENCIES);
 
   monthsByKey = trimOldestMonthKeys(monthsByKey);
 
+  // Current calendar month becomes the seed shown in initial-budget inputs.
+  const nextSeed =
+    existingNow && existingNow.startBalances
+      ? { ...existingNow.startBalances }
+      : { ...(b.startBalances || {}) };
+
   return trimMonthsOnBudget({
     ...b,
     budgetDate: now,
     days: slice.days,
-    startBalances: slice.startBalances,
+    startBalances: nextSeed,
     monthsByKey
   });
 }

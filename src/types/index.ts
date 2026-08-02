@@ -19,6 +19,11 @@ export interface Day {
 export interface MonthSlice {
   days: Day[];
   startBalances: Record<string, number | null>;
+  /**
+   * When true, balance waterfall must not overwrite `startBalances` for this month
+   * (user manually set the starting budget).
+   */
+  startBalancesManual?: boolean;
 }
 
 /** Snapshot for 12-month navigation warnings when changing the active budget month. */

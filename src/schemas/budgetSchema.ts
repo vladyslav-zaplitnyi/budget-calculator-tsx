@@ -47,7 +47,8 @@ export const DaySchema = z.object({
 
 const MonthSliceSchema = z.object({
   days: z.array(DaySchema),
-  startBalances: z.record(z.string(), z.number().nullable())
+  startBalances: z.record(z.string(), z.number().nullable()),
+  startBalancesManual: z.boolean().optional()
 }) as z.ZodType<MonthSlice>;
 
 /**

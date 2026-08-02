@@ -9,7 +9,7 @@ import {
   buildEmptyMonthSlice,
   getCurrentCalendarBudgetDate
 } from '../utils/rollingMonthsBudget';
-import { applyBalanceWaterfallToBudget } from '../utils/balanceWaterfall';
+import { applyBalanceWaterfallToBudget, buildMonthSlice } from '../utils/balanceWaterfall';
 import type { Budget } from '../types';
 import { LANGUAGE_STORAGE_KEY, LANGUAGE_COOKIE_KEY } from '../utils/constants';
 import { setCookie } from '../utils/cookieHelpers';
@@ -387,12 +387,16 @@ export function useBudgetState(): BudgetStateInterface {
           });
         }
 
+        const anchor = getCurrentCalendarBudgetDate();
+        const anchorKey = monthKeyFromBudgetDate(anchor.year, anchor.month);
+        const oldStarts =
+          oldKey === anchorKey
+            ? { ...(existing.startBalances || {}) }
+            : { ...(existing.monthsByKey?.[oldKey]?.startBalances || {}) };
+
         const monthsByKey = trimOldestMonthKeys({
           ...(existing.monthsByKey || {}),
-          [oldKey]: {
-            days: updatedDays,
-            startBalances: { ...(existing.startBalances || {}) }
-          }
+          [oldKey]: buildMonthSlice(updatedDays, oldStarts)
         });
 
         const draftBudget: Budget = {
@@ -443,12 +447,15 @@ export function useBudgetState(): BudgetStateInterface {
     let monthsByKey = trimOldestMonthKeys({ ...(existingBudget.monthsByKey || {}) });
     const uiDays =
       snap.days && snap.days.length > 0 ? snap.days : existingBudget.days || [];
+    const anchor = getCurrentCalendarBudgetDate();
+    const anchorKey = monthKeyFromBudgetDate(anchor.year, anchor.month);
+    const oldStarts =
+      oldKey === anchorKey
+        ? { ...(existingBudget.startBalances || {}) }
+        : { ...(monthsByKey[oldKey]?.startBalances || {}) };
     monthsByKey = trimOldestMonthKeys({
       ...monthsByKey,
-      [oldKey]: {
-        days: uiDays,
-        startBalances: { ...(existingBudget.startBalances || {}) }
-      }
+      [oldKey]: buildMonthSlice(uiDays, oldStarts)
     });
 
     let nextSlice = monthsByKey[newKey];
@@ -459,10 +466,10 @@ export function useBudgetState(): BudgetStateInterface {
         existingBudget.selectedCurrencies || DEFAULT_CURRENCIES
       );
     } else {
-      nextSlice = {
-        days: normalizeDaysArray(nextSlice.days, date.year, date.month),
-        startBalances: { ...nextSlice.startBalances }
-      };
+      nextSlice = buildMonthSlice(
+        normalizeDaysArray(nextSlice.days, date.year, date.month),
+        { ...nextSlice.startBalances }
+      );
       const codes = existingBudget.selectedCurrencies || DEFAULT_CURRENCIES;
       codes.forEach((c) => {
         if (!(c in nextSlice!.startBalances)) nextSlice!.startBalances[c] = null;
@@ -480,7 +487,8 @@ export function useBudgetState(): BudgetStateInterface {
       ...existingBudget,
       budgetDate: date,
       days: nextSlice!.days,
-      startBalances: { ...nextSlice!.startBalances },
+      // Keep the seed initial budget in inputs; do not swap to the viewed month opening.
+      startBalances: { ...(existingBudget.startBalances || {}) },
       monthsByKey,
       selectedCurrencies: existingBudget.selectedCurrencies || DEFAULT_CURRENCIES
     };
