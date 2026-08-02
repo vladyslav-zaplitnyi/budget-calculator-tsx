@@ -301,18 +301,6 @@ export default function BudgetTracker() {
     setDeleteBookId(null);
   }, [deleteBookId, deleteBook]);
 
-  // Seed initial budget (inputs) — does not change when switching viewed months
-  const startBalances = useMemo(() => {
-    const activeBudget = budgets && budgets[activeBudgetId || 'default'];
-    const budgetStartBalances = activeBudget?.startBalances || {};
-    
-    const balances: Record<string, number | null> = {};
-    selectedCurrencies.forEach(code => {
-      balances[code] = budgetStartBalances[code] ?? null;
-    });
-    return balances;
-  }, [selectedCurrencies, budgets, activeBudgetId]);
-
   // Effective opening for the selected month (carry-over) — used for day/status math
   const effectiveStartBalances = useMemo(() => {
     const sliceStarts = activeBudgetData?.monthsByKey?.[activeMonthKey]?.startBalances;

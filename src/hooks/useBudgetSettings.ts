@@ -422,7 +422,7 @@ export function useBudgetSettings() {
 
     setShowStartNewMonthModal(false);
     console.log('✅ Новий місяць розпочато:', newBudgetDate);
-  }, [activeBudgetId, budgets, days, selectedCurrencies, setBudgets, setDays, user, encryptionPassword, setSyncStatus, getSyncStatusText, setIsEncrypted, isCurrentBookReadOnly, currentBudgetBookId]);
+  }, [activeBudgetId, budgets, days, setBudgets, setDays, user, encryptionPassword, setSyncStatus, getSyncStatusText, setIsEncrypted, isCurrentBookReadOnly, currentBudgetBookId]);
 
   const handleCancelStartNewMonth = useCallback(() => {
     setShowStartNewMonthModal(false);
