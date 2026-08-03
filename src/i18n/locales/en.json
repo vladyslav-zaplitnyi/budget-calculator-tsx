@@ -577,12 +577,7 @@
     "importedFullStateFromFile": "✅ Imported full state from file: {{filename}}",
     "importedMonthFromFile": "✅ Imported month from file: {{filename}}",
     "importedFullState": "✅ Imported full state (up to 12 months)",
-    "budgetLimitReached": "❌ Budget limit (3) reached! Delete one to add a new one.",
-    "createdFromMonthImport": "✅ Created budget from month import: {{budgetName}}",
     "updatedMonthInCurrentBudget": "✅ Updated month in current budget",
-    "budgetNameWithDate": "{{name}} (from {{date}})",
-    "importMonthBudgetName": "Import {{monthKey}} ({{date}})",
-    "createdNewBudget": "✅ Created new budget: {{budgetName}}",
     "updatedBudget": "✅ Updated budget: {{budgetName}}"
   },
   "importModal": {
@@ -590,14 +585,9 @@
     "fileLabel": "File:",
     "savedAtLabel": "Saved at:",
     "unknownDate": "unknown date",
-    "selectAction": "Choose how to import this budget:",
-    "createNew": "Create as New Budget",
+    "selectAction": "Import this file into the current budget?",
     "overwrite": "Overwrite Current Budget",
-    "cancel": "Cancel",
-    "limitReached": "Limit reached ({{count}}/3)",
-    "hint": "💡 Hint:",
-    "hintDeleteBudget": "Delete one of the existing budgets to create a new one.",
-    "hintOrLogout": "Or log out and continue using."
+    "cancel": "Cancel"
   },
   "common": {
     "ok": "OK",

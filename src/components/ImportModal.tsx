@@ -5,23 +5,17 @@ import { translate } from '../i18n/config';
 interface ImportModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onCreateNew: () => void;
   onOverwrite: () => void;
   savedAt: string | null;
   budgetName: string;
-  canCreateNew: boolean;
-  currentBudgetsCount: number;
 }
 
 const ImportModal: React.FC<ImportModalProps> = ({
   isOpen,
   onClose,
-  onCreateNew,
   onOverwrite,
   savedAt,
-  budgetName,
-  canCreateNew,
-  currentBudgetsCount
+  budgetName
 }) => {
   const handleBackdropClick = (e: React.MouseEvent<HTMLDivElement>) => {
     if (e.target === e.currentTarget) {
@@ -68,36 +62,6 @@ const ImportModal: React.FC<ImportModalProps> = ({
         </p>
 
         <div className="flex flex-col gap-3 mb-4">
-          {/* Кнопка "Створити новий" */}
-          <button
-            type="button"
-            onClick={onCreateNew}
-            disabled={!canCreateNew}
-            className={`
-              w-full px-4 py-3 rounded-lg font-semibold transition-all text-left
-              ${canCreateNew 
-                ? 'bg-gradient-to-r from-green-500 to-emerald-500 text-white hover:from-green-600 hover:to-emerald-600 shadow-md hover:shadow-lg' 
-                : 'bg-gray-200 text-gray-400 cursor-not-allowed opacity-60'
-              }
-            `}
-            title={!canCreateNew ? translate('importModal.limitReached', { count: currentBudgetsCount }) : ''}
-          >
-            <div className="flex items-center justify-between">
-              <div>
-                <div className="flex items-center">
-                  <span className="mr-2">➕</span>
-                  <span>{translate('importModal.createNew')}</span>
-                </div>
-                {!canCreateNew && (
-                  <div className="text-xs mt-1 opacity-80">
-                    {translate('importModal.limitReached', { count: currentBudgetsCount })}
-                  </div>
-                )}
-              </div>
-            </div>
-          </button>
-
-          {/* Кнопка "Перезаписати" */}
           <button
             type="button"
             onClick={onOverwrite}
@@ -109,7 +73,6 @@ const ImportModal: React.FC<ImportModalProps> = ({
             </div>
           </button>
 
-          {/* Кнопка "Скасувати" */}
           <button
             type="button"
             onClick={onClose}
@@ -118,17 +81,6 @@ const ImportModal: React.FC<ImportModalProps> = ({
             ❌ {translate('importModal.cancel')}
           </button>
         </div>
-
-        {!canCreateNew && (
-          <div className="mt-4 p-3 bg-yellow-50 rounded-lg border border-yellow-200">
-            <p className="text-xs sm:text-sm text-yellow-800 mb-1">
-              <strong>{translate('importModal.hint')}</strong> {translate('importModal.hintDeleteBudget')}
-            </p>
-            <p className="text-xs sm:text-sm text-yellow-800">
-              {translate('importModal.hintOrLogout')}
-            </p>
-          </div>
-        )}
       </div>
     </div>
   );
@@ -137,4 +89,3 @@ const ImportModal: React.FC<ImportModalProps> = ({
 };
 
 export default ImportModal;
-

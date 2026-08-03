@@ -578,12 +578,7 @@
     "importedFullStateFromFile": "✅ Імпортовано повний стан з файлу: {{filename}}",
     "importedMonthFromFile": "✅ Імпортовано місяць з файлу: {{filename}}",
     "importedFullState": "✅ Імпортовано повний стан (до 12 місяців)",
-    "budgetLimitReached": "❌ Ліміт 3 бюджети досягнуто! Видаліть один, щоб додати новий.",
-    "createdFromMonthImport": "✅ Створено бюджет з імпорту місяця: {{budgetName}}",
     "updatedMonthInCurrentBudget": "✅ Оновлено місяць у поточному бюджеті",
-    "budgetNameWithDate": "{{name}} (від {{date}})",
-    "importMonthBudgetName": "Імпорт {{monthKey}} ({{date}})",
-    "createdNewBudget": "✅ Створено новий бюджет: {{budgetName}}",
     "updatedBudget": "✅ Оновлено бюджет: {{budgetName}}"
   },
   "importModal": {
@@ -591,14 +586,9 @@
     "fileLabel": "Файл:",
     "savedAtLabel": "Збережено:",
     "unknownDate": "невідома дата",
-    "selectAction": "Оберіть, як імпортувати цей бюджет:",
-    "createNew": "Створити як Новий бюджет",
+    "selectAction": "Імпортувати цей файл у поточний бюджет?",
     "overwrite": "Перезаписати Поточний бюджет",
-    "cancel": "Скасувати",
-    "limitReached": "Ліміт досягнуто ({{count}}/3)",
-    "hint": "💡 Підказка:",
-    "hintDeleteBudget": "Видаліть один із існуючих бюджетів, щоб створити новий.",
-    "hintOrLogout": "Або вийдіть з акаунта і користуйтеся."
+    "cancel": "Скасувати"
   },
   "common": {
     "ok": "OK",

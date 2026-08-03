@@ -762,12 +762,9 @@ export default function BudgetTracker() {
       <ImportModal
         isOpen={showImportModal}
         onClose={cancelImport}
-        onCreateNew={() => resolveImport('new')}
-        onOverwrite={() => resolveImport('overwrite')}
+        onOverwrite={resolveImport}
         savedAt={pendingImport?.savedAt || null}
         budgetName={pendingImport?.budgetName || pendingImport?.settings?.name || translate('budget.main')}
-        canCreateNew={Object.keys(budgets).length < MAX_BUDGET_BOOKS}
-        currentBudgetsCount={Object.keys(budgets).length}
       />
 
       {/* PromptModal для редагування назви бюджету */}

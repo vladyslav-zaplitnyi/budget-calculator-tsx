@@ -6,7 +6,7 @@ import { validateSelectedCurrencies, DEFAULT_CURRENCIES } from '../utils/currenc
 import { Budgets, Day, Transaction, Budget } from '../types';
 import { validateDay, validateTransaction } from '../schemas/budgetSchema';
 import { handleError } from '../utils/errorHandler';
-import i18n, { translate } from '../i18n/config';
+import { translate } from '../i18n/config';
 import { sanitizeFileNamePart } from '../utils/fileNameSanitizer';
 import {
   buildSingleMonthExportJson,
@@ -24,10 +24,6 @@ import {
 
 /** Must match `BUDGET_VIEW_MODE_STORAGE_KEY` in BudgetTracker. */
 const BUDGET_VIEW_MODE_STORAGE_KEY = 'budget_tracker_budget_view_mode';
-
-function formatLocaleDateTime(date: Date): string {
-  return date.toLocaleString(i18n.language === 'uk' ? 'uk-UA' : 'en-US');
-}
 
 const MONTH_PLAN_KEY_RE = /^\d{4}-(0[1-9]|1[0-2])$/;
 
@@ -735,7 +731,7 @@ export function useBudgetImportExport() {
   ]);
 
   // Функція для вирішення конфлікту імпорту (тільки для авторизованих користувачів)
-  const resolveImport = useCallback((action: 'new' | 'overwrite') => {
+  const resolveImport = useCallback(() => {
     if (!pendingImport) return;
 
     try {
@@ -755,123 +751,21 @@ export function useBudgetImportExport() {
 
       if (data.exportKind === 'singleMonth' && data.exportVersion === 1) {
         const payload = data as unknown as SingleMonthExportPayload;
-        const currentBudgets = budgets || {};
-        if (action === 'new') {
-          const count = Object.keys(currentBudgets).length;
-          if (count >= 3) {
-            setLoadMessage(translate('importExport.budgetLimitReached'));
-            setTimeout(() => setLoadMessage(''), 4000);
-            setShowImportModal(false);
-            setPendingImport(null);
-            return;
-          }
-          const savedDate = payload.savedAt ? new Date(payload.savedAt) : new Date();
-          const budgetName = translate('importExport.importMonthBudgetName', {
-            monthKey: payload.monthKey,
-            date: formatLocaleDateTime(savedDate)
-          });
-          const baseId = `import-${payload.monthKey}`.toLowerCase().replace(/[^a-z0-9]+/g, '-');
-          let newId = baseId;
-          let suffix = 1;
-          while (currentBudgets[newId]) {
-            newId = `${baseId}-${suffix++}`;
-          }
-          const template = currentBudgets[activeBudgetId || 'default'];
-          const starter: Budget = template
-            ? { ...template, name: budgetName, days: [], startBalances: {}, monthsByKey: {} }
-            : ({
-                name: budgetName,
-                startBalances: {},
-                selectedCurrencies: DEFAULT_CURRENCIES,
-                exchangeRates: {},
-                days: [],
-                displayCurrency: 'RON',
-                displayCurrencyIndex: 0,
-                budgetDate: payload.budgetDate
-              } as Budget);
-          const nextB = applySingleMonthImportToBudget(starter, payload);
-          setBudgets({ ...currentBudgets, [newId]: nextB });
-          setActiveBudgetId(newId);
-          saveToLocalStorage({ ...currentBudgets, [newId]: nextB }, newId);
-          setTimeout(() => {
-            setDays(
-              normalizeDaysArray(payload.days, payload.budgetDate.year, payload.budgetDate.month)
-            );
-            if (payload.settings?.selectedCurrencies?.length) {
-              setSelectedCurrencies(validateSelectedCurrencies(payload.settings.selectedCurrencies));
-            }
-            if (payload.settings?.exchangeRates && typeof payload.settings.exchangeRates === 'object') {
-              setExchangeRates(payload.settings.exchangeRates);
-            }
-            if (payload.settings?.displayCurrency) setDisplayCurrency(payload.settings.displayCurrency);
-            if (payload.settings?.displayCurrencyIndex !== undefined) {
-              setDisplayCurrencyIndex(payload.settings.displayCurrencyIndex);
-            }
-          }, 100);
-          setLoadMessage(translate('importExport.createdFromMonthImport', { budgetName }));
-        } else {
-          const currentId = activeBudgetId || 'default';
-          applyRollingSinglePayload(payload, currentId);
-          setLoadMessage(translate('importExport.updatedMonthInCurrentBudget'));
-        }
+        const currentId = activeBudgetId || 'default';
+        applyRollingSinglePayload(payload, currentId);
+        setLoadMessage(translate('importExport.updatedMonthInCurrentBudget'));
         setTimeout(() => setLoadMessage(''), 3000);
         setShowImportModal(false);
         setPendingImport(null);
         return;
       }
 
+      // Перезаписуємо поточний бюджет
       const currentBudgets = budgets || {};
-      const count = Object.keys(currentBudgets).length;
-
-      if (action === 'new') {
-        // Перевірка ліміту
-        if (count >= 3) {
-          setLoadMessage(translate('importExport.budgetLimitReached'));
-          setTimeout(() => setLoadMessage(''), 4000);
-          setShowImportModal(false);
-          setPendingImport(null);
-          return;
-        }
-
-        // Створюємо нову назву з датою збереження
-        const savedDate =
-          typeof data.savedAt === 'string' ? new Date(data.savedAt) : new Date();
-        const budgetName =
-          (typeof data.budgetName === 'string' && data.budgetName) ||
-          (typeof data.settings === 'object' &&
-            data.settings &&
-            typeof (data.settings as { name?: unknown }).name === 'string' &&
-            (data.settings as { name: string }).name) ||
-          translate('budget.main');
-        const dateStr = formatLocaleDateTime(savedDate);
-        const newBudgetName = translate('importExport.budgetNameWithDate', {
-          name: budgetName,
-          date: dateStr
-        });
-
-        // Генеруємо ID
-        const baseId = newBudgetName
-          .toLowerCase()
-          .replace(/[^a-z0-9]+/g, '-')
-          .replace(/^-+|-+$/g, '') || 'budget';
-
-        let newId = baseId;
-        let suffix = 1;
-        while (currentBudgets[newId]) {
-          newId = `${baseId}-${suffix++}`;
-        }
-
-        // Обробка даних з файлу
-        applyImportData(data, newId, newBudgetName);
-        setActiveBudgetId(newId);
-        setLoadMessage(translate('importExport.createdNewBudget', { budgetName: newBudgetName }));
-      } else {
-        // Перезаписуємо поточний бюджет
-        const currentId = activeBudgetId || 'default';
-        const currentBudgetName = currentBudgets[currentId]?.name || translate('budget.main');
-        applyImportData(data, currentId, currentBudgetName);
-        setLoadMessage(translate('importExport.updatedBudget', { budgetName: currentBudgetName }));
-      }
+      const currentId = activeBudgetId || 'default';
+      const currentBudgetName = currentBudgets[currentId]?.name || translate('budget.main');
+      applyImportData(data, currentId, currentBudgetName);
+      setLoadMessage(translate('importExport.updatedBudget', { budgetName: currentBudgetName }));
 
       setTimeout(() => setLoadMessage(''), 3000);
     } catch (err) {
@@ -889,13 +783,6 @@ export function useBudgetImportExport() {
     applyImportData,
     applyRollingFullPayload,
     applyRollingSinglePayload,
-    setActiveBudgetId,
-    setBudgets,
-    setDays,
-    setSelectedCurrencies,
-    setExchangeRates,
-    setDisplayCurrency,
-    setDisplayCurrencyIndex,
     setLoadMessage
   ]);
 
