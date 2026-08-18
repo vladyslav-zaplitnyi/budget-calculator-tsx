@@ -17,6 +17,11 @@ import {
   TRANSACTION_CATEGORIES,
   getCategoryLabel
 } from '../utils/categories';
+import {
+  EXPENSE_REMAINDER_KEY,
+  UNNAMED_DESCRIPTION_KEY,
+  buildExpenseDescriptionBreakdown
+} from '../utils/expenseDescriptionBreakdown';
 
 interface AnalyticsProps {
   days: Day[];
@@ -39,13 +44,6 @@ interface TopExpense {
   day: number;
   monthLabel?: string;
   category?: string;
-}
-
-interface CategoryData {
-  name: string;
-  totalAmount: number;
-  count: number;
-  percentage: number;
 }
 
 interface WeekData {
@@ -97,6 +95,8 @@ const Analytics: React.FC<AnalyticsProps> = ({
   });
   /** Фільтр блоку «Витрати за категоріями»: '' = усі, '__none__' = без категорії, інакше id. */
   const [categoryFilter, setCategoryFilter] = useState('');
+  /** Розкритий список дрібних назв, зібраних у «Решта». */
+  const [isRemainderExpanded, setIsRemainderExpanded] = useState(false);
 
   const toggleExpanded = useCallback(() => {
     setIsExpanded(prev => {
@@ -250,57 +250,11 @@ const Analytics: React.FC<AnalyticsProps> = ({
           ? allExpenses.filter((expense) => !expense.category)
           : allExpenses.filter((expense) => expense.category === categoryFilter);
 
-    const filteredExpenseTotal = filteredExpenses.reduce(
-      (sum, expense) => sum + expense.convertedAmount,
-      0
+    // Показуємо топ-6 назв, решту збираємо в «Решта» (можна розкрити список)
+    const { groups: categories, remainderGroups } = buildExpenseDescriptionBreakdown(
+      filteredExpenses,
+      { collapseAfter: 6 }
     );
-
-    const categoryMap = new Map<string, { totalAmount: number; count: number }>();
-    filteredExpenses.forEach((expense) => {
-      const key = (expense.description || '').trim().toLowerCase() || '—';
-      if (categoryMap.has(key)) {
-        const existing = categoryMap.get(key)!;
-        existing.totalAmount += expense.convertedAmount;
-        existing.count += 1;
-      } else {
-        categoryMap.set(key, { totalAmount: expense.convertedAmount, count: 1 });
-      }
-    });
-
-    // Конвертуємо в масив та сортуємо за сумою
-    const categoriesRaw = Array.from(categoryMap.entries())
-      .map(([key, data]) => ({
-        name: key === '—' ? '—' : key,
-        totalAmount: data.totalAmount,
-        count: data.count,
-        percentage: filteredExpenseTotal > 0 ? (data.totalAmount / filteredExpenseTotal) * 100 : 0
-      }))
-      .sort((a, b) => b.totalAmount - a.totalAmount);
-
-    // Показуємо топ-6, решту об'єднуємо в "Інше", потім знову від більшого до меншого
-    let categories: CategoryData[];
-    if (categoriesRaw.length > 7) {
-      const top6 = categoriesRaw.slice(0, 6);
-      const otherTotal = categoriesRaw.slice(6).reduce((sum, c) => sum + c.totalAmount, 0);
-      const otherCount = categoriesRaw.slice(6).reduce((sum, c) => sum + c.count, 0);
-      categories = [
-        ...top6,
-        {
-          name: '__other__',
-          totalAmount: otherTotal,
-          count: otherCount,
-          percentage: filteredExpenseTotal > 0 ? (otherTotal / filteredExpenseTotal) * 100 : 0
-        }
-      ].sort((a, b) => b.totalAmount - a.totalAmount);
-    } else {
-      categories = categoriesRaw;
-    }
-
-    // Capitalize display name
-    categories = categories.map(c => ({
-      ...c,
-      name: c.name === '__other__' ? '__other__' : c.name === '—' ? '—' : c.name.charAt(0).toUpperCase() + c.name.slice(1)
-    }));
 
     // ---------- Тижневий / місячний розподіл ----------
     const weeks: WeekData[] = [];
@@ -375,6 +329,7 @@ const Analytics: React.FC<AnalyticsProps> = ({
       savingsRate,
       spendingProgress,
       categories,
+      remainderGroups,
       weeks,
       maxWeekExpense,
       isTwelveMonthView
@@ -589,7 +544,10 @@ const Analytics: React.FC<AnalyticsProps> = ({
               <span className="whitespace-nowrap font-semibold">{t('analytics.categoryFilterLabel')}</span>
               <select
                 value={categoryFilter}
-                onChange={(e) => setCategoryFilter(e.target.value)}
+                onChange={(e) => {
+                  setCategoryFilter(e.target.value);
+                  setIsRemainderExpanded(false);
+                }}
                 className="px-2 py-1.5 text-xs sm:text-sm border-2 border-amber-200 rounded-lg bg-white focus:ring-2 focus:ring-amber-400 focus:border-amber-400 max-w-[200px]"
               >
                 <option value="">{t('analytics.categoryFilterAll')}</option>
@@ -616,12 +574,17 @@ const Analytics: React.FC<AnalyticsProps> = ({
                     'bg-amber-500', 'bg-orange-500', 'bg-rose-400', 'bg-violet-500',
                     'bg-blue-500', 'bg-emerald-500', 'bg-teal-400', 'bg-pink-400'
                   ];
+                  const label = cat.name === EXPENSE_REMAINDER_KEY
+                    ? t('analytics.categoryOther')
+                    : cat.name === UNNAMED_DESCRIPTION_KEY
+                    ? t('analytics.categoryNoDescription')
+                    : cat.name;
                   return (
                     <div
                       key={idx}
                       className={`${colors[idx % colors.length]} transition-all duration-500`}
                       style={{ width: `${cat.percentage}%` }}
-                      title={`${cat.name === '__other__' ? t('analytics.categoryOther') : cat.name === '—' ? t('analytics.categoryNoDescription') : cat.name}: ${cat.percentage.toFixed(1)}%`}
+                      title={`${label}: ${cat.percentage.toFixed(1)}%`}
                     />
                   );
                 })}
@@ -635,14 +598,93 @@ const Analytics: React.FC<AnalyticsProps> = ({
                     'bg-blue-500', 'bg-emerald-500', 'bg-teal-400', 'bg-pink-400'
                   ];
                   const dotColor = colors[idx % colors.length];
-                  const displayName = cat.name === '__other__'
+                  const displayName = cat.name === EXPENSE_REMAINDER_KEY
                     ? t('analytics.categoryOther')
-                    : cat.name === '—'
+                    : cat.name === UNNAMED_DESCRIPTION_KEY
                     ? t('analytics.categoryNoDescription')
                     : cat.name;
+                  const isRemainder = cat.name === EXPENSE_REMAINDER_KEY
+                    && analytics.remainderGroups.length > 0;
+
+                  const amounts = (
+                    <div className="flex items-center gap-2 flex-shrink-0 ml-2">
+                      <span className="text-sm font-bold text-gray-800 tabular-nums">
+                        {displaySymbol}{formatNumber(cat.totalAmount, 2)}
+                      </span>
+                      <span className="text-xs text-gray-500 tabular-nums w-12 text-right">
+                        {cat.percentage.toFixed(1)}%
+                      </span>
+                    </div>
+                  );
+
+                  if (isRemainder) {
+                    return (
+                      <div key={cat.name}>
+                        <button
+                          type="button"
+                          className="w-full flex items-center justify-between rounded-lg hover:bg-amber-100/80 -mx-1 px-1 py-0.5 text-left"
+                          onClick={() => setIsRemainderExpanded((open) => !open)}
+                          aria-expanded={isRemainderExpanded}
+                          aria-controls="analytics-remainder-list"
+                          aria-label={isRemainderExpanded
+                            ? t('analytics.categoryOtherCollapse')
+                            : t('analytics.categoryOtherExpand')}
+                        >
+                          <div className="flex items-center gap-2 min-w-0 flex-1">
+                            <span className={`w-3 h-3 rounded-full flex-shrink-0 ${dotColor}`} />
+                            <span className="text-sm text-gray-800 truncate font-medium">
+                              {displayName}
+                            </span>
+                            <span className="text-[10px] text-gray-400 flex-shrink-0">
+                              {cat.count} {t('analytics.categoryTransactions')}
+                            </span>
+                            <span className="text-[10px] font-semibold text-amber-700 flex-shrink-0" aria-hidden>
+                              {isRemainderExpanded ? '▲' : '▼'}
+                            </span>
+                          </div>
+                          {amounts}
+                        </button>
+                        {isRemainderExpanded && (
+                          <div
+                            id="analytics-remainder-list"
+                            className="ml-4 mt-2 space-y-1.5 max-h-72 overflow-y-auto overscroll-contain pr-1 border-l-2 border-amber-300 pl-3"
+                          >
+                            {analytics.remainderGroups.map((item) => {
+                              const itemName = item.name === UNNAMED_DESCRIPTION_KEY
+                                ? t('analytics.categoryNoDescription')
+                                : item.name;
+                              const share = cat.totalAmount > 0
+                                ? (item.totalAmount / cat.totalAmount) * 100
+                                : 0;
+                              return (
+                                <div key={item.name} className="flex items-center justify-between gap-2">
+                                  <div className="flex items-center gap-2 min-w-0 flex-1">
+                                    <span className="text-sm text-gray-700 truncate">
+                                      {itemName}
+                                    </span>
+                                    <span className="text-[10px] text-gray-400 flex-shrink-0">
+                                      {item.count} {t('analytics.categoryTransactions')}
+                                    </span>
+                                  </div>
+                                  <div className="flex items-center gap-2 flex-shrink-0 ml-2">
+                                    <span className="text-sm font-semibold text-gray-700 tabular-nums">
+                                      {displaySymbol}{formatNumber(item.totalAmount, 2)}
+                                    </span>
+                                    <span className="text-xs text-gray-400 tabular-nums w-12 text-right">
+                                      {share.toFixed(1)}%
+                                    </span>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  }
 
                   return (
-                    <div key={idx} className="flex items-center justify-between">
+                    <div key={`${cat.name}-${idx}`} className="flex items-center justify-between">
                       <div className="flex items-center gap-2 min-w-0 flex-1">
                         <span className={`w-3 h-3 rounded-full flex-shrink-0 ${dotColor}`} />
                         <span className="text-sm text-gray-800 truncate font-medium">
@@ -652,18 +694,16 @@ const Analytics: React.FC<AnalyticsProps> = ({
                           {cat.count} {t('analytics.categoryTransactions')}
                         </span>
                       </div>
-                      <div className="flex items-center gap-2 flex-shrink-0 ml-2">
-                        <span className="text-sm font-bold text-gray-800 tabular-nums">
-                          {displaySymbol}{formatNumber(cat.totalAmount, 2)}
-                        </span>
-                        <span className="text-xs text-gray-500 tabular-nums w-12 text-right">
-                          {cat.percentage.toFixed(1)}%
-                        </span>
-                      </div>
+                      {amounts}
                     </div>
                   );
                 })}
               </div>
+              {analytics.remainderGroups.length > 0 && !isRemainderExpanded && (
+                <p className="text-[10px] sm:text-xs text-gray-500 mt-2">
+                  {t('analytics.categoryOtherHint')}
+                </p>
+              )}
             </>
           )}
         </div>
