@@ -484,7 +484,7 @@ const CsvImportModal: React.FC<CsvImportModalProps> = ({
     <select
       value={value}
       onChange={(e) => onChange(e.target.value)}
-      className="text-xs px-1.5 py-1 border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 max-w-[150px]"
+      className="w-full min-h-[44px] sm:min-h-0 sm:w-auto sm:min-w-[11rem] sm:max-w-[14rem] text-[16px] sm:text-sm px-2.5 py-2 border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 shrink-0"
       title={t('csvImport.categoryTitle')}
     >
       <option value="">{t('csvImport.noCategory')}</option>
@@ -499,16 +499,24 @@ const CsvImportModal: React.FC<CsvImportModalProps> = ({
   const renderMergedGroupRow = (g: MergedGroup, categoryKey: string) => (
     <div
       key={g.key}
-      className="flex items-center gap-2 text-xs sm:text-sm bg-white border border-indigo-200 rounded-lg px-2 py-1.5"
+      className="flex flex-col gap-2 bg-white border border-indigo-200 rounded-lg px-3 py-2.5"
     >
-      <span>{g.type === 'income' ? '✅' : '❌'}</span>
-      <span className="font-bold whitespace-nowrap">
-        {g.amount} {g.currency}
-      </span>
-      <span className="flex-1 truncate text-gray-700" title={g.description}>
-        {g.description}
-      </span>
-      <span className="text-[10px] text-gray-500 whitespace-nowrap">×{g.sourceCount}</span>
+      <div className="flex items-start gap-2 min-w-0">
+        <span className="shrink-0 text-base leading-6" aria-hidden>
+          {g.type === 'income' ? '✅' : '❌'}
+        </span>
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="font-bold text-[15px] sm:text-sm text-gray-900">
+              {g.amount} {g.currency}
+            </span>
+            <span className="text-xs text-gray-500 whitespace-nowrap">×{g.sourceCount}</span>
+          </div>
+          <p className="text-[14px] sm:text-sm text-gray-700 break-words [overflow-wrap:anywhere] mt-0.5">
+            {g.description}
+          </p>
+        </div>
+      </div>
       {renderCategorySelect(
         mergedGroupCategories[categoryKey] ?? g.category,
         (categoryId) =>
@@ -536,7 +544,7 @@ const CsvImportModal: React.FC<CsvImportModalProps> = ({
     return (
       <>
         {/* Підсумок розпізнавання */}
-        <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-xl text-xs sm:text-sm text-gray-700 space-y-1">
+        <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-xl text-[14px] sm:text-sm text-gray-700 space-y-1">
           <p>
             <strong>{t('csvImport.fileLabel')}</strong> {fileName}
           </p>
@@ -590,27 +598,29 @@ const CsvImportModal: React.FC<CsvImportModalProps> = ({
                 onClick={() => setShowNameCategories((prev) => !prev)}
                 className="w-full flex items-center justify-between gap-2 px-3 py-2 text-left"
               >
-                <span className="text-xs sm:text-sm font-bold text-indigo-800">
+                <span className="text-[15px] sm:text-sm font-bold text-indigo-800">
                   🏷️ {t('csvImport.nameCategoriesTitle')}
                 </span>
-                <span className="text-indigo-600 text-xs font-bold">
+                <span className="text-indigo-600 text-sm font-bold">
                   {showNameCategories ? '▲' : '▼'}
                 </span>
               </button>
 
               {showNameCategories && (
                 <div className="px-3 pb-3 space-y-2">
-                  <p className="text-[11px] sm:text-xs text-indigo-700">
+                  <p className="text-[13px] sm:text-xs text-indigo-700">
                     {t('csvImport.nameCategoriesHint')}
                   </p>
 
-                  <div className="flex items-center gap-2 bg-white border border-indigo-200 rounded-lg px-2 py-1.5">
-                    <span className="flex-1 text-xs sm:text-sm font-semibold text-gray-700">
-                      {t('csvImport.applyToAllRows')}
-                    </span>
-                    <span className="text-[10px] text-gray-500 whitespace-nowrap">
-                      ×{monthRows.length}
-                    </span>
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-2 bg-white border border-indigo-200 rounded-lg px-3 py-2.5">
+                    <div className="flex items-center justify-between gap-2 min-w-0 flex-1">
+                      <span className="text-[14px] sm:text-sm font-semibold text-gray-700">
+                        {t('csvImport.applyToAllRows')}
+                      </span>
+                      <span className="text-xs text-gray-500 whitespace-nowrap">
+                        ×{monthRows.length}
+                      </span>
+                    </div>
                     {renderCategorySelect(
                       getSharedCategory(monthRows.map((row) => row.rowIndex)),
                       (categoryId) =>
@@ -622,7 +632,7 @@ const CsvImportModal: React.FC<CsvImportModalProps> = ({
                   </div>
 
                   {nameGroups.length === 0 ? (
-                    <p className="text-[11px] sm:text-xs text-gray-500">
+                    <p className="text-[13px] sm:text-xs text-gray-500">
                       {t('csvImport.noRepeatedNames')}
                     </p>
                   ) : (
@@ -630,21 +640,24 @@ const CsvImportModal: React.FC<CsvImportModalProps> = ({
                       {nameGroups.map((group) => (
                         <div
                           key={group.key}
-                          className="flex items-center gap-2 text-xs sm:text-sm bg-white border border-indigo-200 rounded-lg px-2 py-1.5"
+                          className="flex flex-col gap-2 bg-white border border-indigo-200 rounded-lg px-3 py-2.5"
                         >
-                          <span>{group.type === 'income' ? '✅' : '❌'}</span>
-                          <span
-                            className="flex-1 truncate text-gray-700"
-                            title={group.description}
-                          >
-                            {group.description}
-                          </span>
-                          <span className="text-[10px] text-gray-500 whitespace-nowrap">
-                            {t('csvImport.nameGroupMeta', {
-                              count: group.sourceCount,
-                              days: group.days.size
-                            })}
-                          </span>
+                          <div className="flex items-start gap-2 min-w-0">
+                            <span className="shrink-0 text-base leading-6" aria-hidden>
+                              {group.type === 'income' ? '✅' : '❌'}
+                            </span>
+                            <div className="min-w-0 flex-1">
+                              <p className="text-[14px] sm:text-sm text-gray-800 break-words [overflow-wrap:anywhere]">
+                                {group.description}
+                              </p>
+                              <span className="text-xs text-gray-500">
+                                {t('csvImport.nameGroupMeta', {
+                                  count: group.sourceCount,
+                                  days: group.days.size
+                                })}
+                              </span>
+                            </div>
+                          </div>
                           {renderCategorySelect(
                             getSharedCategory(group.rowIndexes),
                             (categoryId) => applyCategoryToRows(group.rowIndexes, categoryId)
@@ -665,7 +678,7 @@ const CsvImportModal: React.FC<CsvImportModalProps> = ({
               }`}
             >
               <p
-                className={`text-xs sm:text-sm mb-2 ${
+                className={`text-[14px] sm:text-sm mb-2 ${
                   isOverMonthLimit ? 'text-amber-800' : 'text-gray-600'
                 }`}
               >
@@ -679,7 +692,7 @@ const CsvImportModal: React.FC<CsvImportModalProps> = ({
                 <button
                   type="button"
                   onClick={mergeAllDays}
-                  className="px-3 py-1.5 text-xs sm:text-sm font-bold rounded-lg bg-amber-500 hover:bg-amber-600 text-white transition-colors"
+                  className="w-full sm:w-auto px-3 py-2.5 text-sm font-bold rounded-lg bg-amber-500 hover:bg-amber-600 text-white transition-colors"
                 >
                   🔗 {t('csvImport.mergeAllDays')}
                 </button>
@@ -704,10 +717,10 @@ const CsvImportModal: React.FC<CsvImportModalProps> = ({
                 return (
                   <div key={day} className="rounded-xl border-2 p-3 border-gray-200 bg-gray-50">
                     {/* Заголовок дня */}
-                    <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
-                      <div className="text-sm font-bold text-gray-800">
-                        📅 {t('csvImport.dayHeader', { day })}
-                        <span className="ml-2 text-xs font-semibold px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-700">
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-2">
+                      <div className="text-[15px] sm:text-sm font-bold text-gray-800 flex flex-wrap items-center gap-2">
+                        <span>📅 {t('csvImport.dayHeader', { day })}</span>
+                        <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-700">
                           {t('csvImport.dayCounter', { total: totalCount })}
                         </span>
                       </div>
@@ -715,7 +728,7 @@ const CsvImportModal: React.FC<CsvImportModalProps> = ({
                         <button
                           type="button"
                           onClick={() => toggleMergeDay(day)}
-                          className={`px-2.5 py-1 text-xs font-bold rounded-lg transition-colors ${
+                          className={`w-full sm:w-auto px-3 py-2 text-sm font-bold rounded-lg transition-colors ${
                             isMerged
                               ? 'bg-gray-300 text-gray-800 hover:bg-gray-400'
                               : 'bg-indigo-100 text-indigo-700 hover:bg-indigo-200'
@@ -730,16 +743,16 @@ const CsvImportModal: React.FC<CsvImportModalProps> = ({
 
                     {/* Існуючі транзакції дня */}
                     {existingTxs.length > 0 && (
-                      <div className="mb-2">
-                        <div className="flex items-center justify-between gap-2 mb-1">
-                          <span className="text-[10px] font-bold uppercase tracking-wide text-gray-400">
+                      <div className="mb-3">
+                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1.5 mb-1.5">
+                          <span className="text-xs font-bold uppercase tracking-wide text-gray-500">
                             {t('csvImport.existingLabel', { count: existingTxs.length })}
                           </span>
                           {existingTxs.length > 1 && (
                             <button
                               type="button"
                               onClick={() => toggleMergeExistingDay(day)}
-                              className={`px-2 py-0.5 text-[11px] font-bold rounded-lg transition-colors ${
+                              className={`w-full sm:w-auto px-3 py-2 text-sm font-bold rounded-lg transition-colors ${
                                 isExistingMerged
                                   ? 'bg-gray-300 text-gray-800 hover:bg-gray-400'
                                   : 'bg-indigo-100 text-indigo-700 hover:bg-indigo-200'
@@ -758,19 +771,23 @@ const CsvImportModal: React.FC<CsvImportModalProps> = ({
                             )}
                           </div>
                         ) : (
-                          <div className="space-y-1">
+                          <div className="space-y-1.5">
                             {existingTxs.map((tx) => (
                               <div
                                 key={tx.id}
-                                className="flex items-center gap-2 text-[11px] sm:text-xs rounded-lg px-2 py-1 bg-gray-100 border border-gray-200 text-gray-500"
+                                className="flex items-start gap-2 text-[14px] sm:text-xs rounded-lg px-3 py-2 bg-gray-100 border border-gray-200 text-gray-600"
                               >
-                                <span>{tx.type === 'income' ? '✅' : '❌'}</span>
-                                <span className="font-semibold whitespace-nowrap">
-                                  {tx.amount} {tx.currency}
+                                <span className="shrink-0 text-base leading-6" aria-hidden>
+                                  {tx.type === 'income' ? '✅' : '❌'}
                                 </span>
-                                <span className="flex-1 truncate" title={tx.description}>
-                                  {tx.description}
-                                </span>
+                                <div className="min-w-0 flex-1">
+                                  <span className="font-semibold text-gray-800 whitespace-nowrap">
+                                    {tx.amount} {tx.currency}
+                                  </span>
+                                  <p className="break-words [overflow-wrap:anywhere] mt-0.5">
+                                    {tx.description}
+                                  </p>
+                                </div>
                               </div>
                             ))}
                           </div>
@@ -780,8 +797,8 @@ const CsvImportModal: React.FC<CsvImportModalProps> = ({
 
                     {/* Нові транзакції з файлу */}
                     {existingTxs.length > 0 && (
-                      <div className="mb-1">
-                        <span className="text-[10px] font-bold uppercase tracking-wide text-gray-400">
+                      <div className="mb-1.5">
+                        <span className="text-xs font-bold uppercase tracking-wide text-gray-500">
                           {t('csvImport.newLabel')}
                         </span>
                       </div>
@@ -793,44 +810,49 @@ const CsvImportModal: React.FC<CsvImportModalProps> = ({
                         )}
                       </div>
                     ) : (
-                      <div className="space-y-1.5">
+                      <div className="space-y-2">
                         {rows.map((row) => {
                           const isIncluded = includedRows.has(row.rowIndex);
                           return (
                             <div
                               key={row.rowIndex}
-                              className={`flex items-center gap-2 text-xs sm:text-sm rounded-lg px-2 py-1.5 border ${
+                              className={`flex flex-col gap-2 rounded-lg px-3 py-2.5 border ${
                                 isIncluded
                                   ? 'bg-white border-gray-200'
                                   : 'bg-gray-100 border-gray-200 opacity-50'
                               }`}
                             >
-                              <input
-                                type="checkbox"
-                                checked={isIncluded}
-                                onChange={() => toggleRow(row.rowIndex)}
-                                className="w-4 h-4 accent-indigo-600 shrink-0"
-                              />
-                              <span>{row.type === 'income' ? '✅' : '❌'}</span>
-                              <span className="font-bold whitespace-nowrap">
-                                {row.amount} {row.currency}
-                              </span>
-                              <span
-                                className="flex-1 truncate text-gray-700"
-                                title={row.description}
-                              >
-                                {row.description}
-                              </span>
-                              {row.sourceCount > 1 && (
-                                <span
-                                  className="text-[10px] text-indigo-500 font-semibold whitespace-nowrap"
-                                  title={t('csvImport.autoMergedRowTitle', {
-                                    count: row.sourceCount
-                                  })}
-                                >
-                                  ×{row.sourceCount}
+                              <div className="flex items-start gap-2 min-w-0">
+                                <input
+                                  type="checkbox"
+                                  checked={isIncluded}
+                                  onChange={() => toggleRow(row.rowIndex)}
+                                  className="w-5 h-5 mt-0.5 accent-indigo-600 shrink-0"
+                                />
+                                <span className="shrink-0 text-base leading-6" aria-hidden>
+                                  {row.type === 'income' ? '✅' : '❌'}
                                 </span>
-                              )}
+                                <div className="min-w-0 flex-1">
+                                  <div className="flex items-center gap-2 flex-wrap">
+                                    <span className="font-bold text-[15px] sm:text-sm text-gray-900">
+                                      {row.amount} {row.currency}
+                                    </span>
+                                    {row.sourceCount > 1 && (
+                                      <span
+                                        className="text-xs text-indigo-500 font-semibold whitespace-nowrap"
+                                        title={t('csvImport.autoMergedRowTitle', {
+                                          count: row.sourceCount
+                                        })}
+                                      >
+                                        ×{row.sourceCount}
+                                      </span>
+                                    )}
+                                  </div>
+                                  <p className="text-[14px] sm:text-sm text-gray-700 break-words [overflow-wrap:anywhere] mt-0.5">
+                                    {row.description}
+                                  </p>
+                                </div>
+                              </div>
                               {isIncluded &&
                                 renderCategorySelect(
                                   rowCategories[row.rowIndex] || '',
@@ -860,33 +882,35 @@ const CsvImportModal: React.FC<CsvImportModalProps> = ({
 
   const modalContent = (
     <div
-      className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 backdrop-blur-sm p-0 sm:p-4"
+      className="fixed inset-0 bg-black bg-opacity-50 flex items-stretch sm:items-center justify-center z-50 backdrop-blur-sm p-0 sm:p-4"
       onClick={handleBackdropClick}
     >
       <div
-        className="bg-white w-full h-full sm:h-auto sm:max-w-2xl sm:rounded-2xl shadow-2xl p-4 sm:p-6 border-0 sm:border-2 border-gray-200 sm:max-h-[90vh] overflow-y-auto flex flex-col"
+        className="bg-white w-full h-full sm:h-auto sm:max-w-2xl sm:rounded-2xl shadow-2xl border-0 sm:border-2 border-gray-200 sm:max-h-[90vh] overflow-y-auto overflow-x-hidden overscroll-contain flex flex-col pt-[max(0.75rem,env(safe-area-inset-top))] pb-[max(0.75rem,env(safe-area-inset-bottom))]"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg sm:text-xl font-bold text-gray-800">
+        <div className="sticky top-0 z-10 bg-white flex items-center justify-between gap-3 px-4 sm:px-6 pb-3">
+          <h2 className="text-lg sm:text-xl font-bold text-gray-800 min-w-0 break-words">
             📄 {t('csvImport.title')}
           </h2>
           <button
             onClick={onClose}
-            className="text-gray-500 hover:text-gray-700 text-2xl font-bold"
+            className="text-gray-500 hover:text-gray-700 text-2xl font-bold shrink-0 w-11 h-11 flex items-center justify-center"
             aria-label="Close"
           >
             ×
           </button>
         </div>
 
-        <div className="flex-1">{renderContent()}</div>
+        <div className="px-4 sm:px-6 flex-1">
+          {renderContent()}
+        </div>
 
-        <div className="flex gap-2 pt-4 mt-2 border-t border-gray-100">
+        <div className="sticky bottom-0 z-10 bg-white flex flex-col-reverse sm:flex-row gap-2 px-4 sm:px-6 pt-3 mt-2 border-t border-gray-100">
           <button
             type="button"
             onClick={onClose}
-            className="flex-1 py-2 px-4 bg-gray-200 text-gray-700 rounded-lg font-semibold hover:bg-gray-300 transition-colors"
+            className="flex-1 py-3 px-4 bg-gray-200 text-gray-700 rounded-lg font-semibold hover:bg-gray-300 transition-colors text-[15px] sm:text-base"
           >
             {t('transaction.cancel')}
           </button>
@@ -894,7 +918,7 @@ const CsvImportModal: React.FC<CsvImportModalProps> = ({
             type="button"
             onClick={handleImport}
             disabled={!canImport}
-            className={`flex-1 py-2 px-4 rounded-lg font-semibold text-white transition-colors ${
+            className={`flex-1 py-3 px-4 rounded-lg font-semibold text-white transition-colors text-[15px] sm:text-base ${
               canImport
                 ? 'bg-indigo-600 hover:bg-indigo-700'
                 : 'bg-gray-400 cursor-not-allowed'
