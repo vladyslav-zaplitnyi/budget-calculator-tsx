@@ -560,21 +560,22 @@ const Analytics: React.FC<AnalyticsProps> = ({
 
       {/* Ряд 4: Витрати за категоріями */}
       {analytics.totalExpenseConverted > 0 && (
-        <div className="bg-gradient-to-br from-amber-50 to-yellow-100/70 p-4 rounded-xl border border-amber-200 shadow-sm mt-4">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-3">
-            <h3 className="text-xs sm:text-sm font-bold text-gray-800 flex items-center gap-1.5">
-              <span className="mr-2">📦</span> {t('analytics.categoryBreakdown')}
+        <div className="bg-gradient-to-br from-amber-50 to-yellow-100/70 p-3 sm:p-4 rounded-xl border border-amber-200 shadow-sm mt-4 min-w-0 overflow-x-hidden">
+          <div className="flex flex-col gap-2 mb-3 sm:flex-row sm:items-center sm:justify-between">
+            <h3 className="text-xs sm:text-sm font-bold text-gray-800 flex items-center gap-1.5 min-w-0">
+              <span className="mr-2 flex-shrink-0">📦</span>
+              <span className="min-w-0">{t('analytics.categoryBreakdown')}</span>
               <InfoTip text={t('infoTips.byCategory')} />
             </h3>
-            <label className="flex items-center gap-2 text-xs text-gray-600">
-              <span className="whitespace-nowrap font-semibold">{t('analytics.categoryFilterLabel')}</span>
+            <label className="flex flex-col gap-1 text-xs text-gray-600 w-full sm:w-auto sm:flex-row sm:items-center sm:gap-2 min-w-0">
+              <span className="font-semibold">{t('analytics.categoryFilterLabel')}</span>
               <select
                 value={categoryFilter}
                 onChange={(e) => {
                   setCategoryFilter(e.target.value);
                   setExpandedCategoryIds([]);
                 }}
-                className="px-2 py-1.5 text-xs sm:text-sm border-2 border-amber-200 rounded-lg bg-white focus:ring-2 focus:ring-amber-400 focus:border-amber-400 max-w-[200px]"
+                className="w-full sm:w-auto px-2 py-1.5 text-xs sm:text-sm border-2 border-amber-200 rounded-lg bg-white focus:ring-2 focus:ring-amber-400 focus:border-amber-400 sm:max-w-[220px] min-w-0"
               >
                 <option value="">{t('analytics.categoryFilterAll')}</option>
                 <option value={UNCATEGORIZED_KEY}>{t('analytics.categoryFilterNone')}</option>
@@ -607,7 +608,7 @@ const Analytics: React.FC<AnalyticsProps> = ({
                 })}
               </div>
 
-              <div className="space-y-2">
+              <div className="space-y-2.5">
                 {analytics.categories.map((cat, idx) => {
                   const dotColor = CATEGORY_BAR_COLORS[idx % CATEGORY_BAR_COLORS.length];
                   const displayName = categoryTitle(cat.id, locale, t('analytics.categoryFilterNone'));
@@ -615,41 +616,50 @@ const Analytics: React.FC<AnalyticsProps> = ({
                   const canToggle = analytics.categories.length > 1;
                   const isOpen = !canToggle || expandedCategoryIds.includes(cat.id);
 
-                  const amounts = (
-                    <div className="flex items-center gap-2 flex-shrink-0 ml-2">
-                      <span className="text-sm font-bold text-gray-800 tabular-nums">
-                        {displaySymbol}{formatNumber(cat.totalAmount, 2)}
-                      </span>
-                      <span className="text-xs text-gray-500 tabular-nums w-12 text-right">
-                        {cat.percentage.toFixed(1)}%
-                      </span>
-                    </div>
-                  );
-
-                  const rowLabel = (
-                    <div className="flex items-center gap-2 min-w-0 flex-1">
-                      <span className={`w-3 h-3 rounded-full flex-shrink-0 ${dotColor}`} />
-                      <span className="text-sm text-gray-800 truncate font-medium">
-                        {displayName}
-                      </span>
-                      <span className="text-[10px] text-gray-400 flex-shrink-0">
-                        {cat.count} {t('analytics.categoryTransactions')}
-                        {nested.length > 1 ? ` · ${nested.length} ${t('analytics.categoryNames')}` : ''}
-                      </span>
-                      {canToggle && (
-                        <span className="text-[10px] font-semibold text-amber-700 flex-shrink-0" aria-hidden>
-                          {isOpen ? '▲' : '▼'}
+                  const rowBody = (
+                    <div className="analytics-cat-row">
+                      <div className="analytics-cat-row__main">
+                        <div className="flex items-start gap-2 min-w-0">
+                          <span className={`w-3 h-3 rounded-full flex-shrink-0 mt-1 ${dotColor}`} />
+                          <div className="min-w-0 flex-1">
+                            <p className="analytics-cat-row__name text-sm text-gray-800 font-medium leading-snug">
+                              {displayName}
+                              {canToggle && (
+                                <span className="ml-1.5 text-[10px] font-semibold text-amber-700 align-middle" aria-hidden>
+                                  {isOpen ? '▲' : '▼'}
+                                </span>
+                              )}
+                            </p>
+                            <p className="text-[11px] text-gray-500 mt-0.5">
+                              {cat.count} {t('analytics.categoryTransactions')}
+                              {nested.length > 1 ? ` · ${nested.length} ${t('analytics.categoryNames')}` : ''}
+                            </p>
+                            <div className="analytics-cat-row__bar sm:hidden">
+                              <div
+                                className={`analytics-cat-row__bar-fill ${dotColor}`}
+                                style={{ width: `${Math.min(Math.max(cat.percentage, 0), 100)}%` }}
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="analytics-cat-row__amounts">
+                        <span className="text-sm font-bold text-gray-800 tabular-nums whitespace-nowrap">
+                          {displaySymbol}{formatNumber(cat.totalAmount, 2)}
                         </span>
-                      )}
+                        <span className="text-xs text-gray-500 tabular-nums whitespace-nowrap">
+                          {cat.percentage.toFixed(1)}%
+                        </span>
+                      </div>
                     </div>
                   );
 
                   return (
-                    <div key={cat.id}>
+                    <div key={cat.id} className="min-w-0">
                       {canToggle ? (
                         <button
                           type="button"
-                          className="w-full flex items-center justify-between rounded-lg hover:bg-amber-100/80 -mx-1 px-1 py-0.5 text-left"
+                          className="w-full min-w-0 rounded-lg hover:bg-amber-100/80 -mx-1 px-1 py-1.5 text-left"
                           onClick={() => {
                             setExpandedCategoryIds((openIds) => (
                               openIds.includes(cat.id)
@@ -663,21 +673,19 @@ const Analytics: React.FC<AnalyticsProps> = ({
                             ? t('analytics.categoryCollapse', { name: displayName })
                             : t('analytics.categoryExpand', { name: displayName })}
                         >
-                          {rowLabel}
-                          {amounts}
+                          {rowBody}
                         </button>
                       ) : (
-                        <div className="flex items-center justify-between">
-                          {rowLabel}
-                          {amounts}
+                        <div className="py-1">
+                          {rowBody}
                         </div>
                       )}
                       {isOpen && nested.length > 0 && (
                         <div
                           id={`analytics-category-${cat.id}`}
-                          className="ml-4 mt-2 border-l-2 border-amber-300 pl-3"
+                          className="ml-2 sm:ml-4 mt-1.5 border-l-2 border-amber-300 pl-2.5 sm:pl-3 min-w-0"
                         >
-                          <div className="space-y-1.5 max-h-80 overflow-y-auto overflow-x-hidden overscroll-contain pr-2 pb-2">
+                          <div className="space-y-2 max-h-80 overflow-y-auto overflow-x-hidden overscroll-contain pr-1 sm:pr-2 pb-2">
                             {nested.map((item) => {
                               const itemName = item.name === UNNAMED_DESCRIPTION_KEY
                                 ? t('analytics.categoryNoDescription')
@@ -686,20 +694,20 @@ const Analytics: React.FC<AnalyticsProps> = ({
                                 ? (item.totalAmount / cat.totalAmount) * 100
                                 : 0;
                               return (
-                                <div key={item.name} className="flex items-center justify-between gap-2 min-h-[1.5rem]">
-                                  <div className="flex items-center gap-2 min-w-0 flex-1">
-                                    <span className="text-sm text-gray-700 truncate" title={itemName}>
+                                <div key={item.name} className="analytics-cat-row">
+                                  <div className="analytics-cat-row__main min-w-0">
+                                    <p className="analytics-cat-row__name text-sm text-gray-700 leading-snug" title={itemName}>
                                       {itemName}
-                                    </span>
-                                    <span className="text-[10px] text-gray-400 flex-shrink-0">
+                                    </p>
+                                    <p className="text-[11px] text-gray-400 mt-0.5">
                                       {item.count} {t('analytics.categoryTransactions')}
-                                    </span>
+                                    </p>
                                   </div>
-                                  <div className="flex items-center gap-2 flex-shrink-0 ml-2 whitespace-nowrap">
-                                    <span className="text-sm font-semibold text-gray-700 tabular-nums">
+                                  <div className="analytics-cat-row__amounts">
+                                    <span className="text-sm font-semibold text-gray-700 tabular-nums whitespace-nowrap">
                                       {displaySymbol}{formatNumber(item.totalAmount, 2)}
                                     </span>
-                                    <span className="text-xs text-gray-400 tabular-nums w-12 text-right">
+                                    <span className="text-xs text-gray-400 tabular-nums whitespace-nowrap">
                                       {share.toFixed(1)}%
                                     </span>
                                   </div>

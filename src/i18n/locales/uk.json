@@ -384,6 +384,8 @@
     "cumulativeLabel": "Накоп: ",
     "dayBalance": "Баланс дня: ",
     "addTransaction": "Додати транзакцію",
+    "addTransactionForDay": "Додати транзакцію на день {{day}}",
+    "emptyDaysHint": "Порожні дні — натисніть +, щоб додати",
     "converted": "(Конвертовано)",
     "showDetails": "Показати деталі (валюти) 🔽",
     "hideDetails": "Згорнути деталі 🔼"

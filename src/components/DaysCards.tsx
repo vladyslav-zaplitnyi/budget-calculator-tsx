@@ -36,6 +36,65 @@ interface DaysCardsProps {
   readOnly?: boolean;
 }
 
+interface DayCardItem {
+  day: Day;
+  index: number;
+}
+
+interface DayCardSegment {
+  empty: boolean;
+  items: DayCardItem[];
+}
+
+const isDayWithoutTransactions = (day: Day) =>
+  !Array.isArray(day.transactions) || day.transactions.length === 0;
+
+const groupDayCardSegments = (days: Day[]): DayCardSegment[] => {
+  const segments: DayCardSegment[] = [];
+  days.forEach((day, index) => {
+    if (!day) return;
+    const empty = isDayWithoutTransactions(day);
+    const last = segments[segments.length - 1];
+    if (last && last.empty === empty) {
+      last.items.push({ day, index });
+    } else {
+      segments.push({ empty, items: [{ day, index }] });
+    }
+  });
+  return segments;
+};
+
+interface CompactEmptyDayButtonProps {
+  dayNumber: number;
+  weekday: string;
+  isWeekend: boolean;
+  isToday: boolean;
+  addLabel: string;
+  onAdd: () => void;
+}
+
+const CompactEmptyDayButton: React.FC<CompactEmptyDayButtonProps> = ({
+  dayNumber,
+  weekday,
+  isWeekend,
+  isToday,
+  addLabel,
+  onAdd
+}) => (
+  <button
+    type="button"
+    onClick={onAdd}
+    className={`day-card-empty ${isWeekend ? 'day-card-empty--weekend' : ''} ${isToday ? 'day-card-empty--today' : ''}`}
+    aria-label={addLabel}
+  >
+    <span className="day-card-empty__date">
+      <span className="day-card-empty__num">{dayNumber}</span>
+      <span className="day-card-empty__weekday">{weekday}</span>
+    </span>
+    <span className="day-card-empty__add" aria-hidden>+</span>
+  </button>
+);
+
 const DaysCards: React.FC<DaysCardsProps> = ({
   isUk,
   days,
@@ -69,7 +128,11 @@ const DaysCards: React.FC<DaysCardsProps> = ({
   const [expandedDays, setExpandedDays] = useState<Record<number, boolean>>({});
 
   const daysInMonth = getDaysInMonth(budgetYear, budgetMonth);
-  const visibleDays = days.slice(0, daysInMonth);
+  const daySegments = useMemo(
+    () => groupDayCardSegments(days.slice(0, daysInMonth)),
+    [days, daysInMonth]
+  );
+  const today = new Date();
 
   const monthTransactionCount = useMemo(() => countTransactionsInDays(days), [days]);
 
@@ -151,8 +214,64 @@ const DaysCards: React.FC<DaysCardsProps> = ({
 
   return (
     <div className={`block md:hidden space-y-3 mb-4 ${readOnly ? 'opacity-[0.88] pointer-events-none' : ''}`}>
-      {visibleDays.map((day, index) => {
-        if (!day) return null;
+      {daySegments.map((segment, segmentIndex) => {
+        if (segment.empty) {
+          return (
+            <div
+              key={`empty-${segment.items[0].day.day}-${segmentIndex}`}
+              className="day-card-empty-group"
+            >
+              {segment.items.length > 1 && (
+                <p className="day-card-empty-group__hint">{t('days.emptyDaysHint')}</p>
+              )}
+              <div
+                className={`day-card-empty-grid ${
+                  segment.items.length === 1
+                    ? 'day-card-empty-grid--single'
+                    : segment.items.length === 2
+                      ? 'day-card-empty-grid--two'
+                      : 'day-card-empty-grid--many'
+                }`}
+              >
+                {segment.items.map(({ day, index }) => {
+                  const weekday = capitalizeFirstLetter(
+                    getWeekdayShortName(
+                      budgetYear,
+                      budgetMonth,
+                      day.day,
+                      i18nInstance.language || 'en'
+                    )
+                  );
+                  const weekdayIndex = new Date(budgetYear, budgetMonth, day.day).getDay();
+                  const isWeekend = weekdayIndex === 0 || weekdayIndex === 6;
+                  const isToday =
+                    today.getFullYear() === budgetYear &&
+                    today.getMonth() === budgetMonth &&
+                    today.getDate() === day.day;
+
+                  return (
+                    <CompactEmptyDayButton
+                      key={day.day}
+                      dayNumber={day.day}
+                      weekday={weekday}
+                      isWeekend={isWeekend}
+                      isToday={isToday}
+                      addLabel={t('days.addTransactionForDay', { day: day.day })}
+                      onAdd={() => handleAddTransaction(index)}
+                    />
+                  );
+                })}
+              </div>
+            </div>
+          );
+        }
+
+        return (
+          <div
+            key={`filled-${segment.items[0].day.day}-${segmentIndex}`}
+            className="space-y-3"
+          >
+            {segment.items.map(({ day, index }) => {
         const amounts = calculateDayAmountsFromTransactions(day, selectedCurrencies);
         const weekday = getWeekdayShortName(
           budgetYear,
@@ -406,6 +525,9 @@ const DaysCards: React.FC<DaysCardsProps> = ({
                 })()}
               </div>
             )}
+          </div>
+        );
+            })}
           </div>
         );
       })}

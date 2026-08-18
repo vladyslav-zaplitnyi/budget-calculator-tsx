@@ -383,6 +383,8 @@
     "cumulativeLabel": "Cum: ",
     "dayBalance": "Day balance: ",
     "addTransaction": "Add Transaction",
+    "addTransactionForDay": "Add transaction for day {{day}}",
+    "emptyDaysHint": "Empty days — tap + to add",
     "converted": "(Converted)",
     "showDetails": "Show details (currencies) 🔽",
     "hideDetails": "Hide details 🔼"
