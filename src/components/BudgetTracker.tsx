@@ -558,6 +558,7 @@ export default function BudgetTracker() {
                           updateDay={updateDay}
                           budgetYear={budgetDate.year}
                           budgetMonth={budgetDate.month}
+                          selectedCurrencies={selectedCurrencies}
                           readOnly={isCurrentBookReadOnly}
                         >
                           <DaysTable

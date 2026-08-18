@@ -9,6 +9,7 @@ interface ConfirmModalProps {
   message: string;
   confirmButtonText: string;
   cancelButtonText: string;
+  danger?: boolean;
 }
 
 const ConfirmModal: React.FC<ConfirmModalProps> = ({
@@ -18,7 +19,8 @@ const ConfirmModal: React.FC<ConfirmModalProps> = ({
   title,
   message,
   confirmButtonText,
-  cancelButtonText
+  cancelButtonText,
+  danger = false
 }) => {
   const handleBackdropClick = (e: React.MouseEvent<HTMLDivElement>) => {
     if (e.target === e.currentTarget) {
@@ -54,7 +56,11 @@ const ConfirmModal: React.FC<ConfirmModalProps> = ({
           <button
             type="button"
             onClick={onConfirm}
-            className="flex-1 px-4 py-3 rounded-lg font-semibold bg-gradient-to-r from-indigo-500 to-violet-500 text-white hover:from-indigo-600 hover:to-violet-600 transition-all"
+            className={`flex-1 px-4 py-3 rounded-lg font-semibold text-white transition-all ${
+              danger
+                ? 'bg-rose-500 hover:bg-rose-600'
+                : 'bg-gradient-to-r from-indigo-500 to-violet-500 hover:from-indigo-600 hover:to-violet-600'
+            }`}
           >
             {confirmButtonText}
           </button>

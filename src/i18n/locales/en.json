@@ -306,13 +306,22 @@
   },
   "moveTransactions": {
     "selected": "Selected: {{count}}",
-    "barHint": "Tap more transactions to add them, then pick a day.",
+    "barHint": "Tap more transactions to add them to the selection.",
     "move": "Move",
     "title": "Move to another day",
     "subtitle": "Choose a day this month for {{count}} transactions.",
     "confirm": "Move",
     "sameDay": "These transactions are already on this day — pick another.",
-    "selectLabel": "Select transaction"
+    "selectLabel": "Select transaction",
+    "edit": "Edit",
+    "delete": "Delete",
+    "editTitle": "Edit transactions ({{count}})",
+    "editSubtitle": "Change the fields of each selected transaction, then save them all together.",
+    "editSave": "Save ({{count}})",
+    "editAmountError": "Day {{day}}: enter a valid amount greater than 0",
+    "editDescriptionError": "Day {{day}}: enter a transaction description",
+    "deleteTitle": "Delete selected transactions?",
+    "deleteMessage": "{{count}} transactions will be deleted. This cannot be undone."
   },
   "transactionLimit": {
     "counter": "Transactions: {{count}} / {{max}}",

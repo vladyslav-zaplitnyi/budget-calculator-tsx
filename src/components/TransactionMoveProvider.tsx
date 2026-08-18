@@ -2,7 +2,14 @@ import React, { createContext, useContext, useEffect, useMemo, useState } from '
 import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
 import { Day } from '../types';
-import { moveTransactionsToDay } from '../utils/moveTransactions';
+import {
+  applyTransactionEdits,
+  collectTransactionsByIds,
+  deleteTransactionsByIds,
+  moveTransactionsToDay,
+  CollectedTransaction,
+  TransactionEditPatch
+} from '../utils/moveTransactions';
 import {
   buildCalendarCellsForMonthMondayFirst,
   getMonthYearLabel,
@@ -10,6 +17,8 @@ import {
 } from '../utils/dateHelpers';
 import { useTransactionMoveSelection } from '../hooks/useTransactionMoveSelection';
 import type { TransactionItemBind } from '../hooks/useTransactionMoveSelection';
+import ConfirmModal from './ConfirmModal';
+import BulkEditTransactionsModal from './BulkEditTransactionsModal';
 
 interface TransactionMoveContextValue {
   isSelecting: boolean;
@@ -44,6 +53,7 @@ interface TransactionMoveProviderProps {
   updateDay: (index: number, field: string, value: any) => void;
   budgetYear: number;
   budgetMonth: number;
+  selectedCurrencies?: string[];
   readOnly?: boolean;
   children: React.ReactNode;
 }
@@ -53,6 +63,7 @@ const TransactionMoveProvider: React.FC<TransactionMoveProviderProps> = ({
   updateDay,
   budgetYear,
   budgetMonth,
+  selectedCurrencies = ['UAH', 'USD', 'EUR'],
   readOnly = false,
   children
 }) => {
@@ -69,6 +80,9 @@ const TransactionMoveProvider: React.FC<TransactionMoveProviderProps> = ({
   } = useTransactionMoveSelection(!readOnly);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [targetDay, setTargetDay] = useState<number | null>(null);
+  const [editOpen, setEditOpen] = useState(false);
+  const [editItems, setEditItems] = useState<CollectedTransaction[]>([]);
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
 
   const existingIds = useMemo(() => {
     const ids = new Set<string>();
@@ -88,6 +102,9 @@ const TransactionMoveProvider: React.FC<TransactionMoveProviderProps> = ({
     clearSelection();
     setPickerOpen(false);
     setTargetDay(null);
+    setEditOpen(false);
+    setEditItems([]);
+    setDeleteConfirmOpen(false);
   }, [budgetYear, budgetMonth, clearSelection]);
 
   const sourceDays = useMemo(() => {
@@ -122,6 +139,14 @@ const TransactionMoveProvider: React.FC<TransactionMoveProviderProps> = ({
     };
   }, [budgetYear, budgetMonth, i18n.language]);
 
+  const applyDaysDiff = (nextDays: Day[]) => {
+    nextDays.forEach((day, index) => {
+      if (day !== days[index]) {
+        updateDay(index, 'transactions', day.transactions);
+      }
+    });
+  };
+
   const openPicker = () => {
     if (selectedList.length === 0) return;
     setTargetDay(null);
@@ -143,14 +168,39 @@ const TransactionMoveProvider: React.FC<TransactionMoveProviderProps> = ({
       budgetMonth
     );
     if (movedCount > 0) {
-      nextDays.forEach((day, index) => {
-        if (day !== days[index]) {
-          updateDay(index, 'transactions', day.transactions);
-        }
-      });
+      applyDaysDiff(nextDays);
     }
     clearSelection();
     closePicker();
+  };
+
+  const openEdit = () => {
+    if (selectedList.length === 0) return;
+    setEditItems(collectTransactionsByIds(days, selectedList));
+    setEditOpen(true);
+  };
+
+  const closeEdit = () => {
+    setEditOpen(false);
+    setEditItems([]);
+  };
+
+  const saveEdits = (patches: TransactionEditPatch[]) => {
+    const { nextDays, updatedCount } = applyTransactionEdits(days, patches);
+    if (updatedCount > 0) {
+      applyDaysDiff(nextDays);
+    }
+    clearSelection();
+    closeEdit();
+  };
+
+  const confirmDelete = () => {
+    const { nextDays, deletedCount } = deleteTransactionsByIds(days, selectedList);
+    if (deletedCount > 0) {
+      applyDaysDiff(nextDays);
+    }
+    setDeleteConfirmOpen(false);
+    clearSelection();
   };
 
   const contextValue = useMemo<TransactionMoveContextValue>(
@@ -170,27 +220,41 @@ const TransactionMoveProvider: React.FC<TransactionMoveProviderProps> = ({
     selectedCount > 0 && !readOnly
       ? createPortal(
           <div className="fixed inset-x-0 bottom-0 z-[45] pointer-events-none px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
-            <div className="pointer-events-auto mx-auto max-w-xl rounded-2xl border-2 border-indigo-200 bg-white shadow-2xl px-4 py-3 flex flex-col sm:flex-row sm:items-center gap-3">
-              <div className="flex-1 min-w-0">
+            <div className="pointer-events-auto mx-auto max-w-xl rounded-2xl border-2 border-indigo-200 bg-white shadow-2xl px-4 py-3 flex flex-col gap-3">
+              <div className="min-w-0">
                 <p className="text-sm font-bold text-gray-800">
                   {t('moveTransactions.selected', { count: selectedCount })}
                 </p>
                 <p className="text-xs text-gray-500 mt-0.5">{t('moveTransactions.barHint')}</p>
               </div>
-              <div className="flex gap-2">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                 <button
                   type="button"
                   onClick={clearSelection}
-                  className="flex-1 sm:flex-none px-4 py-2.5 rounded-lg font-semibold bg-gray-200 text-gray-700 hover:bg-gray-300 transition-colors"
+                  className="px-3 py-2.5 rounded-lg font-semibold bg-gray-200 text-gray-700 hover:bg-gray-300 transition-colors"
                 >
                   {t('common.cancel')}
                 </button>
                 <button
                   type="button"
+                  onClick={openEdit}
+                  className="px-3 py-2.5 rounded-lg font-semibold bg-blue-600 text-white hover:bg-blue-700 transition-colors"
+                >
+                  {t('moveTransactions.edit')}
+                </button>
+                <button
+                  type="button"
                   onClick={openPicker}
-                  className="flex-1 sm:flex-none px-4 py-2.5 rounded-lg font-semibold bg-indigo-600 text-white hover:bg-indigo-700 transition-colors"
+                  className="px-3 py-2.5 rounded-lg font-semibold bg-indigo-600 text-white hover:bg-indigo-700 transition-colors"
                 >
                   {t('moveTransactions.move')}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setDeleteConfirmOpen(true)}
+                  className="px-3 py-2.5 rounded-lg font-semibold bg-rose-500 text-white hover:bg-rose-600 transition-colors"
+                >
+                  {t('moveTransactions.delete')}
                 </button>
               </div>
             </div>
@@ -305,9 +369,26 @@ const TransactionMoveProvider: React.FC<TransactionMoveProviderProps> = ({
 
   return (
     <TransactionMoveContext.Provider value={contextValue}>
-      <div className={isSelecting ? 'pb-28' : undefined}>{children}</div>
+      <div className={isSelecting ? 'pb-36' : undefined}>{children}</div>
       {bar}
       {picker}
+      <BulkEditTransactionsModal
+        isOpen={editOpen}
+        onClose={closeEdit}
+        onSave={saveEdits}
+        items={editItems}
+        selectedCurrencies={selectedCurrencies}
+      />
+      <ConfirmModal
+        isOpen={deleteConfirmOpen}
+        onClose={() => setDeleteConfirmOpen(false)}
+        onConfirm={confirmDelete}
+        title={t('moveTransactions.deleteTitle')}
+        message={t('moveTransactions.deleteMessage', { count: selectedCount })}
+        confirmButtonText={t('moveTransactions.delete')}
+        cancelButtonText={t('common.cancel')}
+        danger
+      />
     </TransactionMoveContext.Provider>
   );
 };
