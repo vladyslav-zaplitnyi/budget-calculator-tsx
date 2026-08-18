@@ -7,16 +7,17 @@ import CurrencyFlag from './CurrencyFlag';
 import InfoTip from './InfoTip';
 
 interface StatisticsProps {
-  isUk: boolean;
+  isUk?: boolean;
   totals: Totals;
+  remainingBalances?: Record<string, number>;
   selectedCurrencies: string[];
   displayCurrency: string;
   exchangeRates: ExchangeRates;
 }
 
 const Statistics: React.FC<StatisticsProps> = ({
-  isUk,
   totals = {},
+  remainingBalances = {},
   selectedCurrencies = ['UAH', 'USD', 'EUR'],
   displayCurrency = 'UAH',
   exchangeRates = {}
@@ -51,20 +52,17 @@ const Statistics: React.FC<StatisticsProps> = ({
     });
   }, []);
 
-  // Конвертуємо всі суми в обраній валюті відображення
-  let totalIncomeConverted = 0;
-  let totalExpenseConverted = 0;
-  
-  selectedCurrencies.forEach(currencyCode => {
-    const incomeKey = `totalIncome${currencyCode}`;
-    const expenseKey = `totalExpense${currencyCode}`;
-    const income = totals[incomeKey] || 0;
-    const expense = totals[expenseKey] || 0;
-    
-    totalIncomeConverted += convertCurrency(income, currencyCode, displayCurrency, exchangeRates);
-    totalExpenseConverted += convertCurrency(expense, currencyCode, displayCurrency, exchangeRates);
+  let totalRemainingConverted = 0;
+  selectedCurrencies.forEach((currencyCode) => {
+    const remaining = remainingBalances[`finalBalance${currencyCode}`] || 0;
+    totalRemainingConverted += convertCurrency(
+      remaining,
+      currencyCode,
+      displayCurrency,
+      exchangeRates
+    );
   });
-  
+
   return (
     <div className="bg-white/90 backdrop-blur rounded-2xl shadow-xl p-4 sm:p-6 border border-gray-100">
       <div className="flex items-center gap-2 mb-4">
@@ -90,25 +88,24 @@ const Statistics: React.FC<StatisticsProps> = ({
 
       {isExpanded && (
         <>
-          {/* Income and Expenses Grid - показуємо для кожної обраної валюти */}
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 sm:gap-3 mb-4">
             {selectedCurrencies.map((currencyCode) => {
               const currency = getCurrencyInfo(currencyCode);
               if (!currency) return null;
-              
+
               const incomeKey = `totalIncome${currencyCode}`;
               const expenseKey = `totalExpense${currencyCode}`;
               const totalIncome = totals[incomeKey] || 0;
               const totalExpense = totals[expenseKey] || 0;
               const symbol = getCurrencySymbol(currencyCode);
-              
+
               return (
                 <React.Fragment key={currencyCode}>
-                  {/* Income */}
                   <div className="bg-gradient-to-br from-emerald-50 to-green-100/70 p-3 sm:p-4 rounded-xl border-l-4 border-emerald-500 shadow-md hover:shadow-lg transition-all">
                     <div className="flex items-center justify-between mb-1">
-                      <p className="text-[10px] sm:text-xs font-semibold text-gray-600 font-sans">
+                      <p className="text-[10px] sm:text-xs font-semibold text-gray-600 font-sans flex items-center gap-1 min-w-0">
                         {t('statistics.income')}
+                        <InfoTip text={t('infoTips.statisticsIncome')} />
                       </p>
                       <CurrencyFlag currencyCode={currencyCode} size={14} />
                     </div>
@@ -118,11 +115,11 @@ const Statistics: React.FC<StatisticsProps> = ({
                     <p className="text-[10px] text-gray-500 font-sans">{currencyCode}</p>
                   </div>
 
-                  {/* Expenses */}
                   <div className="bg-gradient-to-br from-rose-50 to-red-100/70 p-3 sm:p-4 rounded-xl border-l-4 border-rose-500 shadow-md hover:shadow-lg transition-all">
                     <div className="flex items-center justify-between mb-1">
-                      <p className="text-[10px] sm:text-xs font-semibold text-gray-600 font-sans">
+                      <p className="text-[10px] sm:text-xs font-semibold text-gray-600 font-sans flex items-center gap-1 min-w-0">
                         {t('statistics.expenses')}
+                        <InfoTip text={t('infoTips.statisticsExpenses')} />
                       </p>
                       <CurrencyFlag currencyCode={currencyCode} size={14} />
                     </div>
@@ -136,54 +133,51 @@ const Statistics: React.FC<StatisticsProps> = ({
             })}
           </div>
 
-          {/* Net Differences - для кожної валюти */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 mb-4">
             {selectedCurrencies.map((currencyCode) => {
               const currency = getCurrencyInfo(currencyCode);
               if (!currency) return null;
-              
-              const incomeKey = `totalIncome${currencyCode}`;
-              const expenseKey = `totalExpense${currencyCode}`;
-              const totalIncome = totals[incomeKey] || 0;
-              const totalExpense = totals[expenseKey] || 0;
-              const difference = totalIncome - totalExpense;
+
+              const remaining = remainingBalances[`finalBalance${currencyCode}`] || 0;
               const symbol = getCurrencySymbol(currencyCode);
-              
+
               return (
-                <div key={currencyCode} className="bg-gradient-to-br from-indigo-50 to-violet-100/70 p-4 rounded-xl border-2 border-indigo-200 shadow-lg hover:shadow-xl transition-all">
+                <div key={currencyCode} className="bg-gradient-to-br from-cyan-50 to-sky-100/70 p-4 rounded-xl border-2 border-cyan-200 shadow-lg hover:shadow-xl transition-all">
                   <div className="flex items-center justify-between mb-2">
-                    <p className="text-xs sm:text-sm font-semibold text-gray-700 font-sans">
-                      {t('statistics.difference')} {currencyCode} <CurrencyFlag currencyCode={currencyCode} size={14} className="ml-1" />
+                    <p className="text-xs sm:text-sm font-semibold text-gray-700 font-sans flex items-center gap-1 min-w-0">
+                      {t('statistics.remaining')} {currencyCode} <CurrencyFlag currencyCode={currencyCode} size={14} className="ml-1" />
+                      <InfoTip text={t('infoTips.statisticsRemaining')} />
                     </p>
                   </div>
                   <p className={`text-xl sm:text-2xl font-bold font-sans break-words overflow-hidden ${
-                    difference >= 0 ? 'text-emerald-600' : 'text-rose-600'
+                    remaining >= 0 ? 'text-cyan-700' : 'text-rose-600'
                   }`}>
-                    {symbol}{formatNumber(difference, 2)}
+                    {symbol}{formatNumber(remaining, 2)}
                   </p>
                   <p className="text-xs text-gray-500 mt-1 font-sans">
-                    {t('statistics.incomeMinusExpenses')}
+                    {t('statistics.leftInThisCurrency')}
                   </p>
                 </div>
               );
             })}
           </div>
 
-          {/* Total in Display Currency */}
           <div className="grid grid-cols-1 gap-3 sm:gap-4">
-            <div className="bg-gradient-to-br from-indigo-50 to-violet-100/70 p-4 rounded-xl border-2 border-indigo-300 shadow-lg hover:shadow-xl transition-all">
+            <div className="bg-gradient-to-br from-cyan-50 to-sky-100/70 p-4 rounded-xl border-2 border-cyan-300 shadow-lg hover:shadow-xl transition-all">
               <div className="flex items-center justify-between mb-2">
-                <p className="text-xs sm:text-sm font-semibold text-gray-700 font-sans">
-                  {t('statistics.totalDifference')} {displayCurrency} <CurrencyFlag currencyCode={displayCurrency} size={14} className="ml-1" />
+                <p className="text-xs sm:text-sm font-semibold text-gray-700 font-sans flex items-center gap-1 min-w-0">
+                  {t('statistics.totalRemaining')}
+                  <CurrencyFlag currencyCode={displayCurrency} size={14} className="ml-1" />
+                  <InfoTip text={t('infoTips.statisticsTotalRemaining')} />
                 </p>
               </div>
               <p className={`text-xl sm:text-2xl font-bold font-sans break-words overflow-hidden ${
-                (totalIncomeConverted - totalExpenseConverted) >= 0 ? 'text-emerald-600' : 'text-rose-600'
+                totalRemainingConverted >= 0 ? 'text-cyan-700' : 'text-rose-600'
               }`}>
-                {displaySymbol}{formatNumber(totalIncomeConverted - totalExpenseConverted, 2)}
+                {displaySymbol}{formatNumber(totalRemainingConverted, 2)}
               </p>
               <p className="text-xs text-gray-500 mt-1 font-sans">
-                {t('statistics.incomeMinusExpensesConverted')}
+                {t('statistics.totalRemainingHelper', { currency: displayCurrency })}
               </p>
             </div>
           </div>
@@ -194,4 +188,3 @@ const Statistics: React.FC<StatisticsProps> = ({
 };
 
 export default React.memo(Statistics);
-

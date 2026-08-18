@@ -23,7 +23,10 @@ import ImportModal from './ImportModal';
 import { useBudgetContext } from '../contexts/BudgetContext';
 import { useBudgetHandlers } from '../hooks/useBudgetHandlers';
 import { calculateTotals, calculateFinalBalances, convertCurrency } from '../utils/calculations';
-import { aggregateTotalsForOverviewWindow } from '../utils/budgetInsights';
+import {
+  aggregateTotalsForOverviewWindow,
+  getOverviewWindowFinalBalances
+} from '../utils/budgetInsights';
 import { translate } from '../i18n/config';
 import { BUDGET_VIEW_MODE_IMPORT_EVENT } from '../hooks/useBudgetImportExport';
 import { monthKeyFromBudgetDate } from '../utils/rollingMonthsBudget';
@@ -344,6 +347,27 @@ export default function BudgetTracker() {
     () => calculateFinalBalances(days, selectedCurrencies, effectiveStartBalances, totals),
     [days, selectedCurrencies, effectiveStartBalances, totals]
   );
+
+  const insightsRemainingBalances = useMemo(() => {
+    if (budgetViewMode !== 'months') {
+      return finalBalances;
+    }
+    return getOverviewWindowFinalBalances({
+      monthsByKey: activeBudgetData?.monthsByKey,
+      selectedCurrencies,
+      activeMonthKey,
+      activeDays: days,
+      activeStartBalances: effectiveStartBalances
+    });
+  }, [
+    budgetViewMode,
+    finalBalances,
+    activeBudgetData?.monthsByKey,
+    selectedCurrencies,
+    activeMonthKey,
+    days,
+    effectiveStartBalances
+  ]);
   
   // Обчислюємо загальну вартість у базовій валюті
   const totalInBaseCurrency = useMemo(() => {
@@ -629,6 +653,7 @@ export default function BudgetTracker() {
                     <Statistics
                       isUk={language === 'uk'}
                       totals={insightsTotals}
+                      remainingBalances={insightsRemainingBalances}
                       selectedCurrencies={selectedCurrencies}
                       displayCurrency={displayCurrency}
                       exchangeRates={exchangeRates}

@@ -101,6 +101,9 @@ test('calculateBudgetInsights summarizes cash flow and monthly pacing', () => {
   expect(insights.noSpendDays).toBe(8);
   expect(insights.topExpenses[0].id).toBe('expense-2');
   expect(insights.projectedExpense).toBeCloseTo(1484);
+  expect(insights.remainingBalance).toBe(1175);
+  expect(insights.filledMonthCount).toBe(1);
+  expect(insights.savingsRate).toBeCloseTo((1175 / (1175 + 530)) * 100);
 });
 
 test('filterMonthlyTransactions supports text, type, currency and day filters', () => {
@@ -185,4 +188,40 @@ test('calculateTwelveMonthBudgetInsights ignores empty trailing months for proje
 
   expect(insights.totalIncome).toBe(1000);
   expect(insights.projectedEndBalance).toBeGreaterThan(0);
+  expect(insights.remainingBalance).toBe(insights.projectedEndBalance);
+  expect(insights.filledMonthCount).toBe(1);
+  expect(insights.savingsRate).toBeGreaterThan(0);
+});
+
+test('savings rate stays positive when opening balance covers extra spending', () => {
+  const days = createDays();
+  days[2].transactions = [
+    {
+      id: 'expense-rent',
+      type: 'expense',
+      amount: 1200,
+      currency: 'UAH',
+      description: 'Rent'
+    }
+  ];
+
+  const insights = calculateBudgetInsights({
+    days,
+    selectedCurrencies: ['UAH'],
+    displayCurrency: 'UAH',
+    exchangeRates: {},
+    startBalances: {
+      UAH: 2000
+    },
+    budgetYear: 2026,
+    budgetMonth: 1,
+    today: new Date(2026, 1, 10)
+  });
+
+  expect(insights.totalIncome).toBe(1000);
+  expect(insights.totalExpense).toBe(1320);
+  expect(insights.netCashFlow).toBe(-320);
+  expect(insights.remainingBalance).toBe(1680);
+  expect(insights.savingsRate).toBeCloseTo((1680 / 3000) * 100);
+  expect(insights.savingsRate).toBeGreaterThan(0);
 });

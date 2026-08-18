@@ -118,7 +118,6 @@ const Analytics: React.FC<AnalyticsProps> = ({
     let totalIncomeConverted = 0;
     let totalExpenseConverted = 0;
     let noSpendDayCount = 0;
-    let daysWithTransactions = 0;
     const allExpenses: TopExpense[] = [];
 
     const dayEntries: Array<{ day: Day; elapsed: boolean; monthLabel?: string }> = [];
@@ -145,8 +144,9 @@ const Analytics: React.FC<AnalyticsProps> = ({
         });
       });
     } else {
-      visibleDays.forEach((day) => {
-        if (day) dayEntries.push({ day, elapsed: true });
+      const elapsed = getElapsedDaysInBudgetMonth(budgetYear, budgetMonth, daysInMonth);
+      visibleDays.forEach((day, index) => {
+        if (day) dayEntries.push({ day, elapsed: index < elapsed });
       });
     }
 
@@ -186,10 +186,6 @@ const Analytics: React.FC<AnalyticsProps> = ({
         }
       });
 
-      if (transactions.length > 0) {
-        daysWithTransactions++;
-      }
-
       if (elapsed && !dayHasExpense) {
         noSpendDayCount++;
       }
@@ -200,9 +196,7 @@ const Analytics: React.FC<AnalyticsProps> = ({
       .sort((a, b) => b.convertedAmount - a.convertedAmount)
       .slice(0, 5);
 
-    // Середні щоденні витрати (лише по днях, де були транзакції, або по всіх днях)
-    const activeDaysCount = daysWithTransactions || 1;
-    const avgDailyExpense = totalExpenseConverted / activeDaysCount;
+    const elapsedDaysCount = dayEntries.filter((entry) => entry.elapsed).length;
 
     const periodDaysCount = isTwelveMonthView
       ? filledOverviewMonths.reduce(
@@ -211,17 +205,15 @@ const Analytics: React.FC<AnalyticsProps> = ({
         )
       : daysInMonth;
 
-    // Прогнозована загальна витрата до кінця періоду
-    const projectedTotalExpense = avgDailyExpense * periodDaysCount;
+    const avgDailyExpense = periodDaysCount > 0 ? totalExpenseConverted / periodDaysCount : 0;
 
-    // Прогнозований баланс на кінець періоду
     let totalStartBalance = 0;
     selectedCurrencies.forEach((code) => {
       const balance = parseFloat(String(startBalances[code])) || 0;
       totalStartBalance += convertCurrency(balance, code, displayCurrency, exchangeRates);
     });
 
-    const projectedEndBalance = isTwelveMonthView
+    const remainingAfterTransactions = isTwelveMonthView
       ? (() => {
           const balanceRows = buildTwelveMonthBalanceRows({
             monthsByKey,
@@ -238,13 +230,11 @@ const Analytics: React.FC<AnalyticsProps> = ({
             .find((row) => filledMonthKeys.has(row.key));
           return lastFilledBalanceRow?.balance ?? totalStartBalance;
         })()
-      : totalStartBalance + totalIncomeConverted - projectedTotalExpense;
+      : totalStartBalance + totalIncomeConverted - totalExpenseConverted;
 
-    // Рівень заощаджень
+    const availableFunds = remainingAfterTransactions + totalExpenseConverted;
     const savingsRate =
-      totalIncomeConverted > 0
-        ? ((totalIncomeConverted - totalExpenseConverted) / totalIncomeConverted) * 100
-        : 0;
+      availableFunds > 0 ? (remainingAfterTransactions / availableFunds) * 100 : 0;
 
     // Прогрес витрат відносно доходу (%)
     const spendingProgress =
@@ -287,7 +277,7 @@ const Analytics: React.FC<AnalyticsProps> = ({
       }))
       .sort((a, b) => b.totalAmount - a.totalAmount);
 
-    // Показуємо топ-6, решту об'єднуємо в "Інше"
+    // Показуємо топ-6, решту об'єднуємо в "Інше", потім знову від більшого до меншого
     let categories: CategoryData[];
     if (categoriesRaw.length > 7) {
       const top6 = categoriesRaw.slice(0, 6);
@@ -301,7 +291,7 @@ const Analytics: React.FC<AnalyticsProps> = ({
           count: otherCount,
           percentage: filteredExpenseTotal > 0 ? (otherTotal / filteredExpenseTotal) * 100 : 0
         }
-      ];
+      ].sort((a, b) => b.totalAmount - a.totalAmount);
     } else {
       categories = categoriesRaw;
     }
@@ -374,54 +364,19 @@ const Analytics: React.FC<AnalyticsProps> = ({
 
     const maxWeekExpense = Math.max(...weeks.map(w => w.totalExpense), 1);
 
-    // ---------- Серія ощадних днів ----------
-    // Рахуємо серію днів, де витрати < середнього
-    let currentStreak = 0;
-    let bestStreak = 0;
-    let tempStreak = 0;
-
-    const streakDays = dayEntries.map((entry) => entry.day);
-
-    // Проходимо по днях з транзакціями
-    for (let i = 0; i < streakDays.length; i++) {
-      const dayData = streakDays[i];
-      if (!dayData) continue;
-      const transactions = Array.isArray(dayData.transactions) ? dayData.transactions : [];
-      if (transactions.length === 0) continue;
-
-      let dayExpenseConverted = 0;
-      const amounts = calculateDayAmountsFromTransactions(dayData, selectedCurrencies);
-      selectedCurrencies.forEach((code) => {
-        dayExpenseConverted += convertCurrency(amounts[`expense${code}`] || 0, code, displayCurrency, exchangeRates);
-      });
-
-      if (dayExpenseConverted <= avgDailyExpense) {
-        tempStreak++;
-        if (tempStreak > bestStreak) {
-          bestStreak = tempStreak;
-        }
-      } else {
-        tempStreak = 0;
-      }
-    }
-    currentStreak = tempStreak;
-
     return {
       totalIncomeConverted,
       totalExpenseConverted,
       avgDailyExpense,
-      projectedEndBalance,
+      remainingAfterTransactions,
       topExpenses,
       noSpendDayCount,
+      elapsedDaysCount,
       savingsRate,
       spendingProgress,
-      daysWithTransactions,
-      daysInMonth: periodDaysCount,
       categories,
       weeks,
       maxWeekExpense,
-      currentStreak,
-      bestStreak,
       isTwelveMonthView
     };
   }, [
@@ -483,19 +438,19 @@ const Analytics: React.FC<AnalyticsProps> = ({
           </p>
         </div>
 
-        {/* Прогнозований баланс */}
+        {/* Залишок після транзакцій */}
         <div className="bg-gradient-to-br from-cyan-50 to-sky-100/70 p-3 sm:p-4 rounded-xl border-l-4 border-cyan-500 shadow-md hover:shadow-lg transition-all">
           <p className="text-[10px] sm:text-xs font-semibold text-gray-600 mb-1 flex items-center gap-1">
-            {t('analytics.projectedBalance')}
+            {t('analytics.remainingAfterTransactions')}
             <InfoTip text={t('infoTips.projectedBalance')} />
           </p>
           <p className={`text-base sm:text-xl font-bold tabular-nums break-words overflow-hidden ${
-            analytics.projectedEndBalance >= 0 ? 'text-emerald-600' : 'text-rose-600'
+            analytics.remainingAfterTransactions >= 0 ? 'text-emerald-600' : 'text-rose-600'
           }`}>
-            {displaySymbol}{formatNumber(analytics.projectedEndBalance, 2)}
+            {displaySymbol}{formatNumber(analytics.remainingAfterTransactions, 2)}
           </p>
           <p className="text-[10px] text-gray-500">
-            {t(analytics.isTwelveMonthView ? 'analytics.endOfPeriod' : 'analytics.endOfMonth')}
+            {t(analytics.isTwelveMonthView ? 'analytics.endOfPeriod' : 'analytics.afterAllTransactions')}
           </p>
         </div>
 
@@ -506,11 +461,19 @@ const Analytics: React.FC<AnalyticsProps> = ({
             <InfoTip text={t('infoTips.noSpendDays')} />
           </p>
           <p className="text-base sm:text-xl font-bold text-green-600 tabular-nums">
-            {analytics.noSpendDayCount}
-            <span className="text-sm font-normal text-gray-500">/{analytics.daysInMonth}</span>
+            {analytics.elapsedDaysCount === 0
+              ? '—'
+              : (
+                <>
+                  {analytics.noSpendDayCount}
+                  <span className="text-sm font-normal text-gray-500">/{analytics.elapsedDaysCount}</span>
+                </>
+              )}
           </p>
           <p className="text-[10px] text-gray-500">
-            {t('analytics.daysWithoutExpenses')}
+            {analytics.elapsedDaysCount === 0
+              ? t('analytics.noSpendNoneElapsed')
+              : t('analytics.daysWithoutExpenses')}
           </p>
         </div>
 
@@ -767,104 +730,6 @@ const Analytics: React.FC<AnalyticsProps> = ({
               {displaySymbol}{formatNumber(analytics.totalExpenseConverted / (analytics.weeks.length || 1), 2)}
             </span>
           </div>
-        </div>
-      )}
-
-      {/* Ряд 6: Серія ощадних днів */}
-      {analytics.daysWithTransactions > 0 && (
-        <div className="bg-gradient-to-br from-lime-50 to-green-100/70 p-4 rounded-xl border border-lime-200 shadow-sm mt-4">
-          <h3 className="text-xs sm:text-sm font-bold text-gray-800 mb-3 flex items-center">
-            <span className="mr-2">🔥</span> {t('analytics.savingsStreak')}
-          </h3>
-          <div className="grid grid-cols-2 gap-3">
-            {/* Поточна серія */}
-            <div className="bg-white/80 rounded-xl p-3 sm:p-4 border border-lime-200 text-center">
-              <p className="text-[10px] sm:text-xs font-semibold text-gray-600 mb-1">
-                {t('analytics.streakCurrent')}
-              </p>
-              <p className="text-2xl sm:text-3xl font-extrabold text-lime-600 tabular-nums">
-                {analytics.currentStreak}
-              </p>
-              <p className="text-[10px] text-gray-500">
-                {t('analytics.streakDays')}
-              </p>
-              <p className="text-[10px] text-gray-400 mt-1">
-                {t('analytics.streakBelowAvg')}
-              </p>
-            </div>
-
-            {/* Найкраща серія */}
-            <div className="bg-white/80 rounded-xl p-3 sm:p-4 border border-lime-200 text-center relative overflow-hidden">
-              {analytics.currentStreak > 0 && analytics.currentStreak >= analytics.bestStreak && (
-                <div className="absolute top-0 right-0 bg-gradient-to-l from-yellow-400 to-amber-400 text-[8px] sm:text-[10px] text-white font-bold px-2 py-0.5 rounded-bl-lg">
-                  {t('analytics.streakNewRecord')}
-                </div>
-              )}
-              <p className="text-[10px] sm:text-xs font-semibold text-gray-600 mb-1">
-                {t('analytics.streakBestRecord')}
-              </p>
-              <p className="text-2xl sm:text-3xl font-extrabold text-amber-600 tabular-nums">
-                {analytics.bestStreak}
-              </p>
-              <p className="text-[10px] text-gray-500">
-                {t('analytics.streakDays')}
-              </p>
-              {analytics.currentStreak > 0 && (
-                <p className="text-[10px] text-lime-600 font-medium mt-1">
-                  {t('analytics.streakKeepGoing')}
-                </p>
-              )}
-            </div>
-          </div>
-
-          {/* Візуальна стрічка днів — лише для місячного режиму */}
-          {!analytics.isTwelveMonthView && (
-          <div className="mt-3 flex flex-wrap gap-1">
-            {visibleDays.map((day, idx) => {
-              if (!day) return null;
-              const transactions = Array.isArray(day.transactions) ? day.transactions : [];
-              if (transactions.length === 0) {
-                return (
-                  <div
-                    key={idx}
-                    className="w-4 h-4 sm:w-5 sm:h-5 rounded-sm bg-gray-100 border border-gray-200"
-                    title={`${t('analytics.dayLabel')} ${day.day}`}
-                  />
-                );
-              }
-              let dayExpenseConverted = 0;
-              const amounts = calculateDayAmountsFromTransactions(day, selectedCurrencies);
-              selectedCurrencies.forEach((code) => {
-                dayExpenseConverted += convertCurrency(amounts[`expense${code}`] || 0, code, displayCurrency, exchangeRates);
-              });
-              const isBelowAvg = dayExpenseConverted <= analytics.avgDailyExpense;
-              return (
-                <div
-                  key={idx}
-                  className={`w-4 h-4 sm:w-5 sm:h-5 rounded-sm border transition-all ${
-                    isBelowAvg
-                      ? 'bg-lime-400 border-lime-500'
-                      : 'bg-rose-400 border-rose-500'
-                  }`}
-                  title={`${t('analytics.dayLabel')} ${day.day}: ${displaySymbol}${formatNumber(dayExpenseConverted, 2)} ${isBelowAvg ? '✅' : '❌'}`}
-                />
-              );
-            })}
-          </div>
-          )}
-          {!analytics.isTwelveMonthView && (
-          <div className="mt-2 flex items-center gap-3 text-[10px] text-gray-500">
-            <span className="flex items-center gap-1">
-              <span className="w-3 h-3 rounded-sm bg-lime-400 border border-lime-500 inline-block" /> ≤ {t('analytics.avgDailyExpense').toLowerCase()}
-            </span>
-            <span className="flex items-center gap-1">
-              <span className="w-3 h-3 rounded-sm bg-rose-400 border border-rose-500 inline-block" /> &gt; {t('analytics.avgDailyExpense').toLowerCase()}
-            </span>
-            <span className="flex items-center gap-1">
-              <span className="w-3 h-3 rounded-sm bg-gray-100 border border-gray-200 inline-block" /> —
-            </span>
-          </div>
-          )}
         </div>
       )}
         </>

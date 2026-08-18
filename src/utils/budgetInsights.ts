@@ -1,6 +1,7 @@
 import { Day, ExchangeRates, MonthSlice, Transaction } from '../types';
 import {
   calculateDayAmountsFromTransactions,
+  calculateFinalBalances,
   calculateTotals,
   convertCurrency,
   Totals
@@ -33,6 +34,8 @@ export interface BudgetInsights {
   daysInMonth: number;
   monthProgress: number;
   savingsRate: number;
+  remainingBalance: number;
+  filledMonthCount: number;
   topExpenses: MonthlyTransaction[];
   transactions: MonthlyTransaction[];
 }
@@ -86,6 +89,74 @@ export const resolveOverviewMonthDays = ({
   }
   const slice = monthsByKey?.[windowMonth.key];
   return getVisibleMonthDays(slice?.days || [], windowMonth.year, windowMonth.month);
+};
+
+export const resolveOverviewMonthStartBalances = ({
+  monthsByKey,
+  windowMonth,
+  activeMonthKey,
+  activeStartBalances
+}: OverviewMonthDaysContext & {
+  windowMonth: OverviewMonthRef;
+  activeStartBalances?: Record<string, number | null>;
+}): Record<string, number | null> => {
+  if (activeMonthKey === windowMonth.key && activeStartBalances) {
+    return activeStartBalances;
+  }
+  return monthsByKey?.[windowMonth.key]?.startBalances ?? {};
+};
+
+/** Closing balances of the last month that has transactions (per currency). */
+export const getOverviewWindowFinalBalances = ({
+  monthsByKey,
+  selectedCurrencies,
+  activeMonthKey,
+  activeDays,
+  activeStartBalances
+}: OverviewMonthDaysContext & {
+  selectedCurrencies: string[];
+  activeStartBalances?: Record<string, number | null>;
+}): Record<string, number> => {
+  const filledMonths = getFilledOverviewMonths({ monthsByKey, activeMonthKey, activeDays });
+  const empty: Record<string, number> = {};
+  selectedCurrencies.forEach((code) => {
+    empty[`finalBalance${code}`] = 0;
+  });
+  if (filledMonths.length === 0) {
+    return empty;
+  }
+
+  const lastMonth = filledMonths[filledMonths.length - 1];
+  const days = resolveOverviewMonthDays({
+    monthsByKey,
+    windowMonth: lastMonth,
+    activeMonthKey,
+    activeDays
+  });
+  const startBalances = resolveOverviewMonthStartBalances({
+    monthsByKey,
+    windowMonth: lastMonth,
+    activeMonthKey,
+    activeStartBalances
+  });
+  const totals = calculateTotals(days, selectedCurrencies);
+  return calculateFinalBalances(days, selectedCurrencies, startBalances, totals);
+};
+
+const toDisplayAmount = (
+  startBalances: Record<string, number | null> | undefined,
+  selectedCurrencies: string[],
+  displayCurrency: string,
+  exchangeRates: ExchangeRates
+): number =>
+  selectedCurrencies.reduce((sum, currencyCode) => {
+    const balance = Number(startBalances?.[currencyCode]) || 0;
+    return sum + convertCurrency(balance, currencyCode, displayCurrency, exchangeRates);
+  }, 0);
+
+const savingsRateFromRemaining = (remaining: number, totalExpense: number): number => {
+  const available = remaining + totalExpense;
+  return available > 0 ? (remaining / available) * 100 : 0;
 };
 
 /** Month counts as filled when it has at least one transaction. */
@@ -360,13 +431,13 @@ export const calculateBudgetInsights = ({
 
   const averageDailyExpense = elapsedDays > 0 ? totalExpense / elapsedDays : 0;
   const projectedExpense = averageDailyExpense * daysInMonth;
-  const projectedEndBalance = totalStartBalance + totalIncome - projectedExpense;
   const netCashFlow = totalIncome - totalExpense;
-  const currentAvailableBalance = totalStartBalance + netCashFlow;
+  const remainingBalance = totalStartBalance + netCashFlow;
+  const projectedEndBalance = totalStartBalance + totalIncome - projectedExpense;
   const remainingDailyBudget =
-    remainingDays > 0 ? currentAvailableBalance / remainingDays : currentAvailableBalance;
+    remainingDays > 0 ? remainingBalance / remainingDays : remainingBalance;
   const monthProgress = daysInMonth > 0 ? (elapsedDays / daysInMonth) * 100 : 0;
-  const savingsRate = totalIncome > 0 ? (netCashFlow / totalIncome) * 100 : 0;
+  const savingsRate = savingsRateFromRemaining(remainingBalance, totalExpense);
 
   return {
     totalIncome,
@@ -384,6 +455,8 @@ export const calculateBudgetInsights = ({
     daysInMonth,
     monthProgress,
     savingsRate,
+    remainingBalance,
+    filledMonthCount: 1,
     topExpenses: transactions
       .filter((transaction) => transaction.type === 'expense')
       .sort((a, b) => b.convertedAmount - a.convertedAmount)
@@ -467,10 +540,21 @@ export const calculateTwelveMonthBudgetInsights = ({
     activeDays
   });
 
-  const totalStartBalance = selectedCurrencies.reduce((sum, currencyCode) => {
-    const balance = Number(startBalances[currencyCode]) || 0;
-    return sum + convertCurrency(balance, currencyCode, displayCurrency, exchangeRates);
-  }, 0);
+  const firstFilled = filledMonths[0];
+  const openingStartBalances = firstFilled
+    ? resolveOverviewMonthStartBalances({
+        monthsByKey,
+        windowMonth: firstFilled,
+        activeMonthKey,
+        activeStartBalances: activeStartBalances ?? startBalances
+      })
+    : startBalances;
+  const totalStartBalance = toDisplayAmount(
+    openingStartBalances,
+    selectedCurrencies,
+    displayCurrency,
+    exchangeRates
+  );
 
   const balanceRows = buildTwelveMonthBalanceRows({
     monthsByKey,
@@ -485,18 +569,18 @@ export const calculateTwelveMonthBudgetInsights = ({
   const lastFilledBalanceRow = [...balanceRows]
     .reverse()
     .find((row) => filledMonthKeys.has(row.key));
-  const projectedEndBalance = lastFilledBalanceRow?.balance ?? totalStartBalance;
+  const remainingBalance = lastFilledBalanceRow?.balance ?? totalStartBalance;
+  const projectedEndBalance = remainingBalance;
 
   const netCashFlow = totalIncome - totalExpense;
   const remainingDays = Math.max(totalDaysInWindow - elapsedDaysInWindow, 0);
-  const currentAvailableBalance = totalStartBalance + netCashFlow;
   const remainingDailyBudget =
-    remainingDays > 0 ? currentAvailableBalance / remainingDays : currentAvailableBalance;
-  const averageDailyExpense = elapsedDaysInWindow > 0 ? totalExpense / elapsedDaysInWindow : 0;
+    remainingDays > 0 ? remainingBalance / remainingDays : remainingBalance;
+  const averageDailyExpense = totalDaysInWindow > 0 ? totalExpense / totalDaysInWindow : 0;
   const projectedExpense = averageDailyExpense * totalDaysInWindow;
   const monthProgress =
     totalDaysInWindow > 0 ? (elapsedDaysInWindow / totalDaysInWindow) * 100 : 0;
-  const savingsRate = totalIncome > 0 ? (netCashFlow / totalIncome) * 100 : 0;
+  const savingsRate = savingsRateFromRemaining(remainingBalance, totalExpense);
 
   return {
     totalIncome,
@@ -514,6 +598,8 @@ export const calculateTwelveMonthBudgetInsights = ({
     daysInMonth: totalDaysInWindow,
     monthProgress,
     savingsRate,
+    remainingBalance,
+    filledMonthCount: filledMonths.length,
     topExpenses: transactions
       .filter((transaction) => transaction.type === 'expense')
       .sort((a, b) => b.convertedAmount - a.convertedAmount)
