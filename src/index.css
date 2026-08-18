@@ -2292,3 +2292,10 @@ html.theme-neon .info-tip__bubble {
   color: #d1fae5;
   box-shadow: 0 12px 28px -8px rgba(0, 0, 0, 0.65), 0 0 0 1px rgba(52, 211, 153, 0.35);
 }
+
+.tx-selectable {
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+  touch-action: manipulation;
+}

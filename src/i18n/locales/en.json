@@ -304,6 +304,16 @@
     "category": "Category",
     "noCategory": "No category"
   },
+  "moveTransactions": {
+    "selected": "Selected: {{count}}",
+    "barHint": "Tap more transactions to add them, then pick a day.",
+    "move": "Move",
+    "title": "Move to another day",
+    "subtitle": "Choose a day this month for {{count}} transactions.",
+    "confirm": "Move",
+    "sameDay": "These transactions are already on this day — pick another.",
+    "selectLabel": "Select transaction"
+  },
   "transactionLimit": {
     "counter": "Transactions: {{count}} / {{max}}",
     "counterHint": "Approaching the monthly limit.",

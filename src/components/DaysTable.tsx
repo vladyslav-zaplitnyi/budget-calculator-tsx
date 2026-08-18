@@ -9,6 +9,8 @@ import {
 import { getCurrencyInfo, getCurrencySymbol, getCurrencyName } from '../utils/currencies';
 import TransactionModal from './TransactionModal';
 import AlertModal from './AlertModal';
+import SelectableTransactionRow from './SelectableTransactionRow';
+import { useTransactionMove } from './TransactionMoveProvider';
 import { generateTransactionId } from '../utils/dayHelpers';
 import { getCategoryEmoji } from '../utils/categories';
 import { Day, ExchangeRates, Transaction } from '../types';
@@ -46,6 +48,7 @@ const DaysTable: React.FC<DaysTableProps> = ({
   readOnly = false
 }) => {
   const { t: translate, i18n: i18nInstance } = useTranslation();
+  const { isSelecting, isSelected, toggleId, bindItem, consumeSuppressedClick } = useTransactionMove();
   const [modalState, setModalState] = useState<{
     isOpen: boolean;
     dayIndex: number | null;
@@ -290,30 +293,49 @@ const DaysTable: React.FC<DaysTableProps> = ({
                       {transactions.length > 0 && (
                         <div className="mt-1 space-y-1">
                           {transactions.map((t) => (
-                            <div
+                            <SelectableTransactionRow
                               key={t.id}
-                              className="flex items-center justify-between text-xs bg-gray-50 p-1 rounded"
+                              selected={isSelected(t.id)}
+                              selecting={isSelecting}
+                              disabled={readOnly}
+                              compact
+                              checkboxLabel={translate('moveTransactions.selectLabel')}
+                              bind={bindItem(t.id)}
+                              onToggle={() => toggleId(t.id)}
+                              consumeSuppressedClick={consumeSuppressedClick}
+                              actions={
+                                <>
+                                  <button
+                                    type="button"
+                                    onPointerDown={(event) => event.stopPropagation()}
+                                    onClick={(event) => {
+                                      event.stopPropagation();
+                                      handleEditTransaction(index, t);
+                                    }}
+                                    className="text-blue-600 hover:text-blue-800"
+                                    title={translate('transaction.edit')}
+                                  >
+                                    ✏️
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onPointerDown={(event) => event.stopPropagation()}
+                                    onClick={(event) => {
+                                      event.stopPropagation();
+                                      handleDeleteTransaction(index, t.id);
+                                    }}
+                                    className="text-red-600 hover:text-red-800"
+                                    title={translate('transaction.delete')}
+                                  >
+                                    🗑️
+                                  </button>
+                                </>
+                              }
                             >
-                              <span className="flex-1 truncate">
+                              <span className="block truncate">
                                 {t.type === 'income' ? '✅' : '❌'} {t.amount} {t.currency}: {getCategoryEmoji(t.category) ? `${getCategoryEmoji(t.category)} ` : ''}{t.description}
                               </span>
-                              <div className="flex gap-1">
-                                <button
-                                  onClick={() => handleEditTransaction(index, t)}
-                                  className="text-blue-600 hover:text-blue-800"
-                                  title={translate('transaction.edit')}
-                                >
-                                  ✏️
-                                </button>
-                                <button
-                                  onClick={() => handleDeleteTransaction(index, t.id)}
-                                  className="text-red-600 hover:text-red-800"
-                                  title={translate('transaction.delete')}
-                                >
-                                  🗑️
-                                </button>
-                              </div>
-                            </div>
+                            </SelectableTransactionRow>
                           ))}
                         </div>
                       )}

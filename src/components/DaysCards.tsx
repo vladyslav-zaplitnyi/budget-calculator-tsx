@@ -10,6 +10,8 @@ import {
 import { getCurrencyInfo, getCurrencySymbol, getCurrencyName } from '../utils/currencies';
 import TransactionModal from './TransactionModal';
 import AlertModal from './AlertModal';
+import SelectableTransactionRow from './SelectableTransactionRow';
+import { useTransactionMove } from './TransactionMoveProvider';
 import { generateTransactionId } from '../utils/dayHelpers';
 import { getCategoryEmoji } from '../utils/categories';
 import {
@@ -47,6 +49,7 @@ const DaysCards: React.FC<DaysCardsProps> = ({
   readOnly = false
 }) => {
   const { t, i18n: i18nInstance } = useTranslation();
+  const { isSelecting, isSelected, toggleId, bindItem, consumeSuppressedClick } = useTransactionMove();
   
   // Стан для модальних вікон
   const [modalState, setModalState] = useState<{
@@ -184,38 +187,56 @@ const DaysCards: React.FC<DaysCardsProps> = ({
             <div className="mb-3">
               {transactions.length > 0 && (
                 <div className="space-y-2 mb-2">
-                  {transactions.map((t) => (
-                    <div
-                      key={t.id}
-                      className="flex items-center justify-between p-2.5 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors border border-gray-200"
+                  {transactions.map((tx) => (
+                    <SelectableTransactionRow
+                      key={tx.id}
+                      selected={isSelected(tx.id)}
+                      selecting={isSelecting}
+                      disabled={readOnly}
+                      checkboxLabel={t('moveTransactions.selectLabel')}
+                      bind={bindItem(tx.id)}
+                      onToggle={() => toggleId(tx.id)}
+                      consumeSuppressedClick={consumeSuppressedClick}
+                      actions={
+                        <>
+                          <button
+                            type="button"
+                            onPointerDown={(event) => event.stopPropagation()}
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              handleEditTransaction(index, tx);
+                            }}
+                            className="text-blue-600 hover:text-blue-800 text-base transition-transform hover:scale-110"
+                            aria-label={t('transaction.edit')}
+                          >
+                            ✏️
+                          </button>
+                          <button
+                            type="button"
+                            onPointerDown={(event) => event.stopPropagation()}
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              handleDeleteTransaction(index, tx.id);
+                            }}
+                            className="text-red-600 hover:text-red-800 text-base transition-transform hover:scale-110"
+                            aria-label={t('transaction.delete')}
+                          >
+                            🗑️
+                          </button>
+                        </>
+                      }
                     >
-                      <div className="flex-1 min-w-0">
+                      <div className="min-w-0">
                         <span className={`text-sm font-semibold font-display tabular-nums ${
-                          t.type === 'income' ? 'text-emerald-600' : 'text-rose-600'
+                          tx.type === 'income' ? 'text-emerald-600' : 'text-rose-600'
                         }`}>
-                          {t.type === 'income' ? '✅' : '❌'} {t.amount} {t.currency}
+                          {tx.type === 'income' ? '✅' : '❌'} {tx.amount} {tx.currency}
                         </span>
                         <p className="text-xs text-gray-600 truncate mt-0.5">
-                          {getCategoryEmoji(t.category) ? `${getCategoryEmoji(t.category)} ` : ''}{t.description}
+                          {getCategoryEmoji(tx.category) ? `${getCategoryEmoji(tx.category)} ` : ''}{tx.description}
                         </p>
                       </div>
-                      <div className="flex gap-1.5 ml-2 flex-shrink-0">
-                        <button
-                          onClick={() => handleEditTransaction(index, t)}
-                          className="text-blue-600 hover:text-blue-800 text-base transition-transform hover:scale-110"
-                          aria-label="Edit transaction"
-                        >
-                          ✏️
-                        </button>
-                        <button
-                          onClick={() => handleDeleteTransaction(index, t.id)}
-                          className="text-red-600 hover:text-red-800 text-base transition-transform hover:scale-110"
-                          aria-label="Delete transaction"
-                        >
-                          🗑️
-                        </button>
-                      </div>
-                    </div>
+                    </SelectableTransactionRow>
                   ))}
                 </div>
               )}

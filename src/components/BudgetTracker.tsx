@@ -5,6 +5,7 @@ import SettingsCard from './SettingsCard';
 import BudgetStatus from './BudgetStatus';
 import DaysTable from './DaysTable';
 import DaysCards from './DaysCards';
+import TransactionMoveProvider from './TransactionMoveProvider';
 import Statistics from './Statistics';
 import Analytics from './Analytics';
 import AppTabs, { BudgetAppTab } from './AppTabs';
@@ -552,31 +553,39 @@ export default function BudgetTracker() {
                       />
 
                       <div data-tour="days-table">
-                        <DaysTable
-                          isUk={language === 'uk'}
+                        <TransactionMoveProvider
                           days={days}
                           updateDay={updateDay}
-                          startBalances={effectiveStartBalances}
-                          selectedCurrencies={selectedCurrencies}
-                          displayCurrency={displayCurrency}
-                          exchangeRates={exchangeRates}
                           budgetYear={budgetDate.year}
                           budgetMonth={budgetDate.month}
                           readOnly={isCurrentBookReadOnly}
-                        />
+                        >
+                          <DaysTable
+                            isUk={language === 'uk'}
+                            days={days}
+                            updateDay={updateDay}
+                            startBalances={effectiveStartBalances}
+                            selectedCurrencies={selectedCurrencies}
+                            displayCurrency={displayCurrency}
+                            exchangeRates={exchangeRates}
+                            budgetYear={budgetDate.year}
+                            budgetMonth={budgetDate.month}
+                            readOnly={isCurrentBookReadOnly}
+                          />
 
-                        <DaysCards
-                          isUk={language === 'uk'}
-                          days={days}
-                          updateDay={updateDay}
-                          startBalances={effectiveStartBalances}
-                          selectedCurrencies={selectedCurrencies}
-                          displayCurrency={displayCurrency}
-                          exchangeRates={exchangeRates}
-                          budgetYear={budgetDate.year}
-                          budgetMonth={budgetDate.month}
-                          readOnly={isCurrentBookReadOnly}
-                        />
+                          <DaysCards
+                            isUk={language === 'uk'}
+                            days={days}
+                            updateDay={updateDay}
+                            startBalances={effectiveStartBalances}
+                            selectedCurrencies={selectedCurrencies}
+                            displayCurrency={displayCurrency}
+                            exchangeRates={exchangeRates}
+                            budgetYear={budgetDate.year}
+                            budgetMonth={budgetDate.month}
+                            readOnly={isCurrentBookReadOnly}
+                          />
+                        </TransactionMoveProvider>
                       </div>
 
                       <TransactionExplorer
