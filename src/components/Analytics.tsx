@@ -637,6 +637,8 @@ const Analytics: React.FC<AnalyticsProps> = ({
                             </span>
                             <span className="text-[10px] text-gray-400 flex-shrink-0">
                               {cat.count} {t('analytics.categoryTransactions')}
+                              {' · '}
+                              {analytics.remainderGroups.length} {t('analytics.categoryNames')}
                             </span>
                             <span className="text-[10px] font-semibold text-amber-700 flex-shrink-0" aria-hidden>
                               {isRemainderExpanded ? '▲' : '▼'}
@@ -647,36 +649,50 @@ const Analytics: React.FC<AnalyticsProps> = ({
                         {isRemainderExpanded && (
                           <div
                             id="analytics-remainder-list"
-                            className="ml-4 mt-2 space-y-1.5 max-h-72 overflow-y-auto overscroll-contain pr-1 border-l-2 border-amber-300 pl-3"
+                            className="ml-4 mt-2 border-l-2 border-amber-300 pl-3"
                           >
-                            {analytics.remainderGroups.map((item) => {
-                              const itemName = item.name === UNNAMED_DESCRIPTION_KEY
-                                ? t('analytics.categoryNoDescription')
-                                : item.name;
-                              const share = cat.totalAmount > 0
-                                ? (item.totalAmount / cat.totalAmount) * 100
-                                : 0;
-                              return (
-                                <div key={item.name} className="flex items-center justify-between gap-2">
-                                  <div className="flex items-center gap-2 min-w-0 flex-1">
-                                    <span className="text-sm text-gray-700 truncate">
-                                      {itemName}
-                                    </span>
-                                    <span className="text-[10px] text-gray-400 flex-shrink-0">
-                                      {item.count} {t('analytics.categoryTransactions')}
-                                    </span>
+                            <div className="space-y-1.5 max-h-80 overflow-y-auto overflow-x-hidden overscroll-contain pr-2 pb-2">
+                              {analytics.remainderGroups.map((item) => {
+                                const itemName = item.name === UNNAMED_DESCRIPTION_KEY
+                                  ? t('analytics.categoryNoDescription')
+                                  : item.name;
+                                const share = cat.totalAmount > 0
+                                  ? (item.totalAmount / cat.totalAmount) * 100
+                                  : 0;
+                                return (
+                                  <div key={item.name} className="flex items-center justify-between gap-2 min-h-[1.5rem]">
+                                    <div className="flex items-center gap-2 min-w-0 flex-1">
+                                      <span className="text-sm text-gray-700 truncate" title={itemName}>
+                                        {itemName}
+                                      </span>
+                                      <span className="text-[10px] text-gray-400 flex-shrink-0">
+                                        {item.count} {t('analytics.categoryTransactions')}
+                                      </span>
+                                    </div>
+                                    <div className="flex items-center gap-2 flex-shrink-0 ml-2 whitespace-nowrap">
+                                      <span className="text-sm font-semibold text-gray-700 tabular-nums">
+                                        {displaySymbol}{formatNumber(item.totalAmount, 2)}
+                                      </span>
+                                      <span className="text-xs text-gray-400 tabular-nums w-12 text-right">
+                                        {share.toFixed(1)}%
+                                      </span>
+                                    </div>
                                   </div>
-                                  <div className="flex items-center gap-2 flex-shrink-0 ml-2">
-                                    <span className="text-sm font-semibold text-gray-700 tabular-nums">
-                                      {displaySymbol}{formatNumber(item.totalAmount, 2)}
-                                    </span>
-                                    <span className="text-xs text-gray-400 tabular-nums w-12 text-right">
-                                      {share.toFixed(1)}%
-                                    </span>
-                                  </div>
-                                </div>
-                              );
-                            })}
+                                );
+                              })}
+                            </div>
+                            <div className="flex items-center justify-between gap-2 mt-2 pt-2 border-t border-amber-300">
+                              <span className="text-xs font-semibold text-gray-700">
+                                {t('analytics.categoryRemainderTotal')}
+                                {': '}
+                                {cat.count} {t('analytics.categoryTransactions')}
+                                {' · '}
+                                {analytics.remainderGroups.length} {t('analytics.categoryNames')}
+                              </span>
+                              <span className="text-sm font-bold text-gray-800 tabular-nums whitespace-nowrap">
+                                {displaySymbol}{formatNumber(cat.totalAmount, 2)}
+                              </span>
+                            </div>
                           </div>
                         )}
                       </div>
