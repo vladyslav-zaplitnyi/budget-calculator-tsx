@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
 import { translate } from '../i18n/config';
 import { AVAILABLE_CURRENCIES, getCurrencyName } from '../utils/currencies';
+import { TRANSACTION_CATEGORIES } from '../utils/categories';
 import { sanitizeNumberInput } from '../utils/calculations';
 import { Day, Transaction } from '../types';
 import { generateTransactionId } from '../utils/dayHelpers';
@@ -50,6 +51,7 @@ const BulkTransactionModal: React.FC<BulkTransactionModalProps> = ({
   const [amount, setAmount] = useState('');
   const [currency, setCurrency] = useState(selectedCurrencies[0] || 'UAH');
   const [description, setDescription] = useState('');
+  const [category, setCategory] = useState('');
   const [selectedDays, setSelectedDays] = useState<Set<number>>(new Set());
 
   const [showAlertModal, setShowAlertModal] = useState(false);
@@ -61,6 +63,7 @@ const BulkTransactionModal: React.FC<BulkTransactionModalProps> = ({
     setAmount('');
     setCurrency(selectedCurrencies[0] || 'UAH');
     setDescription('');
+    setCategory('');
     setSelectedDays(new Set());
     setShowAlertModal(false);
     setAlertMessage('');
@@ -158,7 +161,8 @@ const BulkTransactionModal: React.FC<BulkTransactionModalProps> = ({
       type,
       amount: numAmount,
       currency: currency.toUpperCase(),
-      description: description.trim()
+      description: description.trim(),
+      ...(category ? { category } : {})
     };
 
     selectedDaysSorted.forEach(dayNumber => {
@@ -280,6 +284,24 @@ const BulkTransactionModal: React.FC<BulkTransactionModalProps> = ({
               required
               maxLength={100}
             />
+          </div>
+
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-2">
+              {t('transaction.category')}
+            </label>
+            <select
+              value={category}
+              onChange={(e) => setCategory(e.target.value)}
+              className="w-full px-4 py-2 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            >
+              <option value="">{t('transaction.noCategory')}</option>
+              {TRANSACTION_CATEGORIES.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.emoji} {i18nInstance.language === 'uk' ? c.name.uk : c.name.en}
+                </option>
+              ))}
+            </select>
           </div>
 
           <div>

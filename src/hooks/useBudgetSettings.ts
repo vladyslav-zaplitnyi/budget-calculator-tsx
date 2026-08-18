@@ -797,7 +797,8 @@ export function useBudgetSettings() {
           type: draft.type,
           amount: draft.amount,
           currency: draft.currency,
-          description: draft.description
+          description: draft.description,
+          ...(draft.category ? { category: draft.category } : {})
         },
         monthsByKey,
         activeMonthKey,
