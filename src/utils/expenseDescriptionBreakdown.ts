@@ -1,5 +1,7 @@
 export const EXPENSE_REMAINDER_KEY = '__other__';
 export const UNNAMED_DESCRIPTION_KEY = '—';
+/** Same sentinel as the analytics category filter for untagged expenses. */
+export const UNCATEGORIZED_KEY = '__none__';
 
 export interface DescriptionAmount {
   description?: string;
@@ -67,4 +69,52 @@ export function buildExpenseDescriptionBreakdown(
   }
 
   return { groups: raw, remainderGroups: [] };
+}
+
+export interface CategorizedAmount {
+  category?: string;
+  convertedAmount: number;
+}
+
+export interface CategoryGroup {
+  id: string;
+  totalAmount: number;
+  count: number;
+  percentage: number;
+}
+
+export function expenseCategoryKey(category?: string | null): string {
+  const trimmed = (category || '').trim();
+  return trimmed || UNCATEGORIZED_KEY;
+}
+
+/**
+ * Groups expenses by transaction category id. Untagged expenses share
+ * `UNCATEGORIZED_KEY`. Different descriptions in the same category become one row.
+ */
+export function buildExpenseCategoryBreakdown(
+  expenses: CategorizedAmount[]
+): CategoryGroup[] {
+  const total = expenses.reduce((sum, expense) => sum + expense.convertedAmount, 0);
+  const map = new Map<string, { totalAmount: number; count: number }>();
+
+  expenses.forEach((expense) => {
+    const key = expenseCategoryKey(expense.category);
+    const existing = map.get(key);
+    if (existing) {
+      existing.totalAmount += expense.convertedAmount;
+      existing.count += 1;
+    } else {
+      map.set(key, { totalAmount: expense.convertedAmount, count: 1 });
+    }
+  });
+
+  return Array.from(map.entries())
+    .map(([id, data]) => ({
+      id,
+      totalAmount: data.totalAmount,
+      count: data.count,
+      percentage: total > 0 ? (data.totalAmount / total) * 100 : 0
+    }))
+    .sort((a, b) => b.totalAmount - a.totalAmount);
 }

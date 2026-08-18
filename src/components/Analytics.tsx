@@ -15,12 +15,16 @@ import InfoTip from './InfoTip';
 import type { BudgetViewMode } from './BudgetViewToggle';
 import {
   TRANSACTION_CATEGORIES,
+  getCategoryEmoji,
   getCategoryLabel
 } from '../utils/categories';
 import {
-  EXPENSE_REMAINDER_KEY,
+  UNCATEGORIZED_KEY,
   UNNAMED_DESCRIPTION_KEY,
-  buildExpenseDescriptionBreakdown
+  buildExpenseCategoryBreakdown,
+  buildExpenseDescriptionBreakdown,
+  expenseCategoryKey,
+  type DescriptionGroup
 } from '../utils/expenseDescriptionBreakdown';
 
 interface AnalyticsProps {
@@ -52,6 +56,23 @@ interface WeekData {
   totalIncome: number;
   daysRange: string;
   periodLabel?: string;
+}
+
+const CATEGORY_BAR_COLORS = [
+  'bg-amber-500', 'bg-orange-500', 'bg-rose-400', 'bg-violet-500',
+  'bg-blue-500', 'bg-emerald-500', 'bg-teal-400', 'bg-pink-400'
+];
+
+function categoryTitle(
+  categoryId: string,
+  language: string,
+  uncategorizedLabel: string
+): string {
+  if (categoryId === UNCATEGORIZED_KEY) return uncategorizedLabel;
+  const label = getCategoryLabel(categoryId, language === 'uk' ? 'uk' : 'en');
+  const emoji = getCategoryEmoji(categoryId);
+  if (!label) return categoryId;
+  return emoji ? `${emoji} ${label}` : label;
 }
 
 const Analytics: React.FC<AnalyticsProps> = ({
@@ -95,8 +116,8 @@ const Analytics: React.FC<AnalyticsProps> = ({
   });
   /** Фільтр блоку «Витрати за категоріями»: '' = усі, '__none__' = без категорії, інакше id. */
   const [categoryFilter, setCategoryFilter] = useState('');
-  /** Розкритий список дрібних назв, зібраних у «Решта». */
-  const [isRemainderExpanded, setIsRemainderExpanded] = useState(false);
+  /** Розкриті категорії: показують суми за назвами транзакцій усередині. */
+  const [expandedCategoryIds, setExpandedCategoryIds] = useState<string[]>([]);
 
   const toggleExpanded = useCallback(() => {
     setIsExpanded(prev => {
@@ -242,19 +263,24 @@ const Analytics: React.FC<AnalyticsProps> = ({
         ? Math.min((totalExpenseConverted / totalIncomeConverted) * 100, 100)
         : 0;
 
-    // ---------- Витрати за категоріями (групування за описом, опційний фільтр category) ----------
+    // ---------- Витрати за категоріями (групування за category, опційний фільтр) ----------
     const filteredExpenses =
       categoryFilter === ''
         ? allExpenses
-        : categoryFilter === '__none__'
-          ? allExpenses.filter((expense) => !expense.category)
+        : categoryFilter === UNCATEGORIZED_KEY
+          ? allExpenses.filter((expense) => expenseCategoryKey(expense.category) === UNCATEGORIZED_KEY)
           : allExpenses.filter((expense) => expense.category === categoryFilter);
 
-    // Показуємо топ-6 назв, решту збираємо в «Решта» (можна розкрити список)
-    const { groups: categories, remainderGroups } = buildExpenseDescriptionBreakdown(
-      filteredExpenses,
-      { collapseAfter: 6 }
-    );
+    const categories = buildExpenseCategoryBreakdown(filteredExpenses);
+    const descriptionsByCategory: Record<string, DescriptionGroup[]> = {};
+    categories.forEach((group) => {
+      const inGroup = filteredExpenses.filter(
+        (expense) => expenseCategoryKey(expense.category) === group.id
+      );
+      descriptionsByCategory[group.id] = buildExpenseDescriptionBreakdown(inGroup, {
+        collapseAfter: 0
+      }).groups;
+    });
 
     // ---------- Тижневий / місячний розподіл ----------
     const weeks: WeekData[] = [];
@@ -329,7 +355,7 @@ const Analytics: React.FC<AnalyticsProps> = ({
       savingsRate,
       spendingProgress,
       categories,
-      remainderGroups,
+      descriptionsByCategory,
       weeks,
       maxWeekExpense,
       isTwelveMonthView
@@ -546,12 +572,12 @@ const Analytics: React.FC<AnalyticsProps> = ({
                 value={categoryFilter}
                 onChange={(e) => {
                   setCategoryFilter(e.target.value);
-                  setIsRemainderExpanded(false);
+                  setExpandedCategoryIds([]);
                 }}
                 className="px-2 py-1.5 text-xs sm:text-sm border-2 border-amber-200 rounded-lg bg-white focus:ring-2 focus:ring-amber-400 focus:border-amber-400 max-w-[200px]"
               >
                 <option value="">{t('analytics.categoryFilterAll')}</option>
-                <option value="__none__">{t('analytics.categoryFilterNone')}</option>
+                <option value={UNCATEGORIZED_KEY}>{t('analytics.categoryFilterNone')}</option>
                 {TRANSACTION_CATEGORIES.map((c) => (
                   <option key={c.id} value={c.id}>
                     {c.emoji} {getCategoryLabel(c.id, locale === 'uk' ? 'uk' : 'en')}
@@ -567,22 +593,13 @@ const Analytics: React.FC<AnalyticsProps> = ({
             </p>
           ) : (
             <>
-              {/* Кольорова шкала - стекові бар */}
               <div className="w-full h-4 sm:h-5 rounded-full overflow-hidden flex mb-4">
                 {analytics.categories.map((cat, idx) => {
-                  const colors = [
-                    'bg-amber-500', 'bg-orange-500', 'bg-rose-400', 'bg-violet-500',
-                    'bg-blue-500', 'bg-emerald-500', 'bg-teal-400', 'bg-pink-400'
-                  ];
-                  const label = cat.name === EXPENSE_REMAINDER_KEY
-                    ? t('analytics.categoryOther')
-                    : cat.name === UNNAMED_DESCRIPTION_KEY
-                    ? t('analytics.categoryNoDescription')
-                    : cat.name;
+                  const label = categoryTitle(cat.id, locale, t('analytics.categoryFilterNone'));
                   return (
                     <div
-                      key={idx}
-                      className={`${colors[idx % colors.length]} transition-all duration-500`}
+                      key={cat.id}
+                      className={`${CATEGORY_BAR_COLORS[idx % CATEGORY_BAR_COLORS.length]} transition-all duration-500`}
                       style={{ width: `${cat.percentage}%` }}
                       title={`${label}: ${cat.percentage.toFixed(1)}%`}
                     />
@@ -590,21 +607,13 @@ const Analytics: React.FC<AnalyticsProps> = ({
                 })}
               </div>
 
-              {/* Список категорій */}
               <div className="space-y-2">
                 {analytics.categories.map((cat, idx) => {
-                  const colors = [
-                    'bg-amber-500', 'bg-orange-500', 'bg-rose-400', 'bg-violet-500',
-                    'bg-blue-500', 'bg-emerald-500', 'bg-teal-400', 'bg-pink-400'
-                  ];
-                  const dotColor = colors[idx % colors.length];
-                  const displayName = cat.name === EXPENSE_REMAINDER_KEY
-                    ? t('analytics.categoryOther')
-                    : cat.name === UNNAMED_DESCRIPTION_KEY
-                    ? t('analytics.categoryNoDescription')
-                    : cat.name;
-                  const isRemainder = cat.name === EXPENSE_REMAINDER_KEY
-                    && analytics.remainderGroups.length > 0;
+                  const dotColor = CATEGORY_BAR_COLORS[idx % CATEGORY_BAR_COLORS.length];
+                  const displayName = categoryTitle(cat.id, locale, t('analytics.categoryFilterNone'));
+                  const nested = analytics.descriptionsByCategory[cat.id] || [];
+                  const canToggle = analytics.categories.length > 1;
+                  const isOpen = !canToggle || expandedCategoryIds.includes(cat.id);
 
                   const amounts = (
                     <div className="flex items-center gap-2 flex-shrink-0 ml-2">
@@ -617,107 +626,96 @@ const Analytics: React.FC<AnalyticsProps> = ({
                     </div>
                   );
 
-                  if (isRemainder) {
-                    return (
-                      <div key={cat.name}>
+                  const rowLabel = (
+                    <div className="flex items-center gap-2 min-w-0 flex-1">
+                      <span className={`w-3 h-3 rounded-full flex-shrink-0 ${dotColor}`} />
+                      <span className="text-sm text-gray-800 truncate font-medium">
+                        {displayName}
+                      </span>
+                      <span className="text-[10px] text-gray-400 flex-shrink-0">
+                        {cat.count} {t('analytics.categoryTransactions')}
+                        {nested.length > 1 ? ` · ${nested.length} ${t('analytics.categoryNames')}` : ''}
+                      </span>
+                      {canToggle && (
+                        <span className="text-[10px] font-semibold text-amber-700 flex-shrink-0" aria-hidden>
+                          {isOpen ? '▲' : '▼'}
+                        </span>
+                      )}
+                    </div>
+                  );
+
+                  return (
+                    <div key={cat.id}>
+                      {canToggle ? (
                         <button
                           type="button"
                           className="w-full flex items-center justify-between rounded-lg hover:bg-amber-100/80 -mx-1 px-1 py-0.5 text-left"
-                          onClick={() => setIsRemainderExpanded((open) => !open)}
-                          aria-expanded={isRemainderExpanded}
-                          aria-controls="analytics-remainder-list"
-                          aria-label={isRemainderExpanded
-                            ? t('analytics.categoryOtherCollapse')
-                            : t('analytics.categoryOtherExpand')}
+                          onClick={() => {
+                            setExpandedCategoryIds((openIds) => (
+                              openIds.includes(cat.id)
+                                ? openIds.filter((id) => id !== cat.id)
+                                : [...openIds, cat.id]
+                            ));
+                          }}
+                          aria-expanded={isOpen}
+                          aria-controls={`analytics-category-${cat.id}`}
+                          aria-label={isOpen
+                            ? t('analytics.categoryCollapse', { name: displayName })
+                            : t('analytics.categoryExpand', { name: displayName })}
                         >
-                          <div className="flex items-center gap-2 min-w-0 flex-1">
-                            <span className={`w-3 h-3 rounded-full flex-shrink-0 ${dotColor}`} />
-                            <span className="text-sm text-gray-800 truncate font-medium">
-                              {displayName}
-                            </span>
-                            <span className="text-[10px] text-gray-400 flex-shrink-0">
-                              {cat.count} {t('analytics.categoryTransactions')}
-                              {' · '}
-                              {analytics.remainderGroups.length} {t('analytics.categoryNames')}
-                            </span>
-                            <span className="text-[10px] font-semibold text-amber-700 flex-shrink-0" aria-hidden>
-                              {isRemainderExpanded ? '▲' : '▼'}
-                            </span>
-                          </div>
+                          {rowLabel}
                           {amounts}
                         </button>
-                        {isRemainderExpanded && (
-                          <div
-                            id="analytics-remainder-list"
-                            className="ml-4 mt-2 border-l-2 border-amber-300 pl-3"
-                          >
-                            <div className="space-y-1.5 max-h-80 overflow-y-auto overflow-x-hidden overscroll-contain pr-2 pb-2">
-                              {analytics.remainderGroups.map((item) => {
-                                const itemName = item.name === UNNAMED_DESCRIPTION_KEY
-                                  ? t('analytics.categoryNoDescription')
-                                  : item.name;
-                                const share = cat.totalAmount > 0
-                                  ? (item.totalAmount / cat.totalAmount) * 100
-                                  : 0;
-                                return (
-                                  <div key={item.name} className="flex items-center justify-between gap-2 min-h-[1.5rem]">
-                                    <div className="flex items-center gap-2 min-w-0 flex-1">
-                                      <span className="text-sm text-gray-700 truncate" title={itemName}>
-                                        {itemName}
-                                      </span>
-                                      <span className="text-[10px] text-gray-400 flex-shrink-0">
-                                        {item.count} {t('analytics.categoryTransactions')}
-                                      </span>
-                                    </div>
-                                    <div className="flex items-center gap-2 flex-shrink-0 ml-2 whitespace-nowrap">
-                                      <span className="text-sm font-semibold text-gray-700 tabular-nums">
-                                        {displaySymbol}{formatNumber(item.totalAmount, 2)}
-                                      </span>
-                                      <span className="text-xs text-gray-400 tabular-nums w-12 text-right">
-                                        {share.toFixed(1)}%
-                                      </span>
-                                    </div>
+                      ) : (
+                        <div className="flex items-center justify-between">
+                          {rowLabel}
+                          {amounts}
+                        </div>
+                      )}
+                      {isOpen && nested.length > 0 && (
+                        <div
+                          id={`analytics-category-${cat.id}`}
+                          className="ml-4 mt-2 border-l-2 border-amber-300 pl-3"
+                        >
+                          <div className="space-y-1.5 max-h-80 overflow-y-auto overflow-x-hidden overscroll-contain pr-2 pb-2">
+                            {nested.map((item) => {
+                              const itemName = item.name === UNNAMED_DESCRIPTION_KEY
+                                ? t('analytics.categoryNoDescription')
+                                : item.name;
+                              const share = cat.totalAmount > 0
+                                ? (item.totalAmount / cat.totalAmount) * 100
+                                : 0;
+                              return (
+                                <div key={item.name} className="flex items-center justify-between gap-2 min-h-[1.5rem]">
+                                  <div className="flex items-center gap-2 min-w-0 flex-1">
+                                    <span className="text-sm text-gray-700 truncate" title={itemName}>
+                                      {itemName}
+                                    </span>
+                                    <span className="text-[10px] text-gray-400 flex-shrink-0">
+                                      {item.count} {t('analytics.categoryTransactions')}
+                                    </span>
                                   </div>
-                                );
-                              })}
-                            </div>
-                            <div className="flex items-center justify-between gap-2 mt-2 pt-2 border-t border-amber-300">
-                              <span className="text-xs font-semibold text-gray-700">
-                                {t('analytics.categoryRemainderTotal')}
-                                {': '}
-                                {cat.count} {t('analytics.categoryTransactions')}
-                                {' · '}
-                                {analytics.remainderGroups.length} {t('analytics.categoryNames')}
-                              </span>
-                              <span className="text-sm font-bold text-gray-800 tabular-nums whitespace-nowrap">
-                                {displaySymbol}{formatNumber(cat.totalAmount, 2)}
-                              </span>
-                            </div>
+                                  <div className="flex items-center gap-2 flex-shrink-0 ml-2 whitespace-nowrap">
+                                    <span className="text-sm font-semibold text-gray-700 tabular-nums">
+                                      {displaySymbol}{formatNumber(item.totalAmount, 2)}
+                                    </span>
+                                    <span className="text-xs text-gray-400 tabular-nums w-12 text-right">
+                                      {share.toFixed(1)}%
+                                    </span>
+                                  </div>
+                                </div>
+                              );
+                            })}
                           </div>
-                        )}
-                      </div>
-                    );
-                  }
-
-                  return (
-                    <div key={`${cat.name}-${idx}`} className="flex items-center justify-between">
-                      <div className="flex items-center gap-2 min-w-0 flex-1">
-                        <span className={`w-3 h-3 rounded-full flex-shrink-0 ${dotColor}`} />
-                        <span className="text-sm text-gray-800 truncate font-medium">
-                          {displayName}
-                        </span>
-                        <span className="text-[10px] text-gray-400 flex-shrink-0">
-                          {cat.count} {t('analytics.categoryTransactions')}
-                        </span>
-                      </div>
-                      {amounts}
+                        </div>
+                      )}
                     </div>
                   );
                 })}
               </div>
-              {analytics.remainderGroups.length > 0 && !isRemainderExpanded && (
+              {analytics.categories.length > 1 && (
                 <p className="text-[10px] sm:text-xs text-gray-500 mt-2">
-                  {t('analytics.categoryOtherHint')}
+                  {t('analytics.categoryExpandHint')}
                 </p>
               )}
             </>
