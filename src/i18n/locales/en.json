@@ -439,6 +439,8 @@
     "categoryOtherCollapse": "Collapse The rest list",
     "categoryNoDescription": "No description",
     "categoryTransactions": "trans.",
+    "categoryNames": "names",
+    "categoryRemainderTotal": "Total in The rest",
     "categoryFilterLabel": "Category:",
     "categoryFilterAll": "All (no filter)",
     "categoryFilterNone": "No category",

@@ -440,6 +440,8 @@
     "categoryOtherCollapse": "Згорнути список «Решта»",
     "categoryNoDescription": "Без опису",
     "categoryTransactions": "транз.",
+    "categoryNames": "назв",
+    "categoryRemainderTotal": "Разом у «Решті»",
     "categoryFilterLabel": "Категорія:",
     "categoryFilterAll": "Усі (без фільтра)",
     "categoryFilterNone": "Без категорії",
