@@ -34,6 +34,11 @@ export const getMonthYearLabel = (locale: string, year: number, monthIndex: numb
   return capitalizeFirstLetter(formatter.format(new Date(year, monthIndex, 1)));
 };
 
+export const getMonthLabel = (locale: string, monthIndex: number) => {
+  const formatter = new Intl.DateTimeFormat(locale, { month: 'long' });
+  return capitalizeFirstLetter(formatter.format(new Date(2020, monthIndex, 1)));
+};
+
 export const formatBudgetTransactionDate = (
   locale: string,
   year: number,

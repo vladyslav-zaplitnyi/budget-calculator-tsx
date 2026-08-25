@@ -244,10 +244,12 @@
     "endOfMonth": "End of month balance",
     "endOfPlannerWindow": "Projected balance at end of the last month in the window",
     "criticalDays": "Critical days (lowest balance)",
-    "criticalDaysHint": "Days when your balance is projected to be at its lowest point.",
-    "criticalMonths": "Critical months (lowest projected balance)",
-    "criticalMonthsHint": "Months in this 12-month window when the rolling projected balance is at its lowest.",
-    "dayLabel": "Day"
+    "criticalDaysHint": "Days when your balance is projected to be at its lowest point. Consecutive days with the same balance are grouped.",
+    "criticalMonths": "Critical days across months",
+    "criticalMonthsHint": "Days in the 12-month window when the projected balance is at its lowest. Consecutive days with the same balance are grouped (for example October 1-4).",
+    "dayLabel": "Day",
+    "dayRangeLabel": "{{start}}-{{end}} days",
+    "criticalMonthDayLabel": "{{month}} {{range}}"
   },
   "bulkTransactions": {
     "button": "Add Transaction",
@@ -733,8 +735,8 @@
     "totalValue": "All currency balances converted into the selected display currency using your rates.",
     "selectDay": "The slider shows the cumulative balance on any day of the month (including all transactions up to that day).",
     "selectMonth": "The slider shows the rolling projected balance at the end of the chosen month in the 12-month window.",
-    "criticalDays": "Days with the lowest projected balance this month — where the balance dips the most.",
-    "criticalMonths": "Months in the 12-month window with the lowest rolling projected balance.",
+    "criticalDays": "Days with the lowest projected balance this month. Consecutive days with the same balance are shown as one row (for example 1-4 days).",
+    "criticalMonths": "Days in the 12-month window with the lowest projected balance. Consecutive days with the same balance are grouped (for example October 1-4).",
     "statistics": "Income and expenses for the period, and how much money is left now — per currency and all together in the display currency.",
     "analytics": "Average spend, remaining after transactions, no-spend days, savings rate, and category / week / month breakdowns.",
     "avgDailyExpense": "All expenses in the period divided by the number of calendar days in that period.",

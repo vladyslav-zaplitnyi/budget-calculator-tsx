@@ -1,8 +1,7 @@
 import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { getCurrencyInfo, getCurrencySymbol, AVAILABLE_CURRENCIES, getCurrencyName } from '../utils/currencies';
-import { convertCurrency, formatNumber, calculateDayAmountsFromTransactions } from '../utils/calculations';
-import { getDaysInMonth } from '../utils/dateHelpers';
+import { convertCurrency, formatNumber } from '../utils/calculations';
 import { Day, ExchangeRates, MonthSlice } from '../types';
 import CurrencyFlag from './CurrencyFlag';
 import InfoTip from './InfoTip';
@@ -10,7 +9,20 @@ import {
   buildTwelveMonthBalanceRows,
   OverviewMonthBalanceRow
 } from '../utils/rollingMonthsBudget';
-import { capitalizeFirstLetter, getMonthYearLabel } from '../utils/dateHelpers';
+import {
+  getFilledOverviewMonths,
+  resolveOverviewMonthDays,
+  resolveOverviewMonthStartBalances
+} from '../utils/budgetInsights';
+import {
+  computeDailyRunningBalances,
+  findLowestBalanceRanges,
+  findLowestBalanceRangesAcrossMonths,
+  formatDayRange,
+  CriticalDayRange,
+  DatedCriticalDayRange
+} from '../utils/criticalBalances';
+import { capitalizeFirstLetter, getDaysInMonth, getMonthLabel, getMonthYearLabel } from '../utils/dateHelpers';
 
 const BALANCE_CARD_COLORS = [
   'border-blue-200 hover:border-blue-300',
@@ -123,9 +135,12 @@ const BudgetStatus: React.FC<BudgetStatusProps> = ({
   }, [displayCurrency, exchangeRates]);
 
   // Compute cumulative balance in display currency for each day (days mode),
-  // або рядки 12-місячного плану + критичні місяці (months mode).
-  const { dailyBalances, criticalDays, criticalMonths, monthlyBalanceRows } = useMemo(() => {
+  // або рядки 12-місячного плану + критичні дні серед місяців (months mode).
+  const { dailyBalances, criticalDayRanges, criticalMonthDayRanges, monthlyBalanceRows } = useMemo(() => {
     const emptyMonthRows: OverviewMonthBalanceRow[] = [];
+    const emptyDayRanges: CriticalDayRange[] = [];
+    const emptyMonthDayRanges: DatedCriticalDayRange[] = [];
+
     if (budgetViewMode === 'months') {
       const rows = buildTwelveMonthBalanceRows({
         monthsByKey,
@@ -139,63 +154,76 @@ const BudgetStatus: React.FC<BudgetStatusProps> = ({
       if (rows.length === 0) {
         return {
           dailyBalances: [] as number[],
-          criticalDays: [] as { day: number; balance: number }[],
-          criticalMonths: [] as { key: string; year: number; month: number; balance: number }[],
+          criticalDayRanges: emptyDayRanges,
+          criticalMonthDayRanges: emptyMonthDayRanges,
           monthlyBalanceRows: rows
         };
       }
-      const minBalance = Math.min(...rows.map((r) => r.balance));
-      const criticalMonthsList = rows
-        .filter((r) => r.balance === minBalance)
-        .slice(0, 5)
-        .map((r) => ({
-          key: r.key,
-          year: r.year,
-          month: r.month,
-          balance: r.balance
-        }));
+
+      const monthSeries = getFilledOverviewMonths({
+        monthsByKey,
+        activeMonthKey,
+        activeDays: days
+      }).map((windowMonth) => {
+        const monthDays = resolveOverviewMonthDays({
+          monthsByKey,
+          windowMonth,
+          activeMonthKey,
+          activeDays: days
+        });
+        const monthStarts = resolveOverviewMonthStartBalances({
+          monthsByKey,
+          windowMonth,
+          activeMonthKey,
+          activeStartBalances: startBalances
+        });
+        return {
+          key: windowMonth.key,
+          year: windowMonth.year,
+          month: windowMonth.month,
+          dailyBalances: computeDailyRunningBalances(
+            monthDays,
+            monthStarts,
+            getDaysInMonth(windowMonth.year, windowMonth.month),
+            selectedCurrencies,
+            displayCurrency,
+            exchangeRates
+          )
+        };
+      });
+
       return {
         dailyBalances: [],
-        criticalDays: [],
-        criticalMonths: criticalMonthsList,
+        criticalDayRanges: emptyDayRanges,
+        criticalMonthDayRanges: findLowestBalanceRangesAcrossMonths(monthSeries),
         monthlyBalanceRows: rows
       };
     }
 
-    const visibleDays = days.slice(0, daysInMonth);
-    const balances: number[] = [];
-
-    let startTotal = 0;
-    for (const code of selectedCurrencies) {
-      const bal = parseFloat(String(startBalances[code])) || 0;
-      startTotal += convertCurrency(bal, code, displayCurrency, exchangeRates);
-    }
-
-    let running = startTotal;
-    for (let i = 0; i < daysInMonth; i++) {
-      const dayData = visibleDays[i];
-      if (dayData) {
-        const amounts = calculateDayAmountsFromTransactions(dayData, selectedCurrencies);
-        for (const code of selectedCurrencies) {
-          const inc = convertCurrency(amounts[`income${code}`] || 0, code, displayCurrency, exchangeRates);
-          const exp = convertCurrency(amounts[`expense${code}`] || 0, code, displayCurrency, exchangeRates);
-          running += inc - exp;
-        }
-      }
-      balances.push(running);
-    }
+    const balances = computeDailyRunningBalances(
+      days,
+      startBalances,
+      daysInMonth,
+      selectedCurrencies,
+      displayCurrency,
+      exchangeRates
+    );
 
     if (balances.length === 0) {
-      return { dailyBalances: [], criticalDays: [], criticalMonths: [], monthlyBalanceRows: emptyMonthRows };
+      return {
+        dailyBalances: [],
+        criticalDayRanges: emptyDayRanges,
+        criticalMonthDayRanges: emptyMonthDayRanges,
+        monthlyBalanceRows: emptyMonthRows
+      };
     }
 
-    const minBalance = Math.min(...balances);
-    const critical = balances
-      .map((bal, i) => ({ day: i + 1, balance: bal }))
-      .filter(d => d.balance === minBalance)
-      .slice(0, 5);
-
-    return { dailyBalances: balances, criticalDays: critical, criticalMonths: [], monthlyBalanceRows: emptyMonthRows };
+    return {
+      dailyBalances: balances,
+      criticalDayRanges: findLowestBalanceRanges(balances),
+      criticalMonthDayRanges: emptyMonthDayRanges,
+      monthlyBalanceRows: emptyMonthRows
+    };
   }, [budgetViewMode, monthsByKey, activeMonthKey, displayCurrency, exchangeRates, days, daysInMonth, selectedCurrencies, startBalances]);
 
   useEffect(() => {
@@ -474,7 +502,7 @@ const BudgetStatus: React.FC<BudgetStatusProps> = ({
       )}
 
       {/* Critical days — days mode */}
-      {budgetViewMode === 'days' && criticalDays.length > 0 && (
+      {budgetViewMode === 'days' && criticalDayRanges.length > 0 && (
         <div className="mt-3">
           <div className="flex items-center gap-2">
             <button
@@ -495,14 +523,16 @@ const BudgetStatus: React.FC<BudgetStatusProps> = ({
 
           {isCriticalExpanded && (
             <div className="mt-2 bg-white/80 rounded-xl border border-rose-100 p-3 space-y-2">
-              {criticalDays.map((cd) => (
+              {criticalDayRanges.map((cd) => (
                 <div
-                  key={cd.day}
+                  key={`${cd.startDay}-${cd.endDay}`}
                   className="flex items-center justify-between bg-rose-50 rounded-lg px-3 py-2 border border-rose-100"
                 >
                   <div className="flex items-center gap-2">
                     <span className="text-rose-500 font-bold text-sm">
-                      {t('budgetStatus.dayLabel')} {cd.day}
+                      {cd.startDay === cd.endDay
+                        ? `${t('budgetStatus.dayLabel')} ${cd.startDay}`
+                        : t('budgetStatus.dayRangeLabel', { start: cd.startDay, end: cd.endDay })}
                     </span>
                   </div>
                   <span className={`text-sm font-bold tabular-nums ${cd.balance >= 0 ? 'text-amber-600' : 'text-rose-600'}`}>
@@ -515,8 +545,8 @@ const BudgetStatus: React.FC<BudgetStatusProps> = ({
         </div>
       )}
 
-      {/* Critical months — 12-month plan mode */}
-      {budgetViewMode === 'months' && criticalMonths.length > 0 && (
+      {/* Critical days — 12-month plan mode */}
+      {budgetViewMode === 'months' && criticalMonthDayRanges.length > 0 && (
         <div className="mt-3">
           <div className="flex items-center gap-2">
             <button
@@ -537,16 +567,17 @@ const BudgetStatus: React.FC<BudgetStatusProps> = ({
 
           {isCriticalMonthsExpanded && (
             <div className="mt-2 bg-white/80 rounded-xl border border-rose-100 p-3 space-y-2">
-              {criticalMonths.map((cm) => {
+              {criticalMonthDayRanges.map((cm) => {
                 const locale = i18nInstance.language || 'en';
-                const label = capitalizeFirstLetter(getMonthYearLabel(locale, cm.year, cm.month));
+                const monthName = getMonthLabel(locale, cm.month);
+                const range = formatDayRange(cm.startDay, cm.endDay);
                 return (
                   <div
-                    key={cm.key}
+                    key={`${cm.key}-${cm.startDay}-${cm.endDay}`}
                     className="flex items-center justify-between bg-rose-50 rounded-lg px-3 py-2 border border-rose-100"
                   >
                     <span className="text-rose-500 font-bold text-sm">
-                      {label}
+                      {t('budgetStatus.criticalMonthDayLabel', { month: monthName, range })}
                     </span>
                     <span className={`text-sm font-bold tabular-nums ${cm.balance >= 0 ? 'text-amber-600' : 'text-rose-600'}`}>
                       {displaySymbol}{formatNumber(cm.balance, 2)}
