@@ -114,6 +114,7 @@ export default function BudgetTracker() {
     handleStartBalanceChange,
     handleBulkAddTransactionsToMonths,
     handleForecastCopyToMonths,
+    handleMoveTransactionsToMonth,
     handleExportToJsonFile,
     handleImportFromJsonFile,
     handleJsonFileSelected,
@@ -584,6 +585,8 @@ export default function BudgetTracker() {
                           budgetMonth={budgetDate.month}
                           selectedCurrencies={selectedCurrencies}
                           readOnly={isCurrentBookReadOnly}
+                          monthsByKey={activeBudgetData?.monthsByKey}
+                          onMoveTransactions={handleMoveTransactionsToMonth}
                         >
                           <DaysTable
                             isUk={language === 'uk'}

@@ -1,20 +1,25 @@
 import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
-import { Day } from '../types';
+import { Day, MonthSlice } from '../types';
 import {
   applyTransactionEdits,
   collectTransactionsByIds,
   deleteTransactionsByIds,
-  moveTransactionsToDay,
+  listMoveTargetMonths,
+  moveTransactionsToMonth,
   CollectedTransaction,
+  MoveTransactionsToMonthRequest,
+  MoveTransactionsToMonthResult,
   TransactionEditPatch
 } from '../utils/moveTransactions';
 import {
   buildCalendarCellsForMonthMondayFirst,
+  getDaysInMonth,
   getMonthYearLabel,
   getWeekdayLabelsMondayFirst
 } from '../utils/dateHelpers';
+import { formatMonthKey, parseMonthKey } from '../utils/monthlyPlan';
 import { useTransactionMoveSelection } from '../hooks/useTransactionMoveSelection';
 import type { TransactionItemBind } from '../hooks/useTransactionMoveSelection';
 import ConfirmModal from './ConfirmModal';
@@ -55,6 +60,8 @@ interface TransactionMoveProviderProps {
   budgetMonth: number;
   selectedCurrencies?: string[];
   readOnly?: boolean;
+  monthsByKey?: Record<string, MonthSlice>;
+  onMoveTransactions?: (request: MoveTransactionsToMonthRequest) => MoveTransactionsToMonthResult;
   children: React.ReactNode;
 }
 
@@ -65,6 +72,8 @@ const TransactionMoveProvider: React.FC<TransactionMoveProviderProps> = ({
   budgetMonth,
   selectedCurrencies = ['UAH', 'USD', 'EUR'],
   readOnly = false,
+  monthsByKey,
+  onMoveTransactions,
   children
 }) => {
   const { t, i18n } = useTranslation();
@@ -79,6 +88,8 @@ const TransactionMoveProvider: React.FC<TransactionMoveProviderProps> = ({
     pruneToExistingIds
   } = useTransactionMoveSelection(!readOnly);
   const [pickerOpen, setPickerOpen] = useState(false);
+  const [pickerYear, setPickerYear] = useState(budgetYear);
+  const [pickerMonth, setPickerMonth] = useState(budgetMonth);
   const [targetDay, setTargetDay] = useState<number | null>(null);
   const [editOpen, setEditOpen] = useState(false);
   const [editItems, setEditItems] = useState<CollectedTransaction[]>([]);
@@ -101,11 +112,41 @@ const TransactionMoveProvider: React.FC<TransactionMoveProviderProps> = ({
   useEffect(() => {
     clearSelection();
     setPickerOpen(false);
+    setPickerYear(budgetYear);
+    setPickerMonth(budgetMonth);
     setTargetDay(null);
     setEditOpen(false);
     setEditItems([]);
     setDeleteConfirmOpen(false);
   }, [budgetYear, budgetMonth, clearSelection]);
+
+  const availableMonths = useMemo(
+    () => listMoveTargetMonths(monthsByKey, budgetYear, budgetMonth),
+    [monthsByKey, budgetYear, budgetMonth]
+  );
+
+  const pickerIndex = useMemo(
+    () =>
+      availableMonths.findIndex(
+        (item) => item.year === pickerYear && item.month === pickerMonth
+      ),
+    [availableMonths, pickerYear, pickerMonth]
+  );
+
+  const prevMonth = pickerIndex > 0 ? availableMonths[pickerIndex - 1] : null;
+  const nextMonth =
+    pickerIndex >= 0 && pickerIndex < availableMonths.length - 1
+      ? availableMonths[pickerIndex + 1]
+      : null;
+
+  const goToPickerMonth = (year: number, month: number) => {
+    setPickerYear(year);
+    setPickerMonth(month);
+    setTargetDay((prev) => {
+      if (prev === null) return prev;
+      return Math.min(prev, getDaysInMonth(year, month));
+    });
+  };
 
   const sourceDays = useMemo(() => {
     const result = new Set<number>();
@@ -119,25 +160,45 @@ const TransactionMoveProvider: React.FC<TransactionMoveProviderProps> = ({
     return result;
   }, [days, selectedList]);
 
-  const movableCount = useMemo(() => {
-    if (targetDay === null) return 0;
-    return moveTransactionsToDay(
-      days,
-      selectedList,
-      targetDay,
-      budgetYear,
-      budgetMonth
-    ).movedCount;
-  }, [days, selectedList, targetDay, budgetYear, budgetMonth]);
+  const isPickerOnSourceMonth = pickerYear === budgetYear && pickerMonth === budgetMonth;
 
-  const { calendarCells, monthYearLabel, weekdayLabels } = useMemo(() => {
+  const movePreview = useMemo(() => {
+    if (targetDay === null) return null;
+    return moveTransactionsToMonth({
+      sourceDays: days,
+      sourceYear: budgetYear,
+      sourceMonth: budgetMonth,
+      monthsByKey,
+      transactionIds: selectedList,
+      targetYear: pickerYear,
+      targetMonth: pickerMonth,
+      targetDay,
+      selectedCurrencies
+    });
+  }, [
+    days,
+    budgetYear,
+    budgetMonth,
+    monthsByKey,
+    selectedList,
+    pickerYear,
+    pickerMonth,
+    targetDay,
+    selectedCurrencies
+  ]);
+
+  const movableCount = movePreview?.movedCount ?? 0;
+  const moveError = movePreview?.error;
+
+  const { calendarCells, monthYearLabel, weekdayLabels, pickerMonthKey } = useMemo(() => {
     const locale = i18n.language || 'en';
     return {
-      calendarCells: buildCalendarCellsForMonthMondayFirst(budgetYear, budgetMonth),
-      monthYearLabel: getMonthYearLabel(locale, budgetYear, budgetMonth),
-      weekdayLabels: getWeekdayLabelsMondayFirst(locale)
+      calendarCells: buildCalendarCellsForMonthMondayFirst(pickerYear, pickerMonth),
+      monthYearLabel: getMonthYearLabel(locale, pickerYear, pickerMonth),
+      weekdayLabels: getWeekdayLabelsMondayFirst(locale),
+      pickerMonthKey: formatMonthKey(pickerYear, pickerMonth)
     };
-  }, [budgetYear, budgetMonth, i18n.language]);
+  }, [pickerYear, pickerMonth, i18n.language]);
 
   const applyDaysDiff = (nextDays: Day[]) => {
     nextDays.forEach((day, index) => {
@@ -149,6 +210,8 @@ const TransactionMoveProvider: React.FC<TransactionMoveProviderProps> = ({
 
   const openPicker = () => {
     if (selectedList.length === 0) return;
+    setPickerYear(budgetYear);
+    setPickerMonth(budgetMonth);
     setTargetDay(null);
     setPickerOpen(true);
   };
@@ -156,22 +219,44 @@ const TransactionMoveProvider: React.FC<TransactionMoveProviderProps> = ({
   const closePicker = () => {
     setPickerOpen(false);
     setTargetDay(null);
+    setPickerYear(budgetYear);
+    setPickerMonth(budgetMonth);
   };
 
   const confirmMove = () => {
     if (targetDay === null) return;
-    const { nextDays, movedCount } = moveTransactionsToDay(
-      days,
-      selectedList,
-      targetDay,
-      budgetYear,
-      budgetMonth
-    );
-    if (movedCount > 0) {
-      applyDaysDiff(nextDays);
+    const request: MoveTransactionsToMonthRequest = {
+      transactionIds: selectedList,
+      targetYear: pickerYear,
+      targetMonth: pickerMonth,
+      targetDay
+    };
+
+    if (onMoveTransactions) {
+      const result = onMoveTransactions(request);
+      if (result.movedCount > 0 && !result.error) {
+        clearSelection();
+        closePicker();
+      }
+      return;
     }
-    clearSelection();
-    closePicker();
+
+    const isSameMonth = pickerYear === budgetYear && pickerMonth === budgetMonth;
+    if (!isSameMonth) return;
+
+    const result = moveTransactionsToMonth({
+      sourceDays: days,
+      sourceYear: budgetYear,
+      sourceMonth: budgetMonth,
+      monthsByKey,
+      ...request,
+      selectedCurrencies
+    });
+    if (result.movedCount > 0 && !result.error) {
+      applyDaysDiff(result.nextSourceDays);
+      clearSelection();
+      closePicker();
+    }
   };
 
   const openEdit = () => {
@@ -291,8 +376,45 @@ const TransactionMoveProvider: React.FC<TransactionMoveProviderProps> = ({
             </p>
 
             <div className="bg-gray-50 border-2 border-gray-200 rounded-xl p-3">
-              <div className="text-center text-sm font-semibold text-gray-800 mb-3">
-                {monthYearLabel}
+              <div className="flex items-center gap-2 mb-3">
+                <button
+                  type="button"
+                  onClick={() => prevMonth && goToPickerMonth(prevMonth.year, prevMonth.month)}
+                  disabled={!prevMonth}
+                  className="h-9 w-9 shrink-0 rounded-lg border border-gray-200 bg-white text-lg font-bold text-gray-700 hover:bg-indigo-50 disabled:opacity-40 disabled:cursor-not-allowed"
+                  aria-label={t('moveTransactions.prevMonth')}
+                  title={t('moveTransactions.prevMonth')}
+                >
+                  ‹
+                </button>
+                <label className="sr-only" htmlFor="move-transaction-month">
+                  {t('moveTransactions.pickMonth')}
+                </label>
+                <select
+                  id="move-transaction-month"
+                  value={pickerMonthKey}
+                  onChange={(event) => {
+                    const parsed = parseMonthKey(event.target.value);
+                    if (parsed) goToPickerMonth(parsed.year, parsed.month);
+                  }}
+                  className="min-w-0 flex-1 px-2 py-2 rounded-lg border-2 border-gray-200 bg-white text-sm font-semibold text-gray-900 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                >
+                  {availableMonths.map((item) => (
+                    <option key={item.key} value={item.key}>
+                      {getMonthYearLabel(i18n.language || 'en', item.year, item.month)}
+                    </option>
+                  ))}
+                </select>
+                <button
+                  type="button"
+                  onClick={() => nextMonth && goToPickerMonth(nextMonth.year, nextMonth.month)}
+                  disabled={!nextMonth}
+                  className="h-9 w-9 shrink-0 rounded-lg border border-gray-200 bg-white text-lg font-bold text-gray-700 hover:bg-indigo-50 disabled:opacity-40 disabled:cursor-not-allowed"
+                  aria-label={t('moveTransactions.nextMonth')}
+                  title={t('moveTransactions.nextMonth')}
+                >
+                  ›
+                </button>
               </div>
               <div className="grid grid-cols-7 gap-2 mb-2">
                 {weekdayLabels.map((label, idx) => (
@@ -311,7 +433,7 @@ const TransactionMoveProvider: React.FC<TransactionMoveProviderProps> = ({
                   }
 
                   const isTarget = targetDay === cell;
-                  const isSource = sourceDays.has(cell);
+                  const isSource = isPickerOnSourceMonth && sourceDays.has(cell);
 
                   return (
                     <button
@@ -334,9 +456,33 @@ const TransactionMoveProvider: React.FC<TransactionMoveProviderProps> = ({
               </div>
             </div>
 
-            {targetDay !== null && movableCount === 0 && (
+            {targetDay !== null && moveError === 'month-limit' && (
+              <p className="mt-3 text-xs text-amber-700 font-medium whitespace-pre-line">
+                {t('moveTransactions.monthLimit', {
+                  month: monthYearLabel,
+                  existing: movePreview?.limitExisting,
+                  adding: movePreview?.limitAdding,
+                  max: movePreview?.limitMax
+                })}
+              </p>
+            )}
+            {targetDay !== null && moveError === 'would-drop-data' && (
               <p className="mt-3 text-xs text-amber-700 font-medium">
-                {t('moveTransactions.sameDay')}
+                {t('moveTransactions.wouldDropData')}
+              </p>
+            )}
+            {targetDay !== null &&
+              (moveError === 'nothing-to-move' || (movableCount === 0 && !moveError)) && (
+                <p className="mt-3 text-xs text-amber-700 font-medium">
+                  {t('moveTransactions.sameDay')}
+                </p>
+              )}
+            {targetDay !== null && movableCount > 0 && !moveError && !isPickerOnSourceMonth && (
+              <p className="mt-3 text-xs text-indigo-700 font-medium">
+                {t('moveTransactions.destinationHint', {
+                  month: monthYearLabel,
+                  day: targetDay
+                })}
               </p>
             )}
 
@@ -351,9 +497,9 @@ const TransactionMoveProvider: React.FC<TransactionMoveProviderProps> = ({
               <button
                 type="button"
                 onClick={confirmMove}
-                disabled={targetDay === null || movableCount === 0}
+                disabled={targetDay === null || movableCount === 0 || Boolean(moveError)}
                 className={`flex-1 py-2.5 px-4 rounded-lg font-semibold text-white transition-colors ${
-                  targetDay === null || movableCount === 0
+                  targetDay === null || movableCount === 0 || Boolean(moveError)
                     ? 'bg-gray-400 cursor-not-allowed'
                     : 'bg-indigo-600 hover:bg-indigo-700'
                 }`}

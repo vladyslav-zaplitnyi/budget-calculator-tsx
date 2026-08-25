@@ -28,6 +28,11 @@ import {
 import type { ForecastCopyDraft } from '../utils/budgetForecast';
 import { MAX_TRANSACTIONS_PER_MONTH } from '../utils/transactionLimits';
 import type { MultiMonthBulkTransactionDraft } from '../utils/multiMonthBulkTransactions';
+import {
+  moveTransactionsToMonth,
+  MoveTransactionsToMonthRequest,
+  MoveTransactionsToMonthResult
+} from '../utils/moveTransactions';
 
 export type ClearDaysScope = 'current-month' | 'all-months';
 
@@ -933,6 +938,79 @@ export function useBudgetSettings() {
     ]
   );
 
+  const handleMoveTransactionsToMonth = useCallback(
+    (request: MoveTransactionsToMonthRequest): MoveTransactionsToMonthResult => {
+      const emptyResult = (
+        error?: MoveTransactionsToMonthResult['error']
+      ): MoveTransactionsToMonthResult => ({
+        nextSourceDays: days,
+        nextMonthsByKey: {},
+        movedCount: 0,
+        ...(error ? { error } : {})
+      });
+
+      if (user && isCurrentBookReadOnly) {
+        setAlertMessage(translate('budgetBook.readOnlyActionBlocked'));
+        setAlertType('warning');
+        setShowAlertModal(true);
+        return emptyResult('nothing-to-move');
+      }
+
+      const currentId = activeBudgetId || 'default';
+      const safePrev = budgets || {};
+      const existingBudget = safePrev[currentId];
+      if (!existingBudget) return emptyResult('nothing-to-move');
+
+      const budgetDate = existingBudget.budgetDate || {
+        year: new Date().getFullYear(),
+        month: new Date().getMonth()
+      };
+
+      const result = moveTransactionsToMonth({
+        sourceDays: days,
+        sourceYear: budgetDate.year,
+        sourceMonth: budgetDate.month,
+        monthsByKey: existingBudget.monthsByKey,
+        transactionIds: request.transactionIds,
+        targetYear: request.targetYear,
+        targetMonth: request.targetMonth,
+        targetDay: request.targetDay,
+        selectedCurrencies
+      });
+
+      if (result.error || result.movedCount === 0) {
+        return result;
+      }
+
+      const draftBudget: Budget = {
+        ...existingBudget,
+        days: result.nextSourceDays,
+        monthsByKey: trimOldestMonthKeys(result.nextMonthsByKey)
+      };
+      const afterWaterfall = applyBalanceWaterfallToBudget(draftBudget);
+
+      const updatedBudgets: Budgets = {
+        ...safePrev,
+        [currentId]: { ...existingBudget, ...afterWaterfall }
+      };
+
+      setBudgets(updatedBudgets);
+      setDays(afterWaterfall.days || result.nextSourceDays);
+      saveToLocalStorage(updatedBudgets, currentId);
+      return result;
+    },
+    [
+      user,
+      isCurrentBookReadOnly,
+      activeBudgetId,
+      budgets,
+      days,
+      selectedCurrencies,
+      setBudgets,
+      setDays
+    ]
+  );
+
   return {
     handleClearAll,
     handleClearAllDays,
@@ -967,7 +1045,8 @@ export function useBudgetSettings() {
     clearDaysScope,
     handleClearStartBalances,
     handleBulkAddTransactionsToMonths,
-    handleForecastCopyToMonths
+    handleForecastCopyToMonths,
+    handleMoveTransactionsToMonth
   };
 }
 
