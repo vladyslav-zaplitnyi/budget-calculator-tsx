@@ -31,8 +31,13 @@ import type { MultiMonthBulkTransactionDraft } from '../utils/multiMonthBulkTran
 import {
   moveTransactionsToMonth,
   MoveTransactionsToMonthRequest,
-  MoveTransactionsToMonthResult
+  MoveTransactionsToMonthResult,
+  TransactionEditPatch
 } from '../utils/moveTransactions';
+import {
+  applyTransactionEditsAcrossMonths,
+  deleteTransactionsByIdsAcrossMonths
+} from '../utils/multiMonthTransactionEdits';
 
 export type ClearDaysScope = 'current-month' | 'all-months';
 
@@ -1011,6 +1016,129 @@ export function useBudgetSettings() {
     ]
   );
 
+  const persistAcrossMonthChanges = useCallback(
+    (
+      existingBudget: Budget,
+      currentId: string,
+      safePrev: Budgets,
+      nextMonthsByKey: Budget['monthsByKey'],
+      nextDays: typeof days
+    ) => {
+      const draftBudget: Budget = {
+        ...existingBudget,
+        days: nextDays,
+        monthsByKey: trimOldestMonthKeys(nextMonthsByKey)
+      };
+      const afterWaterfall = applyBalanceWaterfallToBudget(draftBudget);
+      const updatedBudgets: Budgets = {
+        ...safePrev,
+        [currentId]: { ...existingBudget, ...afterWaterfall }
+      };
+      setBudgets(updatedBudgets);
+      setDays(afterWaterfall.days || nextDays);
+      saveToLocalStorage(updatedBudgets, currentId);
+    },
+    [setBudgets, setDays]
+  );
+
+  const handleBulkEditTransactionsAcrossMonths = useCallback(
+    (patches: TransactionEditPatch[]) => {
+      if (!Array.isArray(patches) || patches.length === 0) return;
+
+      if (user && isCurrentBookReadOnly) {
+        setAlertMessage(translate('budgetBook.readOnlyActionBlocked'));
+        setAlertType('warning');
+        setShowAlertModal(true);
+        return;
+      }
+
+      const currentId = activeBudgetId || 'default';
+      const safePrev = budgets || {};
+      const existingBudget = safePrev[currentId];
+      if (!existingBudget) return;
+
+      const budgetDate = existingBudget.budgetDate || {
+        year: new Date().getFullYear(),
+        month: new Date().getMonth()
+      };
+      const activeMonthKey = monthKeyFromBudgetDate(budgetDate.year, budgetDate.month);
+      const result = applyTransactionEditsAcrossMonths({
+        monthsByKey: existingBudget.monthsByKey,
+        patches,
+        activeMonthKey,
+        activeDays: days,
+        selectedCurrencies
+      });
+      if (result.updatedCount === 0) return;
+
+      persistAcrossMonthChanges(
+        existingBudget,
+        currentId,
+        safePrev,
+        result.nextMonthsByKey,
+        result.nextActiveDays ?? days
+      );
+    },
+    [
+      user,
+      isCurrentBookReadOnly,
+      activeBudgetId,
+      budgets,
+      days,
+      selectedCurrencies,
+      persistAcrossMonthChanges
+    ]
+  );
+
+  const handleBulkDeleteTransactionsAcrossMonths = useCallback(
+    (transactionIds: string[]) => {
+      if (!Array.isArray(transactionIds) || transactionIds.length === 0) return;
+
+      if (user && isCurrentBookReadOnly) {
+        setAlertMessage(translate('budgetBook.readOnlyActionBlocked'));
+        setAlertType('warning');
+        setShowAlertModal(true);
+        return;
+      }
+
+      const currentId = activeBudgetId || 'default';
+      const safePrev = budgets || {};
+      const existingBudget = safePrev[currentId];
+      if (!existingBudget) return;
+
+      const budgetDate = existingBudget.budgetDate || {
+        year: new Date().getFullYear(),
+        month: new Date().getMonth()
+      };
+      const activeMonthKey = monthKeyFromBudgetDate(budgetDate.year, budgetDate.month);
+      const result = deleteTransactionsByIdsAcrossMonths({
+        monthsByKey: existingBudget.monthsByKey,
+        transactionIds,
+        activeMonthKey,
+        activeDays: days,
+        selectedCurrencies
+      });
+      if (result.deletedCount === 0) return;
+
+      persistAcrossMonthChanges(
+        existingBudget,
+        currentId,
+        safePrev,
+        result.nextMonthsByKey,
+        result.nextActiveDays ?? days
+      );
+    },
+    [
+      user,
+      isCurrentBookReadOnly,
+      activeBudgetId,
+      budgets,
+      days,
+      selectedCurrencies,
+      persistAcrossMonthChanges
+    ]
+  );
+
   return {
     handleClearAll,
     handleClearAllDays,
@@ -1046,7 +1174,9 @@ export function useBudgetSettings() {
     handleClearStartBalances,
     handleBulkAddTransactionsToMonths,
     handleForecastCopyToMonths,
-    handleMoveTransactionsToMonth
+    handleMoveTransactionsToMonth,
+    handleBulkEditTransactionsAcrossMonths,
+    handleBulkDeleteTransactionsAcrossMonths
   };
 }
 

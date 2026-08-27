@@ -52,6 +52,33 @@ export function useTransactionMoveSelection(enabled: boolean) {
     });
   }, []);
 
+  const addIds = useCallback((transactionIds: string[]) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      let changed = false;
+      transactionIds.forEach((id) => {
+        if (!id || next.has(id)) return;
+        next.add(id);
+        changed = true;
+      });
+      return changed ? next : prev;
+    });
+  }, []);
+
+  const removeIds = useCallback((transactionIds: string[]) => {
+    setSelectedIds((prev) => {
+      if (prev.size === 0) return prev;
+      const next = new Set(prev);
+      let changed = false;
+      transactionIds.forEach((id) => {
+        if (!next.has(id)) return;
+        next.delete(id);
+        changed = true;
+      });
+      return changed ? next : prev;
+    });
+  }, []);
+
   const clearSelection = useCallback(() => {
     setSelectedIds((prev) => (prev.size === 0 ? prev : new Set()));
   }, []);
@@ -172,6 +199,8 @@ export function useTransactionMoveSelection(enabled: boolean) {
     isSelected,
     toggleId,
     selectId,
+    addIds,
+    removeIds,
     clearSelection,
     bindItem,
     consumeSuppressedClick,

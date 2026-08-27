@@ -15,6 +15,10 @@ export interface DescriptionGroup {
   percentage: number;
 }
 
+export function descriptionGroupKey(description?: string | null): string {
+  return (description || '').trim().toLowerCase() || UNNAMED_DESCRIPTION_KEY;
+}
+
 function displayNameFromKey(key: string): string {
   if (key === UNNAMED_DESCRIPTION_KEY) return UNNAMED_DESCRIPTION_KEY;
   return key.charAt(0).toUpperCase() + key.slice(1);
@@ -34,7 +38,7 @@ export function buildExpenseDescriptionBreakdown(
 
   const map = new Map<string, { totalAmount: number; count: number }>();
   expenses.forEach((expense) => {
-    const key = (expense.description || '').trim().toLowerCase() || UNNAMED_DESCRIPTION_KEY;
+    const key = descriptionGroupKey(expense.description);
     const existing = map.get(key);
     if (existing) {
       existing.totalAmount += expense.convertedAmount;

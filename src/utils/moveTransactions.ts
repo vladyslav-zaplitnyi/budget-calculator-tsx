@@ -115,6 +115,9 @@ export const moveTransactionsToDay = (
 export interface CollectedTransaction {
   day: number;
   transaction: Transaction;
+  year?: number;
+  month?: number;
+  monthKey?: string;
 }
 
 export const collectTransactionsByIds = (

@@ -50,6 +50,8 @@ export function useBudgetHandlers() {
     handleBulkAddTransactionsToMonths: budgetSettings.handleBulkAddTransactionsToMonths,
     handleForecastCopyToMonths: budgetSettings.handleForecastCopyToMonths,
     handleMoveTransactionsToMonth: budgetSettings.handleMoveTransactionsToMonth,
+    handleBulkEditTransactionsAcrossMonths: budgetSettings.handleBulkEditTransactionsAcrossMonths,
+    handleBulkDeleteTransactionsAcrossMonths: budgetSettings.handleBulkDeleteTransactionsAcrossMonths,
     
     // Encryption
     handleEnableEncryptionClick: budgetSettings.handleEnableEncryptionClick,

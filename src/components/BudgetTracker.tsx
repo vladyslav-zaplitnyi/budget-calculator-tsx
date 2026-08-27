@@ -115,6 +115,8 @@ export default function BudgetTracker() {
     handleBulkAddTransactionsToMonths,
     handleForecastCopyToMonths,
     handleMoveTransactionsToMonth,
+    handleBulkEditTransactionsAcrossMonths,
+    handleBulkDeleteTransactionsAcrossMonths,
     handleExportToJsonFile,
     handleImportFromJsonFile,
     handleJsonFileSelected,
@@ -644,6 +646,11 @@ export default function BudgetTracker() {
                         selectedCurrencies={selectedCurrencies}
                         displayCurrency={displayCurrency}
                         exchangeRates={exchangeRates}
+                        activeMonthKey={activeMonthKey}
+                        activeDays={days}
+                        readOnly={isCurrentBookReadOnly}
+                        onEditTransactions={handleBulkEditTransactionsAcrossMonths}
+                        onDeleteTransactions={handleBulkDeleteTransactionsAcrossMonths}
                       />
                     </>
                   )}
