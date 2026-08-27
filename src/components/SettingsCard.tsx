@@ -39,6 +39,7 @@ interface SettingsCardProps {
   handleExchangeRateChange: (pairKey: string, type: string | undefined, rate: number) => void;
   handleStartBalanceChange: (currencyCode: string, value: string) => void;
   handleExportToJsonFile: () => void;
+  onExportPdf?: () => void;
   handleImportFromJsonFile: () => void;
   isLoading: boolean;
   fileInputRef: RefObject<HTMLInputElement | null>;
@@ -84,6 +85,7 @@ const SettingsCard: React.FC<SettingsCardProps> = ({
   handleExchangeRateChange,
   handleStartBalanceChange,
   handleExportToJsonFile,
+  onExportPdf,
   handleImportFromJsonFile,
   isLoading,
   fileInputRef,
@@ -878,6 +880,15 @@ const SettingsCard: React.FC<SettingsCardProps> = ({
                     : t('settings.localInteraction.import')}
                 </button>
               </div>
+              {onExportPdf && (
+                <button
+                  type="button"
+                  onClick={onExportPdf}
+                  className="w-full px-4 sm:px-6 py-2 sm:py-3 rounded-xl font-bold transition-all text-xs sm:text-sm bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-700 hover:to-fuchsia-700 text-white shadow-lg hover:shadow-xl active:scale-95"
+                >
+                  {t('settings.localInteraction.exportPdf')}
+                </button>
+              )}
               <div className="flex items-center gap-1.5">
                 <button
                   type="button"

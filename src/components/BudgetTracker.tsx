@@ -20,6 +20,7 @@ import AlertModal from './AlertModal';
 import PromptModal from './PromptModal';
 import ConfirmModal from './ConfirmModal';
 import ImportModal from './ImportModal';
+import ExportPdfReportModal from './ExportPdfReportModal';
 import { useBudgetContext } from '../contexts/BudgetContext';
 import { useBudgetHandlers } from '../hooks/useBudgetHandlers';
 import { calculateTotals, calculateFinalBalances, convertCurrency } from '../utils/calculations';
@@ -237,6 +238,7 @@ export default function BudgetTracker() {
     month: number;
     forward: boolean;
   } | null>(null);
+  const [showPdfExportModal, setShowPdfExportModal] = useState(false);
 
   const handleSelectMonthFromOverview = useCallback(
     (year: number, month: number) => {
@@ -512,6 +514,7 @@ export default function BudgetTracker() {
                     handleExchangeRateChange={handleExchangeRateChange}
                     handleStartBalanceChange={handleStartBalanceChange}
                     handleExportToJsonFile={handleExportToJsonFile}
+                    onExportPdf={() => setShowPdfExportModal(true)}
                     handleImportFromJsonFile={handleImportFromJsonFile}
                     isLoading={isLoading}
                     fileInputRef={fileInputRef}
@@ -659,6 +662,24 @@ export default function BudgetTracker() {
 
               {activeTab === 'insights' && (
                 <>
+                  <div className="bg-white/90 backdrop-blur rounded-2xl shadow-xl p-4 sm:p-5 mb-4 border border-violet-100 flex flex-col sm:flex-row sm:items-center gap-3">
+                    <div className="min-w-0 flex-1">
+                      <h2 className="text-base sm:text-lg font-bold text-gray-800 font-display">
+                        {translate('pdfExport.insightsTitle')}
+                      </h2>
+                      <p className="text-xs sm:text-sm text-gray-500 mt-1">
+                        {translate('pdfExport.insightsHint')}
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setShowPdfExportModal(true)}
+                      className="w-full sm:w-auto flex-shrink-0 px-4 sm:px-5 py-2.5 sm:py-3 rounded-xl font-bold text-sm text-white shadow-lg transition-all bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-700 hover:to-fuchsia-700 active:scale-95"
+                    >
+                      {translate('pdfExport.button')}
+                    </button>
+                  </div>
+
                   <div data-tour="statistics">
                     <Statistics
                       isUk={language === 'uk'}
@@ -719,7 +740,18 @@ export default function BudgetTracker() {
         buttonText={translate('common.ok')}
       />
       
-      {/* Підтвердження обрізання rolling months при переході з 12-місячного огляду */}
+      <ExportPdfReportModal
+        isOpen={showPdfExportModal}
+        onClose={() => setShowPdfExportModal(false)}
+        monthsByKey={activeBudgetData?.monthsByKey}
+        activeMonthKey={activeMonthKey}
+        activeDays={days}
+        activeStartBalances={effectiveStartBalances}
+        selectedCurrencies={selectedCurrencies}
+        displayCurrency={displayCurrency}
+        exchangeRates={exchangeRates}
+        budgetName={activeBudgetData?.name || translate('budget.defaultBudgetName')}
+      />
       <ConfirmModal
         isOpen={overviewMonthTrimConfirm !== null}
         onClose={handleOverviewMonthTrimCancel}
