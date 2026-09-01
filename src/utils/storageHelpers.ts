@@ -11,8 +11,8 @@ import {
   ReadOnlyBudgetBookError,
   DEFAULT_BUDGET_BOOK_ID
 } from '../services/budgetBooksFirestore';
+import { applyRollingBootToAllBudgets } from './balanceWaterfall';
 import {
-  applyRollingBootToAllBudgets,
   migrateBudgetToMonthsByKey,
   trimMonthsOnBudget
 } from './rollingMonthsBudget';

@@ -1,4 +1,4 @@
-import type { Budget, Budgets, Day, ExchangeRates, MonthSlice } from '../types';
+import type { Budget, Day, ExchangeRates, MonthSlice } from '../types';
 import { calculateFinalBalances, calculateTotals, convertCurrency } from './calculations';
 import { DEFAULT_CURRENCIES } from './currencies';
 import { createEmptyMonthDays, normalizeDaysArray } from './dayHelpers';
@@ -10,6 +10,58 @@ export type { MonthSlice };
 
 export const monthKeyFromBudgetDate = (year: number, month: number): string =>
   formatMonthKey(year, month);
+
+/** Lexicographic YYYY-MM order matches chronological order. */
+export function getSortedMonthKeys(monthsByKey: Record<string, MonthSlice> | undefined): string[] {
+  if (!monthsByKey || typeof monthsByKey !== 'object') return [];
+  return Object.keys(monthsByKey).sort();
+}
+
+/** First stored month in chronological order — the initial-budget (seed) month. */
+export function getSeedMonthKey(monthsByKey: Record<string, MonthSlice> | undefined): string | null {
+  const keys = getSortedMonthKeys(monthsByKey);
+  return keys[0] ?? null;
+}
+
+/**
+ * Opening balances to flush when leaving a month:
+ * seed on the first stored month, otherwise that month's own stored starts.
+ */
+export function openingBalancesToPersist(
+  monthKey: string,
+  monthsByKey: Record<string, MonthSlice> | undefined,
+  seedStartBalances: Record<string, number | null>
+): Record<string, number | null> {
+  const seedMonthKey = getSeedMonthKey(monthsByKey);
+  if (seedMonthKey == null || monthKey === seedMonthKey) {
+    return { ...seedStartBalances };
+  }
+  return { ...(monthsByKey?.[monthKey]?.startBalances || {}) };
+}
+
+/**
+ * Trims the rolling window. If the oldest (seed) month is dropped, the new
+ * first month's opening balances become the seed so later months keep carry-over.
+ */
+export function trimMonthsReanchorSeed(
+  monthsByKey: Record<string, MonthSlice> | undefined,
+  seedStartBalances: Record<string, number | null>,
+  max: number = MAX_STORED_MONTHS,
+  dropFromNewest: boolean = false
+): { monthsByKey: Record<string, MonthSlice>; startBalances: Record<string, number | null> } {
+  const oldFirst = getSeedMonthKey(monthsByKey);
+  const { trimmed, droppedKeys } = trimRollingMonthsToMax(monthsByKey, max, dropFromNewest);
+  const newFirst = getSeedMonthKey(trimmed);
+  const seedDropped = Boolean(
+    oldFirst && newFirst && oldFirst !== newFirst && droppedKeys.includes(oldFirst)
+  );
+  return {
+    monthsByKey: trimmed,
+    startBalances: seedDropped
+      ? { ...(trimmed[newFirst!]?.startBalances || seedStartBalances) }
+      : { ...seedStartBalances }
+  };
+}
 
 export const getCurrentCalendarBudgetDate = (): { year: number; month: number } => {
   const n = new Date();
@@ -110,12 +162,18 @@ export function migrateBudgetToMonthsByKey(budget: Budget): Budget {
 
 export function trimMonthsOnBudget(budget: Budget): Budget {
   if (!budget.monthsByKey) return budget;
-  return { ...budget, monthsByKey: trimOldestMonthKeys(budget.monthsByKey) };
+  const { monthsByKey, startBalances } = trimMonthsReanchorSeed(
+    budget.monthsByKey,
+    budget.startBalances || {}
+  );
+  return { ...budget, monthsByKey, startBalances };
 }
 
 /**
  * On cold load: always show the current calendar month; persist the previously
  * visible month slice under its key before switching.
+ * The initial budget (seed) stays on the first stored month — it is not copied
+ * onto the new calendar month.
  */
 export function applyBootToCurrentCalendarMonth(budget: Budget): Budget {
   let b = migrateBudgetToMonthsByKey(budget);
@@ -123,20 +181,18 @@ export function applyBootToCurrentCalendarMonth(budget: Budget): Budget {
   const nowKey = monthKeyFromBudgetDate(now.year, now.month);
   const bd = b.budgetDate || now;
   const savedKey = monthKeyFromBudgetDate(bd.year, bd.month);
+  const seed = { ...(b.startBalances || {}) };
 
   if (savedKey === nowKey) {
     return trimMonthsOnBudget(b);
   }
 
   let monthsByKey = { ...(b.monthsByKey || {}) };
+  const seedMonthKey = getSeedMonthKey(monthsByKey) ?? savedKey;
   monthsByKey[savedKey] = {
     days: b.days || [],
-    startBalances: {
-      ...(savedKey === nowKey
-        ? b.startBalances || {}
-        : monthsByKey[savedKey]?.startBalances || {})
-    },
-    ...(savedKey !== nowKey && monthsByKey[savedKey]?.startBalancesManual
+    startBalances: openingBalancesToPersist(savedKey, monthsByKey, seed),
+    ...(savedKey !== seedMonthKey && monthsByKey[savedKey]?.startBalancesManual
       ? { startBalancesManual: true as const }
       : {})
   };
@@ -153,31 +209,15 @@ export function applyBootToCurrentCalendarMonth(budget: Budget): Budget {
         }
       : buildEmptyMonthSlice(now.year, now.month, b.selectedCurrencies || DEFAULT_CURRENCIES);
 
-  monthsByKey = trimOldestMonthKeys(monthsByKey);
-
-  // Current calendar month becomes the seed shown in initial-budget inputs.
-  const nextSeed =
-    existingNow && existingNow.startBalances
-      ? { ...existingNow.startBalances }
-      : { ...(b.startBalances || {}) };
+  monthsByKey[nowKey] = slice;
 
   return trimMonthsOnBudget({
     ...b,
     budgetDate: now,
     days: slice.days,
-    startBalances: nextSeed,
+    startBalances: seed,
     monthsByKey
   });
-}
-
-export function applyRollingBootToAllBudgets(budgets: Budgets, activeBudgetId: string): Budgets {
-  const next: Budgets = { ...budgets };
-  for (const id of Object.keys(next)) {
-    const b = next[id];
-    if (!b) continue;
-    next[id] = id === (activeBudgetId || 'default') ? applyBootToCurrentCalendarMonth(b) : migrateBudgetToMonthsByKey(b);
-  }
-  return next;
 }
 
 /** Rolling 12 calendar months ending at (endYear, endMonth) inclusive. */

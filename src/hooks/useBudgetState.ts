@@ -5,9 +5,10 @@ import { DEFAULT_CURRENCIES, validateSelectedCurrencies, BASE_CURRENCY } from '.
 import {
   monthKeyFromBudgetDate,
   trimOldestMonthKeys,
-  trimRollingMonthsToMax,
+  trimMonthsReanchorSeed,
   buildEmptyMonthSlice,
-  getCurrentCalendarBudgetDate
+  getCurrentCalendarBudgetDate,
+  openingBalancesToPersist
 } from '../utils/rollingMonthsBudget';
 import { applyBalanceWaterfallToBudget, buildMonthSlice } from '../utils/balanceWaterfall';
 import type { Budget } from '../types';
@@ -387,12 +388,11 @@ export function useBudgetState(): BudgetStateInterface {
           });
         }
 
-        const anchor = getCurrentCalendarBudgetDate();
-        const anchorKey = monthKeyFromBudgetDate(anchor.year, anchor.month);
-        const oldStarts =
-          oldKey === anchorKey
-            ? { ...(existing.startBalances || {}) }
-            : { ...(existing.monthsByKey?.[oldKey]?.startBalances || {}) };
+        const oldStarts = openingBalancesToPersist(
+          oldKey,
+          existing.monthsByKey,
+          existing.startBalances || {}
+        );
 
         const monthsByKey = trimOldestMonthKeys({
           ...(existing.monthsByKey || {}),
@@ -447,12 +447,11 @@ export function useBudgetState(): BudgetStateInterface {
     let monthsByKey = trimOldestMonthKeys({ ...(existingBudget.monthsByKey || {}) });
     const uiDays =
       snap.days && snap.days.length > 0 ? snap.days : existingBudget.days || [];
-    const anchor = getCurrentCalendarBudgetDate();
-    const anchorKey = monthKeyFromBudgetDate(anchor.year, anchor.month);
-    const oldStarts =
-      oldKey === anchorKey
-        ? { ...(existingBudget.startBalances || {}) }
-        : { ...(monthsByKey[oldKey]?.startBalances || {}) };
+    const oldStarts = openingBalancesToPersist(
+      oldKey,
+      monthsByKey,
+      existingBudget.startBalances || {}
+    );
     monthsByKey = trimOldestMonthKeys({
       ...monthsByKey,
       [oldKey]: buildMonthSlice(uiDays, oldStarts)
@@ -481,14 +480,20 @@ export function useBudgetState(): BudgetStateInterface {
       [newKey]: nextSlice
     };
     const forwardJump = newKey > oldKey;
-    monthsByKey = trimRollingMonthsToMax(mergedForTrim, 12, !forwardJump).trimmed;
+    const trimmed = trimMonthsReanchorSeed(
+      mergedForTrim,
+      existingBudget.startBalances || {},
+      12,
+      !forwardJump
+    );
+    monthsByKey = trimmed.monthsByKey;
 
     const draftBudget: Budget = {
       ...existingBudget,
       budgetDate: date,
       days: nextSlice!.days,
       // Keep the seed initial budget in inputs; do not swap to the viewed month opening.
-      startBalances: { ...(existingBudget.startBalances || {}) },
+      startBalances: trimmed.startBalances,
       monthsByKey,
       selectedCurrencies: existingBudget.selectedCurrencies || DEFAULT_CURRENCIES
     };

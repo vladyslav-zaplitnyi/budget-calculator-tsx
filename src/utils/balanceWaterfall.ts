@@ -1,18 +1,18 @@
-import type { Budget, Day, MonthSlice } from '../types';
+import type { Budget, Budgets, Day, MonthSlice } from '../types';
 import { calculateFinalBalances, calculateTotals } from './calculations';
 import { DEFAULT_CURRENCIES } from './currencies';
 import { roundToDecimals } from './rounding';
 import {
+  applyBootToCurrentCalendarMonth,
   buildEmptyMonthSlice,
-  getCurrentCalendarBudgetDate,
+  getSortedMonthKeys,
+  migrateBudgetToMonthsByKey,
   monthKeyFromBudgetDate,
+  openingBalancesToPersist,
   trimRollingMonthsToMax
 } from './rollingMonthsBudget';
 
-export function getSortedMonthKeys(monthsByKey: Record<string, MonthSlice> | undefined): string[] {
-  if (!monthsByKey || typeof monthsByKey !== 'object') return [];
-  return Object.keys(monthsByKey).sort();
-}
+export { getSeedMonthKey, getSortedMonthKeys, openingBalancesToPersist } from './rollingMonthsBudget';
 
 function roundStartBalances(
   balances: Record<string, number | null>
@@ -40,14 +40,14 @@ export function buildMonthSlice(
   return slice;
 }
 
-/** Top-level `Budget.startBalances` — the user-entered seed for the current calendar month. */
+/** Top-level `Budget.startBalances` — the user-entered seed for the first stored month. */
 export function getSeedStartBalances(budget: Budget): Record<string, number | null> {
   return roundStartBalances({ ...(budget.startBalances || {}) });
 }
 
 /**
  * Effective opening balances for a stored month (after waterfall):
- * seed on the calendar-month anchor, carry-over on later months.
+ * seed on the first stored month, carry-over on later months.
  */
 export function getEffectiveMonthStartBalances(
   monthsByKey: Record<string, MonthSlice> | undefined,
@@ -61,12 +61,26 @@ export function getEffectiveMonthStartBalances(
   return roundStartBalances({ ...(seedStartBalances || {}) });
 }
 
+function derivedStartsFromPreviousMonth(
+  prev: MonthSlice,
+  codes: string[]
+): Record<string, number | null> {
+  const totals = calculateTotals(prev.days || [], codes);
+  const closing = calculateFinalBalances(prev.days || [], codes, prev.startBalances || {}, totals);
+  const derivedStart: Record<string, number | null> = {};
+  codes.forEach((c) => {
+    const v = closing[`finalBalance${c}`];
+    derivedStart[c] =
+      v !== undefined && v !== null && isFinite(v) ? roundToDecimals(v, 2) : null;
+  });
+  return derivedStart;
+}
+
 /**
- * Chains starting balances from the **current calendar month** forward:
+ * Chains starting balances from the **first stored month** forward:
  * - Top-level `startBalances` is the seed and is never replaced by a viewed month.
- * - Anchor month slice starts = seed.
+ * - The earliest existing month (YYYY-MM order) is the seed month.
  * - Each later month starts at the previous month's closing balance.
- * - Months before the calendar month keep their stored starts (historical).
  * - Only `days` are mirrored from the active `budgetDate` slice.
  */
 export function applyBalanceWaterfallToBudget(budget: Budget): Budget {
@@ -86,52 +100,22 @@ export function applyBalanceWaterfallToBudget(budget: Budget): Budget {
   const seed = getSeedStartBalances(budget);
   const keys = getSortedMonthKeys(monthsByKey);
   const nextMonths: Record<string, MonthSlice> = { ...monthsByKey };
-  const { year, month } = getCurrentCalendarBudgetDate();
-  const anchorKey = monthKeyFromBudgetDate(year, month);
-  const anchorIndex = keys.indexOf(anchorKey);
+  const anchorKey = keys[0];
 
-  if (anchorIndex === -1) {
-    for (let i = 0; i < keys.length; i++) {
-      const key = keys[i];
-      const slice = nextMonths[key];
-      if (!slice) continue;
-      nextMonths[key] = buildMonthSlice(slice.days, { ...slice.startBalances });
-    }
-  } else {
-    for (let i = 0; i < anchorIndex; i++) {
-      const key = keys[i];
-      const slice = nextMonths[key];
-      if (!slice) continue;
-      nextMonths[key] = buildMonthSlice(slice.days, { ...slice.startBalances });
-    }
+  const anchorSlice = nextMonths[anchorKey];
+  if (anchorSlice) {
+    nextMonths[anchorKey] = buildMonthSlice(anchorSlice.days, { ...seed });
+  }
 
-    const anchorSlice = nextMonths[anchorKey];
-    if (anchorSlice) {
-      nextMonths[anchorKey] = buildMonthSlice(anchorSlice.days, { ...seed });
-    }
+  for (let i = 1; i < keys.length; i++) {
+    const key = keys[i];
+    const slice = nextMonths[key];
+    if (!slice) continue;
 
-    for (let i = anchorIndex + 1; i < keys.length; i++) {
-      const key = keys[i];
-      const slice = nextMonths[key];
-      if (!slice) continue;
+    const prev = nextMonths[keys[i - 1]];
+    if (!prev) continue;
 
-      const prevKey = keys[i - 1];
-      const prev = nextMonths[prevKey];
-      if (!prev) continue;
-
-      const totals = calculateTotals(prev.days || [], codes);
-      const closing = calculateFinalBalances(prev.days || [], codes, prev.startBalances || {}, totals);
-      const derivedStart: Record<string, number | null> = {};
-      codes.forEach((c) => {
-        const v = closing[`finalBalance${c}`];
-        derivedStart[c] =
-          v !== undefined && v !== null && isFinite(v) ? roundToDecimals(v, 2) : null;
-      });
-
-      nextMonths[key] = buildMonthSlice(slice.days, {
-        ...derivedStart
-      });
-    }
+    nextMonths[key] = buildMonthSlice(slice.days, derivedStartsFromPreviousMonth(prev, codes));
   }
 
   let updated: Budget = {
@@ -181,12 +165,7 @@ export function simulateMonthsAfterNavigation(
   }
 
   const merged: Record<string, MonthSlice> = { ...(monthsByKey || {}) };
-  const { year, month } = getCurrentCalendarBudgetDate();
-  const anchorKey = monthKeyFromBudgetDate(year, month);
-  const oldStarts =
-    oldKey === anchorKey
-      ? { ...uiStartBalances }
-      : { ...(merged[oldKey]?.startBalances ?? uiStartBalances) };
+  const oldStarts = openingBalancesToPersist(oldKey, merged, uiStartBalances);
   merged[oldKey] = buildMonthSlice(uiDays, oldStarts);
 
   if (!merged[newKey]) {
@@ -205,4 +184,19 @@ export function simulateMonthsAfterNavigation(
     forwardJump,
     droppedKeys
   };
+}
+
+/** Cold load: switch the active book to the current calendar month, then waterfall from the first stored month. */
+export function applyRollingBootToAllBudgets(budgets: Budgets, activeBudgetId: string): Budgets {
+  const next: Budgets = { ...budgets };
+  for (const id of Object.keys(next)) {
+    const b = next[id];
+    if (!b) continue;
+    const prepared =
+      id === (activeBudgetId || 'default')
+        ? applyBootToCurrentCalendarMonth(b)
+        : migrateBudgetToMonthsByKey(b);
+    next[id] = applyBalanceWaterfallToBudget(prepared);
+  }
+  return next;
 }

@@ -83,7 +83,8 @@ export interface Budget {
   plannerExpandedMonth?: string | null;
   /**
    * Rolling window (max 12) of month files keyed by `YYYY-MM`.
-   * The active calendar month also mirrors `days` / `startBalances` on this object.
+   * The viewed month mirrors `days` on this object; `startBalances` here is the
+   * seed for the first stored month, not necessarily the viewed month.
    */
   monthsByKey?: Record<string, MonthSlice>;
 }

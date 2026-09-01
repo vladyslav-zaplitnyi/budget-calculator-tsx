@@ -148,7 +148,9 @@ const SettingsCard: React.FC<SettingsCardProps> = ({
     const balances: Record<string, number | null> = {};
     let hasAny = false;
     selectedCurrencies.forEach((code) => {
-      const value = sliceStarts?.[code] ?? seedStarts[code] ?? null;
+      const value = sliceStarts
+        ? (sliceStarts[code] ?? null)
+        : (seedStarts[code] ?? null);
       balances[code] = value;
       if (value !== null && value !== undefined) hasAny = true;
     });

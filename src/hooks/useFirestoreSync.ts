@@ -25,7 +25,7 @@ import {
   DEFAULT_BUDGET_BOOK_ID,
   MAX_USER_BUDGET_BOOKS
 } from '../services/budgetBooksFirestore';
-import { applyRollingBootToAllBudgets } from '../utils/rollingMonthsBudget';
+import { applyRollingBootToAllBudgets } from '../utils/balanceWaterfall';
 
 /**
  * Hook для завантаження та синхронізації даних з Firestore

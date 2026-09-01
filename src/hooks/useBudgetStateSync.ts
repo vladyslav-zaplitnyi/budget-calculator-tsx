@@ -6,7 +6,9 @@ import { translate } from '../i18n/config';
 import {
   monthKeyFromBudgetDate,
   trimOldestMonthKeys,
-  getCurrentCalendarBudgetDate
+  getCurrentCalendarBudgetDate,
+  getSeedMonthKey,
+  openingBalancesToPersist
 } from '../utils/rollingMonthsBudget';
 import { applyBalanceWaterfallToBudget, buildMonthSlice } from '../utils/balanceWaterfall';
 
@@ -123,19 +125,16 @@ export function useBudgetStateSync(
 
       const bd = existingBudget.budgetDate || getCurrentCalendarBudgetDate();
       const viewedKey = monthKeyFromBudgetDate(bd.year, bd.month);
-      const anchor = getCurrentCalendarBudgetDate();
-      const anchorKey = monthKeyFromBudgetDate(anchor.year, anchor.month);
+      const seedMonthKey = getSeedMonthKey(existingBudget.monthsByKey) ?? viewedKey;
 
       let monthsByKey = { ...(existingBudget.monthsByKey || {}) };
       monthsByKey[viewedKey] = buildMonthSlice(
         existingBudget.days || [],
-        viewedKey === anchorKey
-          ? updatedStartBalances
-          : { ...(monthsByKey[viewedKey]?.startBalances || {}) }
+        openingBalancesToPersist(viewedKey, monthsByKey, updatedStartBalances)
       );
-      if (viewedKey !== anchorKey && monthsByKey[anchorKey]) {
-        monthsByKey[anchorKey] = buildMonthSlice(
-          monthsByKey[anchorKey].days || [],
+      if (viewedKey !== seedMonthKey && monthsByKey[seedMonthKey]) {
+        monthsByKey[seedMonthKey] = buildMonthSlice(
+          monthsByKey[seedMonthKey].days || [],
           updatedStartBalances
         );
       }
@@ -204,15 +203,15 @@ export function useBudgetStateSync(
 
       const bd = existingBudget.budgetDate || getCurrentCalendarBudgetDate();
       const viewedKey = monthKeyFromBudgetDate(bd.year, bd.month);
-      const anchor = getCurrentCalendarBudgetDate();
-      const anchorKey = monthKeyFromBudgetDate(anchor.year, anchor.month);
       const monthsByKey = trimOldestMonthKeys({
         ...(existingBudget.monthsByKey || {}),
         [viewedKey]: buildMonthSlice(
           existingBudget.days || [],
-          viewedKey === anchorKey
-            ? { ...(existingBudget.startBalances || {}) }
-            : { ...(existingBudget.monthsByKey?.[viewedKey]?.startBalances || {}) }
+          openingBalancesToPersist(
+            viewedKey,
+            existingBudget.monthsByKey,
+            existingBudget.startBalances || {}
+          )
         )
       });
       
@@ -267,15 +266,15 @@ export function useBudgetStateSync(
 
       const bd = existingBudget.budgetDate || getCurrentCalendarBudgetDate();
       const viewedKey = monthKeyFromBudgetDate(bd.year, bd.month);
-      const anchor = getCurrentCalendarBudgetDate();
-      const anchorKey = monthKeyFromBudgetDate(anchor.year, anchor.month);
       const monthsByKey = trimOldestMonthKeys({
         ...(existingBudget.monthsByKey || {}),
         [viewedKey]: buildMonthSlice(
           days || [],
-          viewedKey === anchorKey
-            ? { ...(existingBudget.startBalances || {}) }
-            : { ...(existingBudget.monthsByKey?.[viewedKey]?.startBalances || {}) }
+          openingBalancesToPersist(
+            viewedKey,
+            existingBudget.monthsByKey,
+            existingBudget.startBalances || {}
+          )
         )
       });
 
@@ -335,15 +334,15 @@ export function useBudgetStateSync(
 
       const bd = existingBudget.budgetDate || getCurrentCalendarBudgetDate();
       const viewedKey = monthKeyFromBudgetDate(bd.year, bd.month);
-      const anchor = getCurrentCalendarBudgetDate();
-      const anchorKey = monthKeyFromBudgetDate(anchor.year, anchor.month);
       const monthsByKey = trimOldestMonthKeys({
         ...(existingBudget.monthsByKey || {}),
         [viewedKey]: buildMonthSlice(
           existingBudget.days || [],
-          viewedKey === anchorKey
-            ? { ...(existingBudget.startBalances || {}) }
-            : { ...(existingBudget.monthsByKey?.[viewedKey]?.startBalances || {}) }
+          openingBalancesToPersist(
+            viewedKey,
+            existingBudget.monthsByKey,
+            existingBudget.startBalances || {}
+          )
         )
       });
       

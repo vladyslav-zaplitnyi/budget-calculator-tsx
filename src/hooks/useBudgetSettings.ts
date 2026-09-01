@@ -10,9 +10,10 @@ import { translate } from '../i18n/config';
 import {
   monthKeyFromBudgetDate,
   trimOldestMonthKeys,
-  buildEmptyMonthSlice,
+  trimMonthsReanchorSeed,
   getDefaultOverviewWindow,
-  getCurrentCalendarBudgetDate
+  getSeedMonthKey,
+  openingBalancesToPersist
 } from '../utils/rollingMonthsBudget';
 import { parseMonthKey } from '../utils/monthlyPlan';
 import { applyBalanceWaterfallToBudget, buildMonthSlice } from '../utils/balanceWaterfall';
@@ -221,7 +222,11 @@ export function useBudgetSettings() {
           ...monthsByKey,
           [mk]: {
             days: emptyDays,
-            startBalances: { ...(existingBudget.startBalances || {}) }
+            startBalances: openingBalancesToPersist(
+              mk,
+              monthsByKey,
+              existingBudget.startBalances || {}
+            )
           }
         };
       }
@@ -277,8 +282,7 @@ export function useBudgetSettings() {
       month: new Date().getMonth()
     };
     const viewedKey = monthKeyFromBudgetDate(budgetDate.year, budgetDate.month);
-    const anchor = getCurrentCalendarBudgetDate();
-    const anchorKey = monthKeyFromBudgetDate(anchor.year, anchor.month);
+    const seedMonthKey = getSeedMonthKey(existingBudget.monthsByKey) ?? viewedKey;
 
     const clearedStartBalances: Record<string, number | null> = {};
     (existingBudget.selectedCurrencies || selectedCurrencies || DEFAULT_CURRENCIES).forEach(
@@ -288,17 +292,13 @@ export function useBudgetSettings() {
     );
 
     let monthsByKey = { ...(existingBudget.monthsByKey || {}) };
-    // Keep viewed month days; write cleared seed onto the calendar-month anchor.
     monthsByKey[viewedKey] = buildMonthSlice(
       existingBudget.days || [],
-      viewedKey === anchorKey
-        ? clearedStartBalances
-        : { ...(monthsByKey[viewedKey]?.startBalances || {}) }
+      openingBalancesToPersist(viewedKey, monthsByKey, clearedStartBalances)
     );
-    if (viewedKey !== anchorKey) {
-      const anchorSlice = monthsByKey[anchorKey];
-      monthsByKey[anchorKey] = buildMonthSlice(
-        anchorSlice?.days || buildEmptyMonthSlice(anchor.year, anchor.month, selectedCurrencies || DEFAULT_CURRENCIES).days,
+    if (viewedKey !== seedMonthKey && monthsByKey[seedMonthKey]) {
+      monthsByKey[seedMonthKey] = buildMonthSlice(
+        monthsByKey[seedMonthKey].days || [],
         clearedStartBalances
       );
     }
@@ -363,11 +363,8 @@ export function useBudgetSettings() {
 
     const oldKey = monthKeyFromBudgetDate(currentBudgetDate.year, currentBudgetDate.month);
     let monthsByKey = trimOldestMonthKeys({ ...(existingBudget.monthsByKey || {}) });
-    const anchor = getCurrentCalendarBudgetDate();
-    const anchorKey = monthKeyFromBudgetDate(anchor.year, anchor.month);
     const seed = { ...(existingBudget.startBalances || {}) };
-    const oldStarts =
-      oldKey === anchorKey ? seed : { ...(monthsByKey[oldKey]?.startBalances || seed) };
+    const oldStarts = openingBalancesToPersist(oldKey, monthsByKey, seed);
     monthsByKey[oldKey] = buildMonthSlice(days || [], oldStarts);
 
     // Обчислюємо наступний місяць
@@ -393,14 +390,15 @@ export function useBudgetSettings() {
       {}
     );
 
-    monthsByKey = trimOldestMonthKeys({
+    const trimmed = trimMonthsReanchorSeed({
       ...monthsByKey,
       [newKey]: nextSlice
-    });
+    }, seed);
+    monthsByKey = trimmed.monthsByKey;
 
     const updatedBudgetRaw = {
       ...existingBudget,
-      startBalances: seed,
+      startBalances: trimmed.startBalances,
       days: nextSlice.days,
       budgetDate: newBudgetDate,
       monthsByKey
@@ -567,21 +565,17 @@ export function useBudgetSettings() {
         month: new Date().getMonth()
       };
       const viewedKey = monthKeyFromBudgetDate(bd.year, bd.month);
-      const anchor = getCurrentCalendarBudgetDate();
-      const anchorKey = monthKeyFromBudgetDate(anchor.year, anchor.month);
+      const seedMonthKey = getSeedMonthKey(existingBudget.monthsByKey) ?? viewedKey;
       const codes = existingBudget.selectedCurrencies || selectedCurrencies || DEFAULT_CURRENCIES;
 
       let monthsByKey = { ...(existingBudget.monthsByKey || {}) };
       monthsByKey[viewedKey] = buildMonthSlice(
         existingBudget.days || [],
-        viewedKey === anchorKey
-          ? startBalances
-          : { ...(monthsByKey[viewedKey]?.startBalances || {}) }
+        openingBalancesToPersist(viewedKey, monthsByKey, startBalances)
       );
-      if (viewedKey !== anchorKey) {
-        const anchorSlice = monthsByKey[anchorKey];
-        monthsByKey[anchorKey] = buildMonthSlice(
-          anchorSlice?.days || buildEmptyMonthSlice(anchor.year, anchor.month, codes).days,
+      if (viewedKey !== seedMonthKey && monthsByKey[seedMonthKey]) {
+        monthsByKey[seedMonthKey] = buildMonthSlice(
+          monthsByKey[seedMonthKey].days || [],
           startBalances
         );
       }
