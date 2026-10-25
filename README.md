@@ -1,46 +1,36 @@
-# Getting Started with Create React App
+# 💰 Multi-Currency Personal Budget Tracker
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+A responsive, multi-currency personal finance web application engineered with **React**, **TypeScript**, and **Tailwind CSS**, integrated with **Firebase** services for secure cloud state and local storage fallback.
 
-## Available Scripts
+---
 
-In the project directory, you can run:
+## 🚀 Key Features
 
-### `npm start`
+- **Multi-Currency Planning:** Real-time multi-currency support tailored for cross-border financial tracking.
+- **Planner Engine:** Dynamic 31-day and 12-month budget projection models.
+- **Data Persistence:** Hybrid architecture combining Firestore cloud synchronization with offline-ready local storage.
+- **Export & Reporting:** Client-side generation of financial summaries and PDF export capabilities.
+- **Localization (i18n):** Multi-language interface supporting Ukrainian (УКР) and English (EN).
+- **Security & Data Integrity:** Configured Firestore security rules and compound indexes for performant querying.
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in the browser.
+---
 
-The page will reload if you make edits.\
-You will also see any lint errors in the console.
+## 🛠️ Tech Stack
 
-### `npm test`
+- **Frontend:** React, TypeScript, Tailwind CSS, PostCSS
+- **Backend / BaaS:** Firebase (Firestore, Firebase Hosting / Rules)
+- **Tooling:** npm, Git, ESLint
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+---
 
-### `npm run build`
+## ⚙️ Getting Started
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+### Prerequisites
+- Node.js (v18+ recommended)
+- npm or yarn
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
-
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
-
-### `npm run eject`
-
-**Note: this is a one-way operation. Once you `eject`, you can’t go back!**
-
-If you aren’t satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
-
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you’re on your own.
-
-You don’t have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn’t feel obligated to use this feature. However we understand that this tool wouldn’t be useful if you couldn’t customize it when you are ready for it.
-
-## Learn More
-
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
-
-To learn React, check out the [React documentation](https://reactjs.org/).
+### Installation
+1. Clone the repository:
+   ```bash
+   git clone [https://github.com/vladyslav-zaplitnyi/budget-calculator-tsx.git](https://github.com/vladyslav-zaplitnyi/budget-calculator-tsx.git)
+   cd budget-calculator-tsx
