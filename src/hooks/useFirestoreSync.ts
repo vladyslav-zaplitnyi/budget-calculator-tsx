@@ -26,6 +26,10 @@ import {
   MAX_USER_BUDGET_BOOKS,
   subscribeBudgetBookDocument
 } from '../services/budgetBooksFirestore';
+import {
+  hasLocalChangesDirty,
+  subscribeLocalChangesFlag
+} from '../utils/localChangesFlag';
 import { applyRollingBootToAllBudgets } from '../utils/balanceWaterfall';
 
 /**
@@ -844,7 +848,7 @@ export function useFirestoreSync(
       isMounted = false;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user, authLoading]);
+  }, [user?.uid, authLoading]);
 
   // 🔄 REALTIME: підписка на активну книгу бюджету.
   // Зміни з іншого пристрою/вкладки застосовуються без перезавантаження сторінки.
@@ -852,17 +856,38 @@ export function useFirestoreSync(
   const processFirestoreDataRef = useRef(processFirestoreData);
   processFirestoreDataRef.current = processFirestoreData;
 
+  // 🔒 DIRTY GUARD: true, поки локальні зміни не підтверджені Firestore.
+  // Прапорець ставить useSyncDebounce (utils/localChangesFlag), бо саме там
+  // створюється запис і завершується його проміс.
+  const isDirtyRef = useRef(hasLocalChangesDirty());
+  useEffect(
+    () =>
+      subscribeLocalChangesFlag((dirty) => {
+        isDirtyRef.current = dirty;
+      }),
+    []
+  );
+
   useEffect(() => {
     if (!user || authLoading || !isDataLoaded) return;
 
     const bookId = currentBudgetBookId || DEFAULT_BUDGET_BOOK_ID;
     console.log('🔄 Realtime-підписка на книгу бюджету:', bookId);
 
-    return subscribeBudgetBookDocument(user, bookId, encryptionPassword, (data) => {
-      console.log('🔄 Отримано оновлення з іншого пристрою, застосовуємо...');
-      processFirestoreDataRef.current(data);
-    });
-  }, [user, authLoading, isDataLoaded, currentBudgetBookId, encryptionPassword]);
+    return subscribeBudgetBookDocument(
+      user,
+      bookId,
+      encryptionPassword,
+      (data) => {
+        console.log('🔄 Отримано оновлення з іншого пристрою, застосовуємо...');
+        processFirestoreDataRef.current(data);
+      },
+      // Поки локальна зміна (напр. щойно додана транзакція) не збережена
+      // у Firestore — снапшот із хмари ігноруємо, інакше він затирає її.
+      () => isDirtyRef.current
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.uid, authLoading, isDataLoaded, currentBudgetBookId, encryptionPassword]);
 
   // Обробка введення пароля
   const handlePasswordSubmit = async (password: string) => {

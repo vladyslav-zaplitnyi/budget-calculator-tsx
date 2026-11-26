@@ -718,7 +718,12 @@ export function subscribeBudgetBookDocument(
   user: User,
   bookId: string,
   encryptionPassword: string | null | undefined,
-  onData: (data: LoadedUserData) => void
+  onData: (data: LoadedUserData) => void,
+  /**
+   * Повертає true, коли локальні зміни ще не підтверджені Firestore.
+   * У цей момент серверний снапшот застарілий і не повинен затирати локальні дані.
+   */
+  shouldIgnoreSnapshot?: () => boolean
 ): () => void {
   let cancelled = false;
   let processing = false;
@@ -763,6 +768,10 @@ export function subscribeBudgetBookDocument(
     { includeMetadataChanges: true },
     (snapshot) => {
       if (cancelled) return;
+
+      // Локальні зміни ще не збережені (debounce або запис у процесі) —
+      // снапшот із сервера старіший за локальний стан і затер би їх.
+      if (shouldIgnoreSnapshot?.()) return;
 
       // Тільки підтверджені сервером зміни: локальний (optimistic) запис цього ж
       // клієнта і кеш без мережі не є оновленням з іншого пристрою.

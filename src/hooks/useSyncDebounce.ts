@@ -2,6 +2,7 @@ import { useRef, useEffect } from 'react';
 import { User } from 'firebase/auth';
 import { Budgets, Day, ExchangeRates } from '../types';
 import { saveToFirestore, FirestoreBudgetContext } from '../utils/storageHelpers';
+import { markLocalChangesDirty, clearLocalChangesDirty } from '../utils/localChangesFlag';
 
 interface UseSyncDebounceParams {
   budgets: Budgets;
@@ -69,8 +70,12 @@ export function useSyncDebounce({
   // Остання відкладена операція збереження та книга, до якої вона належить.
   // Потрібні, щоб не втратити зміни, якщо користувач перемикає книгу бюджету
   // раніше, ніж спрацює 2-секундний debounce.
-  const pendingSaveRef = useRef<(() => void) | null>(null);
+  const pendingSaveRef = useRef<(() => void | Promise<void>) | null>(null);
   const lastBookIdRef = useRef<string | null>(null);
+
+  // Якщо компонент розмонтовано з незавершеним записом — не залишаємо прапорець
+  // "брудних" даних увімкненим, інакше realtime-оновлення перестануть застосовуватись.
+  useEffect(() => () => clearLocalChangesDirty(), []);
 
   useEffect(() => {
     const currentBookId = firestoreBudgetContext?.budgetBookId ?? null;
@@ -79,9 +84,14 @@ export function useSyncDebounce({
       if (!user) {
         pendingSaveRef.current = null;
         lastBookIdRef.current = null;
+        clearLocalChangesDirty();
       }
       return;
     }
+
+    // Локальний стан змінився — з цієї миті дані в хмарі застарілі.
+    // Прапорець скидається лише після завершення запису (див. saveToCloud).
+    const localChangeVersion = markLocalChangesDirty();
 
     // Книга змінилася — негайно зберігаємо ще не збережені зміни в ПОПЕРЕДНЮ книгу.
     // Інакше cleanup нижче скасував би таймер, а наступний запис пішов би вже в нову книгу.
@@ -98,11 +108,12 @@ export function useSyncDebounce({
     }
 
     setSyncStatus(getSyncStatusText('syncing'));
-    const saveToCloud = () => {
+    const saveToCloud = async () => {
       // 🔒 FETCH-FIRST: Якщо дані ще не завантажені з хмари — НІЧОГО НЕ ПИШЕМО!
       if (!isDataLoaded) {
         console.warn('⛔ Блокування запису: Дані з Firestore ще не завантажені. Очікуємо завершення завантаження...');
         setSyncStatus(getSyncStatusText('local'));
+        clearLocalChangesDirty(localChangeVersion);
         return;
       }
       
@@ -110,12 +121,14 @@ export function useSyncDebounce({
       if (isRemoteDataEncrypted && !encryptionPassword) {
         console.warn('⛔ Блокування запису: Спроба перезаписати зашифровані дані без пароля!');
         setSyncStatus(getSyncStatusText('local'));
+        clearLocalChangesDirty(localChangeVersion);
         return;
       }
 
       if (firestoreBudgetContext?.isReadOnly) {
         console.warn('⛔ Блокування запису: активна книга бюджету лише для читання.');
         setSyncStatus(getSyncStatusText('local'));
+        clearLocalChangesDirty(localChangeVersion);
         return;
       }
       // ВАЖЛИВО: Використовуємо budgets, які вже містять правильні startBalances
@@ -125,6 +138,7 @@ export function useSyncDebounce({
       if (!budgets || Object.keys(budgets).length === 0) {
         console.log('⚠️ useSyncDebounce: budgets порожній, пропускаємо збереження');
         setSyncStatus(getSyncStatusText('local'));
+        clearLocalChangesDirty(localChangeVersion);
         return;
       }
       
@@ -136,6 +150,7 @@ export function useSyncDebounce({
       if (!currentBudget) {
         console.log('⚠️ useSyncDebounce: активний бюджет не знайдено, пропускаємо збереження');
         setSyncStatus(getSyncStatusText('local'));
+        clearLocalChangesDirty(localChangeVersion);
         return;
       }
       
@@ -151,23 +166,29 @@ export function useSyncDebounce({
         }
       };
       
-      saveToFirestore(
-        user,
-        budgetsToSave,
-        currentId,
-        false,
-        setSyncStatus,
-        getSyncStatusText,
-        encryptionPassword,
-        setIsEncrypted,
-        firestoreBudgetContext || undefined
-      );
+      try {
+        await saveToFirestore(
+          user,
+          budgetsToSave,
+          currentId,
+          false,
+          setSyncStatus,
+          getSyncStatusText,
+          encryptionPassword,
+          setIsEncrypted,
+          firestoreBudgetContext || undefined
+        );
+      } finally {
+        // Запис завершився (успішно або з помилкою) — тепер серверні снапшоти
+        // знову можна застосовувати, вони вже не старіші за локальний стан.
+        clearLocalChangesDirty(localChangeVersion);
+      }
     };
 
     pendingSaveRef.current = saveToCloud;
     saveTimeoutRef.current = setTimeout(() => {
       pendingSaveRef.current = null;
-      saveToCloud();
+      void saveToCloud();
     }, 2000);
 
     return () => {
