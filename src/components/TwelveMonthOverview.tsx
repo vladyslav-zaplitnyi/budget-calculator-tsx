@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import type { Budget, ExchangeRates } from '../types';
 import {
   computeSliceEndBalanceDisplay,
-  getDefaultOverviewWindow
+  getOverviewWindowForMonths
 } from '../utils/rollingMonthsBudget';
 import { calculateTotals, convertCurrency, formatNumber } from '../utils/calculations';
 import { getCurrencySymbol } from '../utils/currencies';
@@ -15,6 +15,7 @@ interface TwelveMonthOverviewProps {
   selectedCurrencies: string[];
   displayCurrency: string;
   exchangeRates: ExchangeRates;
+  activeMonthKey?: string;
   onSelectMonth: (year: number, month: number) => void;
 }
 
@@ -23,13 +24,17 @@ export default function TwelveMonthOverview({
   selectedCurrencies,
   displayCurrency,
   exchangeRates,
+  activeMonthKey,
   onSelectMonth
 }: TwelveMonthOverviewProps) {
   const { t, i18n } = useTranslation();
   const locale = i18n.language || 'en';
   const symbol = getCurrencySymbol(displayCurrency);
 
-  const windowMonths = useMemo(() => getDefaultOverviewWindow(), []);
+  const windowMonths = useMemo(
+    () => getOverviewWindowForMonths(activeBudget?.monthsByKey, activeMonthKey),
+    [activeBudget?.monthsByKey, activeMonthKey]
+  );
 
   const rows = useMemo(() => {
     const map = activeBudget?.monthsByKey || {};

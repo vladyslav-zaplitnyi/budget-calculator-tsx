@@ -8,7 +8,8 @@ import {
   trimMonthsReanchorSeed,
   buildEmptyMonthSlice,
   getCurrentCalendarBudgetDate,
-  openingBalancesToPersist
+  openingBalancesToPersist,
+  deleteMonthKeysAndReanchorSeed
 } from '../utils/rollingMonthsBudget';
 import { applyBalanceWaterfallToBudget, buildMonthSlice } from '../utils/balanceWaterfall';
 import type { Budget } from '../types';
@@ -18,7 +19,7 @@ import { currencyReducer, createCurrencyInitialState, currencyActions } from '..
 import { budgetReducer, createBudgetInitialState, budgetActions } from '../reducers/budgetReducer';
 import { displayReducer, createDisplayInitialState, displayActions } from '../reducers/displayReducer';
 import { messageReducer, createMessageInitialState, messageActions } from '../reducers/messageReducer';
-import { Day, ExchangeRates, Budgets, BudgetBookSummary } from '../types';
+import { Day, ExchangeRates, Budgets, BudgetBookSummary, BudgetDateNavigationOptions } from '../types';
 import { hasPairStructure, getBuyRate } from '../utils/typeGuards';
 import i18n from '../i18n/config';
 import { roundToDecimals } from '../utils/rounding';
@@ -64,7 +65,10 @@ export interface BudgetStateInterface {
   setIsEncrypted: (encrypted: boolean) => void;
   // Budget date
   budgetDate: { year: number; month: number };
-  setBudgetDate: (date: { year: number; month: number }) => void;
+  setBudgetDate: (
+    date: { year: number; month: number },
+    options?: BudgetDateNavigationOptions
+  ) => void;
   /** Firestore budget books (`users/{uid}/budgetBooks/*`); empty when signed out / local-only. */
   availableBudgetBooks: BudgetBookSummary[];
   setAvailableBudgetBooks: (books: BudgetBookSummary[]) => void;
@@ -346,7 +350,8 @@ export function useBudgetState(): BudgetStateInterface {
   }, [displayState.displayCurrency, displayState.displayCurrencyIndex]);
 
   // Функція для оновлення budgetDate активного бюджету (rolling months, max 12)
-  const setBudgetDate = useCallback((date: { year: number; month: number }) => {
+  const setBudgetDate = useCallback(
+    (date: { year: number; month: number }, options?: BudgetDateNavigationOptions) => {
     const snap = budgetStateRef.current;
     const currentId = snap.activeBudgetId || 'default';
     const existingBudget = snap.budgets[currentId];
@@ -444,14 +449,27 @@ export function useBudgetState(): BudgetStateInterface {
       return;
     }
 
-    let monthsByKey = trimOldestMonthKeys({ ...(existingBudget.monthsByKey || {}) });
+    // Months the user explicitly chose to delete to free space (12-month limit).
+    // The viewed month is never deleted implicitly; it is persisted below.
+    const removeKeys = Array.from(new Set(options?.removeMonthKeys || [])).filter(
+      (key) => key !== newKey && key !== oldKey
+    );
+    let seedStartBalances = { ...(existingBudget.startBalances || {}) };
+    let storedMonths = { ...(existingBudget.monthsByKey || {}) };
+    if (removeKeys.length > 0) {
+      const cleaned = deleteMonthKeysAndReanchorSeed(
+        storedMonths,
+        seedStartBalances,
+        removeKeys
+      );
+      storedMonths = cleaned.monthsByKey;
+      seedStartBalances = cleaned.startBalances;
+    }
+
+    let monthsByKey = trimOldestMonthKeys(storedMonths);
     const uiDays =
       snap.days && snap.days.length > 0 ? snap.days : existingBudget.days || [];
-    const oldStarts = openingBalancesToPersist(
-      oldKey,
-      monthsByKey,
-      existingBudget.startBalances || {}
-    );
+    const oldStarts = openingBalancesToPersist(oldKey, monthsByKey, seedStartBalances);
     monthsByKey = trimOldestMonthKeys({
       ...monthsByKey,
       [oldKey]: buildMonthSlice(uiDays, oldStarts)
@@ -482,7 +500,7 @@ export function useBudgetState(): BudgetStateInterface {
     const forwardJump = newKey > oldKey;
     const trimmed = trimMonthsReanchorSeed(
       mergedForTrim,
-      existingBudget.startBalances || {},
+      seedStartBalances,
       12,
       !forwardJump
     );

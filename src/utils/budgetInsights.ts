@@ -9,7 +9,7 @@ import {
 import { getDaysInMonth } from './dateHelpers';
 import {
   buildTwelveMonthBalanceRows,
-  getDefaultOverviewWindow
+  getOverviewWindowForMonths
 } from './rollingMonthsBudget';
 
 export interface MonthlyTransaction extends Transaction {
@@ -173,7 +173,10 @@ export const overviewMonthHasTransactions = (
 /** 12-month window slots that contain transaction data (empty future months are skipped). */
 export const getFilledOverviewMonths = (
   context: OverviewMonthDaysContext,
-  windowMonths: OverviewMonthRef[] = getDefaultOverviewWindow()
+  windowMonths: OverviewMonthRef[] = getOverviewWindowForMonths(
+    context.monthsByKey,
+    context.activeMonthKey
+  )
 ): OverviewMonthRef[] =>
   windowMonths.filter((windowMonth) => overviewMonthHasTransactions(windowMonth, context));
 

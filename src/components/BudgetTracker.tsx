@@ -16,6 +16,7 @@ import MultiMonthTransactionExplorer from './MultiMonthTransactionExplorer';
 import TwelveMonthOverview from './TwelveMonthOverview';
 import GuidedTour from './GuidedTour';
 import BudgetMonthSection from './BudgetMonthSection';
+import MonthLimitModal from './MonthLimitModal';
 import AlertModal from './AlertModal';
 import PromptModal from './PromptModal';
 import ConfirmModal from './ConfirmModal';
@@ -237,6 +238,7 @@ export default function BudgetTracker() {
     year: number;
     month: number;
     forward: boolean;
+    dropCount: number;
   } | null>(null);
   const [showPdfExportModal, setShowPdfExportModal] = useState(false);
 
@@ -253,7 +255,12 @@ export default function BudgetTracker() {
         handleBudgetViewModeChange('days');
         return;
       }
-      setOverviewMonthTrimConfirm({ year, month, forward: sim.forwardJump });
+      setOverviewMonthTrimConfirm({
+        year,
+        month,
+        forward: sim.forwardJump,
+        dropCount: Math.max(sim.droppedKeys.length, 1)
+      });
     },
     [
       isCurrentBookReadOnly,
@@ -265,15 +272,21 @@ export default function BudgetTracker() {
     ]
   );
 
-  const handleOverviewMonthTrimConfirm = useCallback(() => {
-    if (!overviewMonthTrimConfirm) return;
-    setBudgetDate({
-      year: overviewMonthTrimConfirm.year,
-      month: overviewMonthTrimConfirm.month
-    });
-    handleBudgetViewModeChange('days');
-    setOverviewMonthTrimConfirm(null);
-  }, [overviewMonthTrimConfirm, setBudgetDate, handleBudgetViewModeChange]);
+  const handleOverviewMonthTrimConfirm = useCallback(
+    (monthKeys: string[]) => {
+      if (!overviewMonthTrimConfirm) return;
+      setBudgetDate(
+        {
+          year: overviewMonthTrimConfirm.year,
+          month: overviewMonthTrimConfirm.month
+        },
+        { removeMonthKeys: monthKeys }
+      );
+      handleBudgetViewModeChange('days');
+      setOverviewMonthTrimConfirm(null);
+    },
+    [overviewMonthTrimConfirm, setBudgetDate, handleBudgetViewModeChange]
+  );
 
   const handleOverviewMonthTrimCancel = useCallback(() => {
     setOverviewMonthTrimConfirm(null);
@@ -640,6 +653,7 @@ export default function BudgetTracker() {
                           selectedCurrencies={selectedCurrencies}
                           displayCurrency={displayCurrency}
                           exchangeRates={exchangeRates}
+                          activeMonthKey={activeMonthKey}
                           onSelectMonth={handleSelectMonthFromOverview}
                         />
                       </div>
@@ -752,18 +766,22 @@ export default function BudgetTracker() {
         exchangeRates={exchangeRates}
         budgetName={activeBudgetData?.name || translate('budget.defaultBudgetName')}
       />
-      <ConfirmModal
+      <MonthLimitModal
         isOpen={overviewMonthTrimConfirm !== null}
+        target={
+          overviewMonthTrimConfirm
+            ? {
+                year: overviewMonthTrimConfirm.year,
+                month: overviewMonthTrimConfirm.month
+              }
+            : null
+        }
+        activeMonthKey={activeMonthKey}
+        direction={overviewMonthTrimConfirm?.forward === false ? 'backward' : 'forward'}
+        monthsByKey={activeBudgetData?.monthsByKey}
+        requiredCount={overviewMonthTrimConfirm?.dropCount ?? 1}
         onClose={handleOverviewMonthTrimCancel}
         onConfirm={handleOverviewMonthTrimConfirm}
-        title={translate('monthYearPicker.overflow.title')}
-        message={
-          overviewMonthTrimConfirm?.forward === true
-            ? translate('monthYearPicker.overflow.forwardMessage')
-            : translate('monthYearPicker.overflow.backwardMessage')
-        }
-        confirmButtonText={translate('monthYearPicker.overflow.proceed')}
-        cancelButtonText={translate('monthYearPicker.overflow.cancel')}
       />
 
       {/* Створення / перейменування книги бюджету */}

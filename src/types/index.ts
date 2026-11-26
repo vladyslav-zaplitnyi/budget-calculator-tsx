@@ -26,6 +26,12 @@ export interface MonthSlice {
   startBalancesManual?: boolean;
 }
 
+/** Extra choices for month navigation when the rolling store is at its limit. */
+export interface BudgetDateNavigationOptions {
+  /** Stored `YYYY-MM` months to delete before opening the target month. */
+  removeMonthKeys?: string[];
+}
+
 /** Snapshot for 12-month navigation warnings when changing the active budget month. */
 export interface RollingMonthNavigationPreview {
   monthsByKey: Record<string, MonthSlice> | undefined;

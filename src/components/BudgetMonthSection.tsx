@@ -1,15 +1,19 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import ConfirmModal from './ConfirmModal';
+import MonthLimitModal from './MonthLimitModal';
 import MonthTransactionCounter from './MonthTransactionCounter';
 import InfoTip from './InfoTip';
-import type { RollingMonthNavigationPreview } from '../types';
+import type { BudgetDateNavigationOptions, RollingMonthNavigationPreview } from '../types';
 import { simulateMonthsAfterNavigation } from '../utils/balanceWaterfall';
+import { monthKeyFromBudgetDate } from '../utils/rollingMonthsBudget';
 
 interface BudgetMonthSectionProps {
   budgetYear: number;
   budgetMonth: number;
-  setBudgetDate: (date: { year: number; month: number }) => void;
+  setBudgetDate: (
+    date: { year: number; month: number },
+    options?: BudgetDateNavigationOptions
+  ) => void;
   rollingMonthPreview: RollingMonthNavigationPreview | null;
   readOnly: boolean;
   monthTransactionCount: number;
@@ -27,9 +31,13 @@ const BudgetMonthSection: React.FC<BudgetMonthSectionProps> = ({
   const [draftYear, setDraftYear] = useState(budgetYear);
   const [draftMonth, setDraftMonth] = useState(budgetMonth);
   const [trimConfirmOpen, setTrimConfirmOpen] = useState(false);
-  const [pendingNav, setPendingNav] = useState<{ year: number; month: number; forward: boolean } | null>(
-    null
-  );
+  const [pendingNav, setPendingNav] = useState<{
+    year: number;
+    month: number;
+    forward: boolean;
+    dropCount: number;
+  } | null>(null);
+  const activeMonthKey = monthKeyFromBudgetDate(budgetYear, budgetMonth);
 
   useEffect(() => {
     setDraftYear(budgetYear);
@@ -46,8 +54,8 @@ const BudgetMonthSection: React.FC<BudgetMonthSectionProps> = ({
   const monthNames = t('calendar.monthsLong', { returnObjects: true }) as string[];
 
   const runNavigate = useCallback(
-    (year: number, month: number) => {
-      setBudgetDate({ year, month });
+    (year: number, month: number, options?: BudgetDateNavigationOptions) => {
+      setBudgetDate({ year, month }, options);
       setTrimConfirmOpen(false);
       setPendingNav(null);
     },
@@ -75,16 +83,24 @@ const BudgetMonthSection: React.FC<BudgetMonthSectionProps> = ({
         return;
       }
 
-      setPendingNav({ year, month, forward: sim.forwardJump });
+      setPendingNav({
+        year,
+        month,
+        forward: sim.forwardJump,
+        dropCount: Math.max(sim.droppedKeys.length, 1)
+      });
       setTrimConfirmOpen(true);
     },
     [readOnly, rollingMonthPreview, budgetYear, budgetMonth, runNavigate]
   );
 
-  const handleTrimConfirm = useCallback(() => {
-    if (!pendingNav) return;
-    runNavigate(pendingNav.year, pendingNav.month);
-  }, [pendingNav, runNavigate]);
+  const handleTrimConfirm = useCallback(
+    (monthKeys: string[]) => {
+      if (!pendingNav) return;
+      runNavigate(pendingNav.year, pendingNav.month, { removeMonthKeys: monthKeys });
+    },
+    [pendingNav, runNavigate]
+  );
 
   const handleTrimCancel = useCallback(() => {
     setTrimConfirmOpen(false);
@@ -92,11 +108,6 @@ const BudgetMonthSection: React.FC<BudgetMonthSectionProps> = ({
     setDraftYear(budgetYear);
     setDraftMonth(budgetMonth);
   }, [budgetYear, budgetMonth]);
-
-  const trimMessage =
-    pendingNav?.forward === true
-      ? t('monthYearPicker.overflow.forwardMessage')
-      : t('monthYearPicker.overflow.backwardMessage');
 
   const handleTodayClick = () => {
     if (readOnly) return;
@@ -180,14 +191,15 @@ const BudgetMonthSection: React.FC<BudgetMonthSectionProps> = ({
         </div>
       </section>
 
-      <ConfirmModal
-        isOpen={trimConfirmOpen}
+      <MonthLimitModal
+        isOpen={trimConfirmOpen && pendingNav !== null}
+        target={pendingNav ? { year: pendingNav.year, month: pendingNav.month } : null}
+        activeMonthKey={activeMonthKey}
+        direction={pendingNav?.forward === false ? 'backward' : 'forward'}
+        monthsByKey={rollingMonthPreview?.monthsByKey}
+        requiredCount={pendingNav?.dropCount ?? 1}
         onClose={handleTrimCancel}
         onConfirm={handleTrimConfirm}
-        title={t('monthYearPicker.overflow.title')}
-        message={trimMessage}
-        confirmButtonText={t('monthYearPicker.overflow.proceed')}
-        cancelButtonText={t('monthYearPicker.overflow.cancel')}
       />
     </>
   );

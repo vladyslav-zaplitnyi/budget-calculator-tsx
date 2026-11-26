@@ -2,7 +2,7 @@ import type { Budget, Day, ExchangeRates, MonthSlice } from '../types';
 import { calculateFinalBalances, calculateTotals, convertCurrency } from './calculations';
 import { DEFAULT_CURRENCIES } from './currencies';
 import { createEmptyMonthDays, normalizeDaysArray } from './dayHelpers';
-import { formatMonthKey, shiftMonths } from './monthlyPlan';
+import { formatMonthKey, parseMonthKey, shiftMonths } from './monthlyPlan';
 
 export const MAX_STORED_MONTHS = 12;
 
@@ -247,6 +247,111 @@ export function getDefaultOverviewWindow() {
   return getTwelveMonthWindowStartingAt(year, month);
 }
 
+/** True when a stored month slice contains at least one transaction. */
+export function monthSliceHasTransactions(slice: MonthSlice | undefined): boolean {
+  if (!slice || !Array.isArray(slice.days)) return false;
+  return slice.days.some(
+    (day) => Array.isArray(day?.transactions) && day.transactions.length > 0
+  );
+}
+
+/** Earliest stored month that has transactions (chronological order). */
+export function getFirstTransactionMonthKey(
+  monthsByKey: Record<string, MonthSlice> | undefined
+): string | null {
+  const keys = getSortedMonthKeys(monthsByKey);
+  for (const key of keys) {
+    if (monthSliceHasTransactions(monthsByKey?.[key])) return key;
+  }
+  return null;
+}
+
+/** Latest stored month that has transactions (chronological order). */
+export function getLastTransactionMonthKey(
+  monthsByKey: Record<string, MonthSlice> | undefined
+): string | null {
+  const keys = getSortedMonthKeys(monthsByKey);
+  for (let i = keys.length - 1; i >= 0; i--) {
+    if (monthSliceHasTransactions(monthsByKey?.[keys[i]])) return keys[i];
+  }
+  return null;
+}
+
+const monthIndexFromYearMonth = (year: number, month: number): number => year * 12 + month;
+
+const budgetDateFromMonthIndex = (index: number): { year: number; month: number } => ({
+  year: Math.floor(index / 12),
+  month: ((index % 12) + 12) % 12
+});
+
+/**
+ * 12-month overview window used by the UI. Unlike `getDefaultOverviewWindow`, the
+ * window is anchored at the first stored month that has transactions, so data from
+ * earlier months is not pushed out of view by the current calendar month. The window
+ * shifts only when needed to keep the focused (viewed) month or the newest transaction
+ * month inside it.
+ */
+export function getOverviewWindowForMonths(
+  monthsByKey: Record<string, MonthSlice> | undefined,
+  focusMonthKey?: string | null
+): { year: number; month: number; key: string }[] {
+  const sortedKeys = getSortedMonthKeys(monthsByKey);
+  const firstTx = parseMonthKey(getFirstTransactionMonthKey(monthsByKey) || '');
+  const lastTx = parseMonthKey(getLastTransactionMonthKey(monthsByKey) || '');
+  const anchor = firstTx || parseMonthKey(sortedKeys[0] || '') || parseMonthKey(focusMonthKey || '');
+
+  if (!anchor) return getDefaultOverviewWindow();
+
+  const windowSpan = MAX_STORED_MONTHS - 1;
+  let startIndex = monthIndexFromYearMonth(anchor.year, anchor.month);
+
+  if (lastTx) {
+    startIndex = Math.max(
+      startIndex,
+      monthIndexFromYearMonth(lastTx.year, lastTx.month) - windowSpan
+    );
+  }
+
+  const focus = parseMonthKey(focusMonthKey || '');
+  if (focus) {
+    const focusIndex = monthIndexFromYearMonth(focus.year, focus.month);
+    if (focusIndex < startIndex) startIndex = focusIndex;
+    else if (focusIndex > startIndex + windowSpan) startIndex = focusIndex - windowSpan;
+  }
+
+  const start = budgetDateFromMonthIndex(startIndex);
+  return getTwelveMonthWindowStartingAt(start.year, start.month);
+}
+
+/**
+ * Removes the given stored months and re-anchors the seed initial budget on the new
+ * first month, so later months keep their carry-over balances.
+ */
+export function deleteMonthKeysAndReanchorSeed(
+  monthsByKey: Record<string, MonthSlice> | undefined,
+  seedStartBalances: Record<string, number | null>,
+  keysToDelete: string[]
+): { monthsByKey: Record<string, MonthSlice>; startBalances: Record<string, number | null> } {
+  const current = { ...(monthsByKey || {}) };
+  const oldFirst = getSeedMonthKey(current);
+  const next: Record<string, MonthSlice> = {};
+  const remove = new Set(keysToDelete);
+  Object.keys(current).forEach((key) => {
+    if (!remove.has(key)) next[key] = current[key];
+  });
+
+  const newFirst = getSeedMonthKey(next);
+  const seedDropped = Boolean(oldFirst && !next[oldFirst]);
+
+  return {
+    monthsByKey: next,
+    startBalances:
+      seedDropped && newFirst
+        ? { ...(next[newFirst]?.startBalances || seedStartBalances) }
+        : { ...seedStartBalances }
+  };
+}
+
 export interface OverviewMonthBalanceRow {
   key: string;
   year: number;
@@ -309,7 +414,7 @@ export function buildTwelveMonthBalanceRows(args: {
     activeStartBalances
   } = args;
 
-  return getDefaultOverviewWindow().map(({ year, month, key }) => {
+  return getOverviewWindowForMonths(monthsByKey, activeMonthKey).map(({ year, month, key }) => {
     let slice = monthsByKey?.[key];
     if (activeMonthKey === key && activeDays) {
       slice = { days: activeDays, startBalances: activeStartBalances ?? {} };

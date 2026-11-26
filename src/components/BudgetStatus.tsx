@@ -37,6 +37,16 @@ const getBalanceFontClass = (value: number): string => {
   return 'text-2xl sm:text-3xl lg:text-4xl';
 };
 
+/** Розмір шрифту для підсумку: враховує символ валюти, щоб сума вміщалась в один рядок. */
+const getTotalFontClass = (text: string): string => {
+  const len = text.length;
+  if (len > 20) return 'text-sm sm:text-base lg:text-lg';
+  if (len > 16) return 'text-base sm:text-lg lg:text-xl';
+  if (len > 13) return 'text-lg sm:text-xl lg:text-2xl';
+  if (len > 10) return 'text-xl sm:text-2xl lg:text-3xl';
+  return 'text-2xl sm:text-3xl lg:text-4xl';
+};
+
 interface BudgetStatusProps {
   finalBalances: Record<string, number>;
   startBalances: Record<string, number | null>;
@@ -245,6 +255,9 @@ const BudgetStatus: React.FC<BudgetStatusProps> = ({
   const isEndOfMonth = selectedDay === daysInMonth;
   const displaySymbol = getCurrencySymbol(displayCurrency);
 
+  const totalValue = totalInDisplayCurrency ?? totalInBaseCurrency ?? totalInUAH;
+  const totalValueText = `${displaySymbol}${formatNumber(totalValue, 2)}`;
+
   const plannerMonthCount = monthlyBalanceRows.length;
   const selectedPlannerRow =
     plannerMonthCount > 0 && selectedPlannerMonthSlot >= 1 && selectedPlannerMonthSlot <= plannerMonthCount
@@ -300,29 +313,15 @@ const BudgetStatus: React.FC<BudgetStatusProps> = ({
         })}
 
         {/* Total in Display Currency */}
-        <div className="bg-gradient-to-br from-indigo-500 to-violet-600 p-4 rounded-xl shadow-lg border-2 border-indigo-300 hover:border-indigo-400 hover:shadow-2xl transition-all !text-white relative">
-          <div className="flex items-center justify-between mb-2">
-            <p className="text-xs sm:text-sm font-semibold font-display tracking-tight !text-white flex items-center gap-1.5">
-              {t('budgetStatus.totalValue')}
+        <div className="bg-gradient-to-br from-indigo-500 to-violet-600 p-4 rounded-xl shadow-lg border-2 border-indigo-300 hover:border-indigo-400 hover:shadow-2xl transition-all !text-white relative flex flex-col min-w-0">
+          <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1 mb-2">
+            <p className="text-xs sm:text-sm font-semibold font-display tracking-tight !text-white flex items-center gap-1.5 min-w-0">
+              <span className="text-base leading-none" aria-hidden="true">💎</span>
+              <span className="min-w-0">{t('budgetStatus.totalValue')}</span>
               <InfoTip text={t('infoTips.totalValue')} tone="onDark" />
             </p>
-            <span className="text-xl">💎</span>
-          </div>
-          <div className="flex items-center justify-between mb-1">
-            <p className={`${getBalanceFontClass(totalInDisplayCurrency ?? totalInBaseCurrency ?? totalInUAH)} font-extrabold font-display break-words overflow-hidden tabular-nums budget-number samsung-white-text`}>
-              {getCurrencySymbol(displayCurrency)}
-              {(() => {
-                if (totalInDisplayCurrency !== undefined) {
-                  return formatNumber(totalInDisplayCurrency, 2);
-                }
-                if (totalInBaseCurrency !== undefined) {
-                  return formatNumber(totalInBaseCurrency, 2);
-                }
-                return formatNumber(totalInUAH, 2);
-              })()}
-            </p>
             {/* Currency selector dropdown */}
-            <div className="relative">
+            <div className="relative flex-shrink-0">
               <button
                 type="button"
                 onClick={() => {
@@ -330,13 +329,13 @@ const BudgetStatus: React.FC<BudgetStatusProps> = ({
                   setIsDropdownOpen(!isDropdownOpen);
                 }}
                 disabled={readOnly}
-                className={`flex items-center space-x-1 bg-white/20 rounded-lg px-2 py-1.5 transition-all ${
+                className={`flex items-center space-x-1 bg-white/20 rounded-lg px-2 py-1 transition-all ${
                   readOnly ? 'opacity-60 cursor-not-allowed' : 'hover:bg-white/30 hover:scale-105'
                 }`}
                 title={t('budgetStatus.selectDisplayCurrency')}
               >
-                <CurrencyFlag currencyCode={displayCurrency} size={16} />
-                <span className="text-xs font-semibold font-display">{displayCurrency}</span>
+                <CurrencyFlag currencyCode={displayCurrency} size={14} />
+                <span className="text-[11px] font-semibold font-display">{displayCurrency}</span>
                 <span className="text-xs">▼</span>
               </button>
               
@@ -394,7 +393,13 @@ const BudgetStatus: React.FC<BudgetStatusProps> = ({
               )}
             </div>
           </div>
-          <p className="text-[10px] sm:text-xs opacity-90 font-mono break-words overflow-hidden tabular-nums samsung-white-text leading-relaxed">
+          <p
+            className={`${getTotalFontClass(totalValueText)} font-extrabold font-display whitespace-nowrap overflow-hidden tabular-nums budget-number samsung-white-text leading-none mb-1`}
+            title={totalValueText}
+          >
+            {totalValueText}
+          </p>
+          <p className="mt-auto pt-1 text-[10px] sm:text-xs opacity-90 font-mono break-words tabular-nums samsung-white-text leading-relaxed">
             {displayCurrency} ({selectedCurrencies.map((code, idx) => {
               const balance = finalBalances[`finalBalance${code}`] || 0;
               const symbol = getCurrencySymbol(code);

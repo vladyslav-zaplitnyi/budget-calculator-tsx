@@ -10,7 +10,7 @@ import {
 import { formatNumber } from '../utils/calculations';
 import { capitalizeFirstLetter, formatBudgetTransactionDate, getMonthYearLabel, getWeekdayShortName } from '../utils/dateHelpers';
 import { getCurrencySymbol } from '../utils/currencies';
-import { getDefaultOverviewWindow } from '../utils/rollingMonthsBudget';
+import { getOverviewWindowForMonths } from '../utils/rollingMonthsBudget';
 import { getCategoryEmoji, getCategoryLabel } from '../utils/categories';
 import {
   amountsMatchAcross,
@@ -81,7 +81,10 @@ const MultiMonthTransactionExplorer: React.FC<MultiMonthTransactionExplorerProps
     pruneToExistingIds
   } = useTransactionMoveSelection(canEdit);
 
-  const windowMonths = useMemo(() => getDefaultOverviewWindow(), []);
+  const windowMonths = useMemo(
+    () => getOverviewWindowForMonths(monthsByKey, activeMonthKey),
+    [monthsByKey, activeMonthKey]
+  );
 
   const monthOptions = useMemo(
     () =>
