@@ -308,11 +308,21 @@ export const calculateTotals = (days: Day[], selectedCurrencies: string[] = ['UA
 // Універсальна функція для обчислення балансу дня для будь-якої валюти
 export const calculateDayBalance = (day: Day | null | undefined, currencyCode: string): number => {
   if (!day) return 0;
-  const amounts = calculateDayAmountsFromTransactions(day);
-  const incomeKey = `income${currencyCode}`;
-  const expenseKey = `expense${currencyCode}`;
-  
-  return (amounts[incomeKey] || 0) - (amounts[expenseKey] || 0);
+  const code = String(currencyCode || 'UAH').toUpperCase();
+  const transactions = Array.isArray(day.transactions) ? day.transactions : [];
+
+  // Рахуємо напряму для будь-якої валюти (не лише для UAH/USD/EUR зі списку за замовчуванням),
+  // інакше накопичення для CZK/PLN/RON завжди дорівнювало нулю.
+  return transactions.reduce((balance, transaction) => {
+    const currency = String(transaction.currency || 'UAH').toUpperCase();
+    if (currency !== code) return balance;
+
+    const amount = parseFloat(String(transaction.amount)) || 0;
+    const type = String(transaction.type || 'expense').toLowerCase();
+    if (type === 'income') return balance + amount;
+    if (type === 'expense') return balance - amount;
+    return balance;
+  }, 0);
 };
 
 // Універсальна функція для обчислення накопиченого балансу

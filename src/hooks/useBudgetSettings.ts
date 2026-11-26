@@ -2,10 +2,10 @@ import { useCallback, useState } from 'react';
 import { useBudgetContext } from '../contexts/BudgetContext';
 import { createEmptyMonthDays } from '../utils/dayHelpers';
 import { validateSelectedCurrencies, DEFAULT_CURRENCIES } from '../utils/currencies';
-import { Budgets, ExchangeRates, Budget } from '../types';
+import { Budgets, ExchangeRates, Budget, Day, MonthSlice, Transaction } from '../types';
 import { isExchangeRatePair } from '../utils/typeGuards';
 import { saveToFirestore, saveToLocalStorage } from '../utils/storageHelpers';
-import { sanitizeNumberInput } from '../utils/calculations';
+import { sanitizeNumberInput, convertCurrency } from '../utils/calculations';
 import { translate } from '../i18n/config';
 import {
   monthKeyFromBudgetDate,
@@ -41,6 +41,15 @@ import {
 } from '../utils/multiMonthTransactionEdits';
 
 export type ClearDaysScope = 'current-month' | 'all-months';
+
+export type CurrencyMigrationMode = 'convert' | 'delete';
+
+/** Що зробити з транзакціями валюти, яку прибирають з відстеження. */
+export interface CurrencyMigrationRequest {
+  from: string;
+  to: string;
+  mode: CurrencyMigrationMode;
+}
 
 /**
  * Hook для управління налаштуваннями бюджету (валюти, курси, баланси)
@@ -441,16 +450,15 @@ export function useBudgetSettings() {
     setShowStartNewMonthModal(false);
   }, []);
 
-  const handleCurrencyChange = useCallback((newCurrencies: string[]) => {
-    if (user && isCurrentBookReadOnly) return;
-    const validated = validateSelectedCurrencies(newCurrencies);
-    setSelectedCurrencies(validated);
+  const handleCurrencyChange = useCallback(
+    (newCurrencies: string[], migrations: CurrencyMigrationRequest[] = []) => {
+      if (user && isCurrentBookReadOnly) return;
+      const validated = validateSelectedCurrencies(newCurrencies);
 
-    // Оновлюємо budgets безпосередньо: встановлюємо selectedCurrencies та оновлюємо startBalances
-    // ВАЖЛИВО: Зберігаємо всі курси обміну, навіть для валют, які тимчасово не вибрані
-    const currentId = activeBudgetId || 'default';
-    setBudgets((prevBudgets: Budgets) => {
-      const safePrev = prevBudgets || {};
+      // Оновлюємо budgets безпосередньо: встановлюємо selectedCurrencies та оновлюємо startBalances
+      // ВАЖЛИВО: Зберігаємо всі курси обміну, навіть для валют, які тимчасово не вибрані
+      const currentId = activeBudgetId || 'default';
+      const safePrev = budgets || {};
       const existingBudget = safePrev[currentId] || {
         name: translate('budget.defaultBudgetName'),
         startBalances: {},
@@ -460,55 +468,153 @@ export function useBudgetSettings() {
         displayCurrency: 'RON',
         displayCurrencyIndex: 0
       };
-      
+
       // Оновлюємо startBalances: залишаємо тільки обрані валюти
       // ВАЖЛИВО: Беремо значення з існуючого бюджету, а не з окремих станів
       const updatedStartBalances: Record<string, number | null> = {};
       validated.forEach(code => {
-        // Завжди беремо значення з існуючого бюджету
         updatedStartBalances[code] = existingBudget.startBalances?.[code] ?? null;
       });
-      
+
       // ВАЖЛИВО: Зберігаємо всі курси з існуючого бюджету, не видаляємо їх
       // Це дозволяє зберігати курси для валют, які тимчасово не вибрані
-      const preservedExchangeRates = existingBudget.exchangeRates || {};
-      
-      // Об'єднуємо збережені курси з поточними курсами зі стану
-      // Це гарантує, що нові курси, введені користувачем, також зберігаються
       const mergedRates: ExchangeRates = {
-        ...preservedExchangeRates,
-        ...exchangeRates
+        ...(existingBudget.exchangeRates || {}),
+        ...(exchangeRates || {})
       };
-      
-      const updatedBudget = {
+
+      // Транзакції валюти, яку замінюють, обробляються в УСІХ місяцях одразу,
+      // а не лише в поточному (раніше інші місяці залишалися в старій валюті).
+      const migrationByCurrency = new Map<string, { to: string; mode: CurrencyMigrationMode }>();
+      migrations.forEach(({ from, to, mode }) => {
+        if (!from || !to) return;
+        const fromCode = String(from).toUpperCase();
+        const toCode = String(to).toUpperCase();
+        if (fromCode === toCode) return;
+        migrationByCurrency.set(fromCode, { to: toCode, mode });
+      });
+
+      // При конвертації переносимо й початковий баланс валюти, яку прибирають,
+      // інакше гроші зі стартового балансу просто зникали б з бюджету.
+      migrations.forEach(({ from, to, mode }) => {
+        if (mode !== 'convert' || !from || !to) return;
+        const fromCode = String(from).toUpperCase();
+        const toCode = String(to).toUpperCase();
+        if (fromCode === toCode || validated.includes(fromCode) || !validated.includes(toCode)) return;
+        const fromValue = existingBudget.startBalances?.[fromCode];
+        if (typeof fromValue !== 'number' || !isFinite(fromValue) || fromValue === 0) return;
+        const converted = roundToDecimals(convertCurrency(fromValue, fromCode, toCode, mergedRates), 2);
+        const current = updatedStartBalances[toCode];
+        updatedStartBalances[toCode] = roundToDecimals(
+          (typeof current === 'number' ? current : 0) + converted,
+          2
+        );
+      });
+
+      const migrateTransactionList = (transactions: Transaction[]): Transaction[] => {
+        if (migrationByCurrency.size === 0 || !Array.isArray(transactions)) return transactions;
+        let changed = false;
+        const next: Transaction[] = [];
+        transactions.forEach(transaction => {
+          const currency = String(transaction.currency || '').toUpperCase();
+          const migration = migrationByCurrency.get(currency);
+          if (!migration) {
+            next.push(transaction);
+            return;
+          }
+          changed = true;
+          if (migration.mode === 'delete') return;
+          const amount = parseFloat(String(transaction.amount)) || 0;
+          next.push({
+            ...transaction,
+            amount: roundToDecimals(convertCurrency(amount, currency, migration.to, mergedRates), 2),
+            currency: migration.to
+          });
+        });
+        return changed ? next : transactions;
+      };
+
+      const migrateDays = (sourceDays: Day[]): Day[] => {
+        const safeDays = Array.isArray(sourceDays) ? sourceDays : [];
+        if (migrationByCurrency.size === 0) return safeDays;
+        return safeDays.map(day => {
+          if (!day || !Array.isArray(day.transactions) || day.transactions.length === 0) return day;
+          const transactions = migrateTransactionList(day.transactions);
+          return transactions === day.transactions ? day : { ...day, transactions };
+        });
+      };
+
+      const budgetDate = existingBudget.budgetDate || {
+        year: new Date().getFullYear(),
+        month: new Date().getMonth()
+      };
+      const activeMonthKey = monthKeyFromBudgetDate(budgetDate.year, budgetDate.month);
+
+      // `days` — актуальний стан переглянутого місяця, він має пріоритет над слайсом.
+      const nextDays = migrateDays(days);
+
+      let monthsByKey: Record<string, MonthSlice> = { ...(existingBudget.monthsByKey || {}) };
+      if (Object.keys(monthsByKey).length > 0) {
+        const nextMonths: Record<string, MonthSlice> = {};
+        Object.entries(monthsByKey).forEach(([key, slice]) => {
+          if (!slice) return;
+          const sourceDays = key === activeMonthKey ? nextDays : slice.days || [];
+          nextMonths[key] = buildMonthSlice(
+            migrateDays(sourceDays),
+            slice.startBalances || {},
+            slice.startBalancesManual
+          );
+        });
+        monthsByKey = trimOldestMonthKeys(nextMonths);
+      }
+
+      const monthlyPlans = existingBudget.monthlyPlans
+        ? Object.fromEntries(
+            Object.entries(existingBudget.monthlyPlans).map(([key, transactions]) => [
+              key,
+              migrateTransactionList(transactions || [])
+            ])
+          )
+        : existingBudget.monthlyPlans;
+
+      const draft: Budget = {
         ...existingBudget,
         selectedCurrencies: validated,
         startBalances: updatedStartBalances,
-        exchangeRates: mergedRates
+        exchangeRates: mergedRates,
+        days: nextDays,
+        monthsByKey,
+        ...(monthlyPlans ? { monthlyPlans } : {})
       };
-      
+      const afterWaterfall = applyBalanceWaterfallToBudget(draft);
+
       const updatedBudgets: Budgets = {
         ...safePrev,
-        [currentId]: updatedBudget
+        [currentId]: { ...existingBudget, ...afterWaterfall }
       };
-      
+
+      setSelectedCurrencies(validated);
       // Оновлюємо стан курсів, зберігаючи всі курси
       setExchangeRates(mergedRates);
-      
+      setBudgets(updatedBudgets);
+      setDays(afterWaterfall.days || nextDays);
+
       // Зберігаємо оновлені дані в localStorage
       saveToLocalStorage(updatedBudgets, currentId);
-      
-      return updatedBudgets;
-    });
-  }, [
-    exchangeRates,
-    activeBudgetId,
-    setSelectedCurrencies,
-    setExchangeRates,
-    setBudgets,
-    user,
-    isCurrentBookReadOnly
-  ]);
+    },
+    [
+      exchangeRates,
+      activeBudgetId,
+      budgets,
+      days,
+      setSelectedCurrencies,
+      setExchangeRates,
+      setBudgets,
+      setDays,
+      user,
+      isCurrentBookReadOnly
+    ]
+  );
 
   const handleExchangeRateChange = useCallback((pairKey: string, type: string | undefined, rate: number) => {
     if (user && isCurrentBookReadOnly) return;

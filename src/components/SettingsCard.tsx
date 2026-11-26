@@ -1,4 +1,5 @@
 import React, { ChangeEvent, RefObject, useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
 import {
   AVAILABLE_CURRENCIES,
@@ -11,11 +12,11 @@ import {
   resolveRegionalCurrency
 } from '../utils/currencies';
 import { User } from 'firebase/auth';
-import { Budgets, ExchangeRates, Day, MonthSlice } from '../types';
+import { Budgets, ExchangeRates, Day, MonthSlice, Transaction } from '../types';
 import { isExchangeRatePair, getBuyRate } from '../utils/typeGuards';
 import { roundToDecimals } from '../utils/rounding';
 import { sanitizeNumberInput, formatNumber } from '../utils/calculations';
-import ConfirmModal from './ConfirmModal';
+import { parseMonthKey } from '../utils/monthlyPlan';
 import CurrencyFlag from './CurrencyFlag';
 import BulkTransactionModal from './BulkTransactionModal';
 import MultiMonthBulkTransactionModal from './MultiMonthBulkTransactionModal';
@@ -24,7 +25,11 @@ import CsvImportModal from './CsvImportModal';
 import InfoTip from './InfoTip';
 import { parseTransactionsCsv, CsvParseResult } from '../utils/csvImport';
 import { TOUR_EXPAND_SECTIONS_EVENT } from './GuidedTour';
-import type { ClearDaysScope } from '../hooks/useBudgetSettings';
+import type {
+  ClearDaysScope,
+  CurrencyMigrationMode,
+  CurrencyMigrationRequest
+} from '../hooks/useBudgetSettings';
 import type { MultiMonthBulkTransactionDraft } from '../utils/multiMonthBulkTransactions';
 import type { ForecastCopyDraft } from '../utils/budgetForecast';
 
@@ -35,7 +40,7 @@ interface SettingsCardProps {
   activeBudgetId: string;
   selectedCurrencies: string[];
   exchangeRates: ExchangeRates;
-  handleCurrencyChange: (currencies: string[]) => void;
+  handleCurrencyChange: (currencies: string[], migrations?: CurrencyMigrationRequest[]) => void;
   handleExchangeRateChange: (pairKey: string, type: string | undefined, rate: number) => void;
   handleStartBalanceChange: (currencyCode: string, value: string) => void;
   handleExportToJsonFile: () => void;
@@ -179,23 +184,164 @@ const SettingsCard: React.FC<SettingsCardProps> = ({
   // Ensure budgets is always an object to prevent runtime errors
   const safeBudgets = budgets || {};
 
-  const hasTransactionsInDaysWithCurrency = (daysToCheck: Day[], currencyCode: string): boolean => {
-    return (daysToCheck || []).some(day =>
-      Array.isArray(day.transactions) && day.transactions.some(tx => tx.currency === currencyCode)
-    );
-  };
+  // Скільки транзакцій є для кожної валюти в УСІХ місяцях бюджету, а не лише в переглянутому.
+  // Раніше зміна валюти чистила лише поточний місяць, тому в інших місяцях транзакції
+  // залишалися в старій валюті й переставали враховуватися в балансах.
+  const currencyUsage = React.useMemo(() => {
+    const activeBudget = (budgets || {})[activeBudgetId || 'default'];
+    const counts: Record<string, number> = {};
+    const addTransactions = (transactions?: Transaction[]) => {
+      (transactions || []).forEach((tx) => {
+        const code = String(tx.currency || '').toUpperCase();
+        if (!code) return;
+        counts[code] = (counts[code] || 0) + 1;
+      });
+    };
+    const addDays = (sourceDays?: Day[]) => {
+      (sourceDays || []).forEach((day) => addTransactions(day?.transactions));
+    };
 
-  const removeTransactionsFromDaysByCurrency = (daysToUpdate: Day[], currencyCode: string) => {
-    if (!updateDay) return;
-    (daysToUpdate || []).forEach((day: Day, dayIndex: number) => {
-      if (Array.isArray(day.transactions) && day.transactions.length > 0) {
-        const updatedTransactions = day.transactions.filter(tx => tx.currency !== currencyCode);
-        if (updatedTransactions.length !== day.transactions.length) {
-          updateDay(dayIndex, 'transactions', updatedTransactions);
+    const months = monthsByKey || activeBudget?.monthsByKey || {};
+    const monthKeys = Object.keys(months);
+    if (monthKeys.length > 0) {
+      monthKeys.forEach((key) => {
+        if (key === activeMonthKey) {
+          addDays(days);
+        } else {
+          addDays(months[key]?.days);
         }
+      });
+    } else {
+      addDays(days);
+    }
+    Object.values(activeBudget?.monthlyPlans || {}).forEach((transactions) =>
+      addTransactions(transactions)
+    );
+    return counts;
+  }, [budgets, activeBudgetId, monthsByKey, activeMonthKey, days]);
+
+  const orphanCurrencyUsage = React.useMemo(
+    () =>
+      Object.entries(currencyUsage)
+        .filter(([code, count]) => count > 0 && !selectedCurrencies.includes(code))
+        .map(([code, count]) => ({ code, count }))
+        .sort((a, b) => b.count - a.count),
+    [currencyUsage, selectedCurrencies]
+  );
+
+  const orphanTransactionTotal = orphanCurrencyUsage.reduce((sum, item) => sum + item.count, 0);
+
+  // Де саме лежать «сирітські» транзакції: місяць → дні → валюти з кількістю.
+  // Потрібно, щоб користувач міг глянути, що там є, перш ніж конвертувати чи видаляти.
+  const orphanTransactionLocations = React.useMemo(() => {
+    const activeBudget = (budgets || {})[activeBudgetId || 'default'];
+    interface LocationEntry {
+      label: string;
+      codes: string;
+    }
+    interface LocationGroup {
+      key: string;
+      label: string;
+      total: number;
+      entries: LocationEntry[];
+    }
+    const groups = new Map<string, LocationGroup>();
+
+    const collect = (transactions?: Transaction[]) => {
+      const counts: Record<string, number> = {};
+      (transactions || []).forEach((tx) => {
+        const code = String(tx.currency || '').toUpperCase();
+        if (!code || selectedCurrencies.includes(code)) return;
+        counts[code] = (counts[code] || 0) + 1;
+      });
+      const codes = Object.entries(counts)
+        .map(([code, count]) => `${code} ×${count}`)
+        .join(', ');
+      const total = Object.values(counts).reduce((sum, count) => sum + count, 0);
+      return codes ? { codes, total } : null;
+    };
+
+    const ensureGroup = (key: string, label: string) => {
+      let group = groups.get(key);
+      if (!group) {
+        group = { key, label, total: 0, entries: [] };
+        groups.set(key, group);
       }
+      return group;
+    };
+
+    const monthLabelFor = (key: string) => {
+      const parsed = parseMonthKey(key);
+      if (!parsed) return key;
+      return `${monthNames[parsed.month] || key} ${parsed.year}`;
+    };
+
+    const months = monthsByKey || activeBudget?.monthsByKey || {};
+    const monthKeys = Object.keys(months);
+
+    if (monthKeys.length > 0) {
+      monthKeys.forEach((key) => {
+        const sourceDays = key === activeMonthKey ? days : months[key]?.days;
+        (sourceDays || []).forEach((day) => {
+          const found = collect(day?.transactions);
+          if (!found) return;
+          const group = ensureGroup(key, monthLabelFor(key));
+          group.entries.push({
+            label: t('settings.currency.orphans.dayLabel', { day: day.day }),
+            codes: found.codes
+          });
+          group.total += found.total;
+        });
+      });
+    } else {
+      const currentLabel = `${monthNames[budgetMonth] || ''} ${budgetYear}`.trim();
+      days.forEach((day) => {
+        const found = collect(day?.transactions);
+        if (!found) return;
+        const group = ensureGroup('current', currentLabel);
+        group.entries.push({
+          label: t('settings.currency.orphans.dayLabel', { day: day.day }),
+          codes: found.codes
+        });
+        group.total += found.total;
+      });
+    }
+
+    Object.entries(activeBudget?.monthlyPlans || {}).forEach(([key, transactions]) => {
+      const found = collect(transactions);
+      if (!found) return;
+      const group = ensureGroup(`plan-${key}`, monthLabelFor(key));
+      group.entries.push({
+        label: t('settings.currency.orphans.planLabel'),
+        codes: found.codes
+      });
+      group.total += found.total;
     });
-  };
+
+    return Array.from(groups.values()).sort((a, b) => a.key.localeCompare(b.key));
+  }, [
+    budgets,
+    activeBudgetId,
+    monthsByKey,
+    activeMonthKey,
+    days,
+    selectedCurrencies,
+    monthNames,
+    budgetMonth,
+    budgetYear,
+    t
+  ]);
+
+  const [showOrphanLocations, setShowOrphanLocations] = useState(false);
+
+  // У яку з відстежуваних валют конвертувати «сирітські» транзакції.
+  const [orphanTargetCurrency, setOrphanTargetCurrency] = useState<string>(selectedCurrencies[0] || '');
+
+  useEffect(() => {
+    if (!selectedCurrencies.includes(orphanTargetCurrency)) {
+      setOrphanTargetCurrency(selectedCurrencies[0] || '');
+    }
+  }, [selectedCurrencies, orphanTargetCurrency]);
   
   // Стан для модального вікна підтвердження зміни валюти
   const [showCurrencyChangeConfirm, setShowCurrencyChangeConfirm] = useState(false);
@@ -378,15 +524,13 @@ const SettingsCard: React.FC<SettingsCardProps> = ({
     newDisplayCurrencies[index] = currencyCode;
     setDisplayCurrencies(newDisplayCurrencies);
     
-    // Перевіряємо, чи є транзакції з валютою, яку намагаються змінити
-    // ВАЖЛИВО: перевіряємо поточні `days` активного бюджету зі state (prop),
-    // щоб це працювало однаково для будь-якого обраного бюджету (не лише 'default').
-    const hasTransactionsWithCurrency = hasTransactionsInDaysWithCurrency(days, previousValue);
-    
+    // Перевіряємо, чи є транзакції з валютою, яку намагаються змінити (в усіх місцях бюджету)
+    const hasTransactionsWithCurrency = (currencyUsage[previousValue] || 0) > 0;
+
     // Зберігаємо нові валюти
     const newCurrencies = [...selectedCurrencies];
     newCurrencies[index] = currencyCode;
-    
+
     // Показуємо попап тільки якщо є транзакції з цією валютою
     if (hasTransactionsWithCurrency) {
       setPendingCurrencyChange({ currencies: newCurrencies, index, previousValue });
@@ -398,20 +542,38 @@ const SettingsCard: React.FC<SettingsCardProps> = ({
       }
     }
   };
-  
-  const handleConfirmCurrencyChange = () => {
+
+  // Цільові валюти для транзакцій тієї валюти, яку замінюють: нова валюта
+  // та дві валюти, що залишилися у відстеженні.
+  const pendingMigrationTargets = React.useMemo(() => {
+    if (!pendingCurrencyChange) return [] as string[];
+    return pendingCurrencyChange.currencies.filter(
+      (code, index) =>
+        index !== pendingCurrencyChange.index &&
+        code !== pendingCurrencyChange.previousValue
+    );
+  }, [pendingCurrencyChange]);
+
+  const applyPendingCurrencyChange = (mode: CurrencyMigrationMode, target?: string) => {
     if (pendingCurrencyChange && handleCurrencyChange) {
-      // Видаляємо всі транзакції з валютою, яку змінюють
-      const currencyToRemove = pendingCurrencyChange.previousValue;
-      
-      // Оновлюємо кожен день, видаляючи транзакції з цією валютою (для активного бюджету)
-      removeTransactionsFromDaysByCurrency(days, currencyToRemove);
-      
-      // Змінюємо валюту
-      handleCurrencyChange(pendingCurrencyChange.currencies);
+      const nextCurrency = target || pendingCurrencyChange.currencies[pendingCurrencyChange.index];
+      handleCurrencyChange(pendingCurrencyChange.currencies, [
+        { from: pendingCurrencyChange.previousValue, to: nextCurrency, mode }
+      ]);
     }
     setShowCurrencyChangeConfirm(false);
     setPendingCurrencyChange(null);
+  };
+
+  // «Сирітські» транзакції: валюти поза вибраними трьома (напр. залишки EUR після переходу на CZK).
+  const applyOrphanMigration = (mode: CurrencyMigrationMode, target?: string) => {
+    if (!handleCurrencyChange || orphanCurrencyUsage.length === 0) return;
+    const targetCurrency = target || orphanTargetCurrency || selectedCurrencies[0];
+    if (!targetCurrency) return;
+    handleCurrencyChange(
+      selectedCurrencies,
+      orphanCurrencyUsage.map(({ code }) => ({ from: code, to: targetCurrency, mode }))
+    );
   };
   
   const handleCancelCurrencyChange = () => {
@@ -495,6 +657,97 @@ const SettingsCard: React.FC<SettingsCardProps> = ({
             );
           })}
         </div>
+
+        {orphanTransactionTotal > 0 && !readOnly && (
+          <div className="mt-3 rounded-xl border border-amber-300 bg-amber-50 p-3">
+            <div className="text-xs sm:text-sm font-semibold text-amber-800 mb-1">
+              ⚠️ {t('settings.currency.orphans.title')}
+            </div>
+            <p className="text-xs text-amber-700 mb-2">
+              {t('settings.currency.orphans.message', {
+                count: orphanTransactionTotal,
+                currencies: orphanCurrencyUsage.map(item => `${item.code} (${item.count})`).join(', ')
+              })}
+            </p>
+            {orphanTransactionLocations.length > 0 && (
+              <div className="mb-2 rounded-lg border border-amber-200 bg-white/70 p-2">
+                <button
+                  type="button"
+                  onClick={() => setShowOrphanLocations(prev => !prev)}
+                  className="w-full flex items-center justify-between gap-2 text-left text-[11px] sm:text-xs font-semibold text-amber-800"
+                  aria-expanded={showOrphanLocations}
+                >
+                  <span>
+                    {showOrphanLocations
+                      ? t('settings.currency.orphans.hideLocations')
+                      : t('settings.currency.orphans.showLocations', {
+                          months: orphanTransactionLocations.length
+                        })}
+                  </span>
+                  <span aria-hidden="true">{showOrphanLocations ? '▼' : '▶'}</span>
+                </button>
+                {showOrphanLocations && (
+                  <ul className="mt-2 space-y-1.5">
+                    {orphanTransactionLocations.map(group => (
+                      <li key={group.key}>
+                        <div className="flex items-baseline justify-between gap-2">
+                          <span className="text-[11px] sm:text-xs font-bold text-amber-900">
+                            {group.label}
+                          </span>
+                          <span className="text-[10px] sm:text-[11px] font-semibold text-amber-700 tabular-nums">
+                            {t('settings.currency.orphans.monthTotal', { count: group.total })}
+                          </span>
+                        </div>
+                        <ul className="ml-3 mt-0.5 space-y-0.5">
+                          {group.entries.map((entry, index) => (
+                            <li
+                              key={`${group.key}-${index}`}
+                              className="flex items-baseline justify-between gap-2 text-[10px] sm:text-[11px] text-amber-700"
+                            >
+                              <span>{entry.label}</span>
+                              <span className="font-semibold tabular-nums">{entry.codes}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            )}
+            <label className="block text-[11px] sm:text-xs font-semibold text-amber-800 mb-1">
+              {t('settings.currency.orphans.targetLabel')}
+            </label>
+            <select
+              value={orphanTargetCurrency}
+              onChange={(e) => setOrphanTargetCurrency(e.target.value)}
+              className="w-full mb-2 px-2 py-2 text-xs sm:text-sm border-2 border-amber-300 rounded-lg bg-white focus:ring-2 focus:ring-amber-400 focus:border-amber-400"
+            >
+              {selectedCurrencies.map(code => (
+                <option key={code} value={code}>
+                  {code} - {getCurrencyName(code, currencyLanguage)}
+                </option>
+              ))}
+            </select>
+            <div className="flex flex-col sm:flex-row gap-2">
+              <button
+                type="button"
+                onClick={() => applyOrphanMigration('convert')}
+                disabled={!orphanTargetCurrency}
+                className="flex-1 px-3 py-2 text-xs sm:text-sm font-bold rounded-lg text-white bg-gradient-to-r from-indigo-500 to-violet-500 hover:from-indigo-600 hover:to-violet-600 transition-all active:scale-95"
+              >
+                {t('settings.currency.orphans.convert', { currency: orphanTargetCurrency || '—' })}
+              </button>
+              <button
+                type="button"
+                onClick={() => applyOrphanMigration('delete')}
+                className="flex-1 px-3 py-2 text-xs sm:text-sm font-bold rounded-lg text-white bg-rose-500 hover:bg-rose-600 transition-all active:scale-95"
+              >
+                {t('settings.currency.orphans.delete')}
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Initial Balances */}
@@ -1017,16 +1270,61 @@ const SettingsCard: React.FC<SettingsCardProps> = ({
       </div>
       )}
       
-      {/* Модальне вікно підтвердження зміни валюти */}
-      <ConfirmModal
-        isOpen={showCurrencyChangeConfirm}
-        onClose={handleCancelCurrencyChange}
-        onConfirm={handleConfirmCurrencyChange}
-        title={t('settings.currency.changeConfirm.title')}
-        message={t('settings.currency.changeConfirm.message')}
-        confirmButtonText={t('settings.currency.changeConfirm.confirm')}
-        cancelButtonText={t('settings.currency.changeConfirm.cancel')}
-      />
+      {/* Модальне вікно підтвердження зміни валюти: конвертувати чи видалити */}
+      {showCurrencyChangeConfirm && pendingCurrencyChange && createPortal(
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 backdrop-blur-sm"
+          onClick={handleCancelCurrencyChange}
+        >
+          <div
+            className="bg-white rounded-2xl shadow-2xl p-6 sm:p-8 max-w-md w-full mx-4 border-2 border-gray-200"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h2 className="text-xl sm:text-2xl font-bold text-gray-800 mb-4 flex items-center">
+              <span className="mr-2">⚠️</span> {t('settings.currency.changeConfirm.title')}
+            </h2>
+            <p className="text-sm sm:text-base text-gray-600 mb-2">
+              {t('settings.currency.changeConfirm.message', {
+                count: currencyUsage[pendingCurrencyChange.previousValue] || 0,
+                from: pendingCurrencyChange.previousValue,
+                to: pendingCurrencyChange.currencies[pendingCurrencyChange.index]
+              })}
+            </p>
+            <p className="text-xs text-gray-500 mb-6">
+              {t('settings.currency.changeConfirm.convertHint', {
+                from: pendingCurrencyChange.previousValue
+              })}
+            </p>
+            <div className="flex flex-col gap-3">
+              {pendingMigrationTargets.map(targetCurrency => (
+                <button
+                  key={targetCurrency}
+                  type="button"
+                  onClick={() => applyPendingCurrencyChange('convert', targetCurrency)}
+                  className="w-full px-4 py-3 rounded-lg font-semibold text-white bg-gradient-to-r from-indigo-500 to-violet-500 hover:from-indigo-600 hover:to-violet-600 transition-all"
+                >
+                  {t('settings.currency.changeConfirm.convertTo', { currency: targetCurrency })}
+                </button>
+              ))}
+              <button
+                type="button"
+                onClick={() => applyPendingCurrencyChange('delete')}
+                className="w-full px-4 py-3 rounded-lg font-semibold text-white bg-rose-500 hover:bg-rose-600 transition-all"
+              >
+                {t('settings.currency.changeConfirm.delete')}
+              </button>
+              <button
+                type="button"
+                onClick={handleCancelCurrencyChange}
+                className="w-full px-4 py-3 rounded-lg font-semibold bg-gray-200 text-gray-700 hover:bg-gray-300 transition-all"
+              >
+                {t('settings.currency.changeConfirm.cancel')}
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
 
       <BulkTransactionModal
         isOpen={showRecurringModal && budgetViewMode === 'days'}

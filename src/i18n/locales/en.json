@@ -142,9 +142,25 @@
       "description": "Select 3 currencies to track. Each currency can only be selected once.",
       "changeConfirm": {
         "title": "Are you sure?",
-        "message": "You have some calculations in this currency. After changing the currency, they will be erased. Continue?",
+        "message": "You have {{count}} transactions in {{from}} (across all months). After switching to {{to}} they will be converted or deleted.",
+        "convertHint": "Pick which currency to recalculate the {{from}} amounts into with the current rate, or delete these transactions.",
+        "convert": "Convert at current rate",
+        "convertTo": "Convert to {{currency}}",
+        "delete": "Delete transactions",
         "confirm": "Yes",
-        "cancel": "No"
+        "cancel": "Cancel"
+      },
+      "orphans": {
+        "title": "Transactions in untracked currencies",
+        "message": "Found {{count}} transactions in currencies that are currently untracked ({{currencies}}). They are not included in balances. What should happen to them?",
+        "targetLabel": "Convert to:",
+        "showLocations": "Show where they are ({{months}} mo.)",
+        "hideLocations": "Hide months and days",
+        "monthTotal": "{{count}} pcs.",
+        "dayLabel": "Day {{day}}",
+        "planLabel": "Month plan",
+        "convert": "Convert to {{currency}}",
+        "delete": "Delete these transactions"
       }
     },
     "balances": {
