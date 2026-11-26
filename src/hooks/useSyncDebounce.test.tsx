@@ -101,7 +101,7 @@ describe('useSyncDebounce write guard', () => {
 
     // Ще не минув debounce — зміни лише в памʼяті
     act(() => {
-      jest.advanceTimersByTime(1000);
+      jest.advanceTimersByTime(300);
     });
     expect(mockedSave).not.toHaveBeenCalled();
 
