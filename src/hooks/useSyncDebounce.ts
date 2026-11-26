@@ -66,16 +66,39 @@ export function useSyncDebounce({
   firestoreBudgetContext = null
 }: UseSyncDebounceParams) {
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  // Остання відкладена операція збереження та книга, до якої вона належить.
+  // Потрібні, щоб не втратити зміни, якщо користувач перемикає книгу бюджету
+  // раніше, ніж спрацює 2-секундний debounce.
+  const pendingSaveRef = useRef<(() => void) | null>(null);
+  const lastBookIdRef = useRef<string | null>(null);
 
   useEffect(() => {
-    if (isInitialLoad || authLoading || !user) return;
+    const currentBookId = firestoreBudgetContext?.budgetBookId ?? null;
+
+    if (isInitialLoad || authLoading || !user) {
+      if (!user) {
+        pendingSaveRef.current = null;
+        lastBookIdRef.current = null;
+      }
+      return;
+    }
+
+    // Книга змінилася — негайно зберігаємо ще не збережені зміни в ПОПЕРЕДНЮ книгу.
+    // Інакше cleanup нижче скасував би таймер, а наступний запис пішов би вже в нову книгу.
+    if (lastBookIdRef.current !== null && lastBookIdRef.current !== currentBookId && pendingSaveRef.current) {
+      const flushPendingSave = pendingSaveRef.current;
+      pendingSaveRef.current = null;
+      console.warn('💾 Перемикання книги: зберігаємо незавершені зміни в попередню книгу.');
+      flushPendingSave();
+    }
+    lastBookIdRef.current = currentBookId;
 
     if (saveTimeoutRef.current) {
       clearTimeout(saveTimeoutRef.current);
     }
 
     setSyncStatus(getSyncStatusText('syncing'));
-    saveTimeoutRef.current = setTimeout(() => {
+    const saveToCloud = () => {
       // 🔒 FETCH-FIRST: Якщо дані ще не завантажені з хмари — НІЧОГО НЕ ПИШЕМО!
       if (!isDataLoaded) {
         console.warn('⛔ Блокування запису: Дані з Firestore ще не завантажені. Очікуємо завершення завантаження...');
@@ -139,6 +162,12 @@ export function useSyncDebounce({
         setIsEncrypted,
         firestoreBudgetContext || undefined
       );
+    };
+
+    pendingSaveRef.current = saveToCloud;
+    saveTimeoutRef.current = setTimeout(() => {
+      pendingSaveRef.current = null;
+      saveToCloud();
     }, 2000);
 
     return () => {

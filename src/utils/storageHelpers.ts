@@ -1,7 +1,6 @@
 import { User } from 'firebase/auth';
 import { Budgets, UserData, LoadedUserData, BudgetBookSummary } from '../types';
 import { handleError } from './errorHandler';
-import { WrongPasswordError } from './encryption';
 import { createEmptyMonthDays } from './dayHelpers';
 import { DEFAULT_CURRENCIES } from './currencies';
 import { translate } from '../i18n/config';
@@ -274,13 +273,13 @@ export const loadFromFirestore = async (
       currentBudgetBookIsReadOnly
     };
   } catch (error) {
-    if (error instanceof WrongPasswordError) {
-      throw error;
-    }
     handleError(
       error instanceof Error ? error : new Error(String(error)),
       { context: 'storageHelpers', action: 'loadFromFirestore' }
     );
+    // ВАЖЛИВО: помилку читання НЕ можна повертати як null.
+    // null означає "даних немає" (новий користувач), після чого хук синхронізації
+    // створює порожню книгу і перезаписує нею реальні дані в хмарі.
+    throw error;
   }
-  return null;
 };

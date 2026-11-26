@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { loadFromFirestore, loadFromLocalStorage, saveToFirestore, createEmptyDefaultBudget, saveToLocalStorage, FirestoreBudgetContext } from '../utils/storageHelpers';
 import { normalizeDaysArray } from '../utils/dayHelpers';
 import { validateSelectedCurrencies, DEFAULT_CURRENCIES, BASE_CURRENCY } from '../utils/currencies';
@@ -94,6 +94,15 @@ export function useFirestoreSync(
   // true = дані завантажені (або користувач новий), дозволено писати в Firestore
   const [isDataLoaded, setIsDataLoaded] = useState(false);
 
+  // Пароль читаємо через ref, щоб зміна пароля (увімкнення/вимкнення шифрування)
+  // НЕ перезапускала повне перезавантаження даних з Firestore.
+  // Інакше після вимкнення шифрування ще зашифрований документ знову відкривав
+  // модальне вікно пароля і скидав поточний стан до порожнього бюджету.
+  const encryptionPasswordRef = useRef<string | null>(encryptionPassword);
+  useEffect(() => {
+    encryptionPasswordRef.current = encryptionPassword;
+  }, [encryptionPassword]);
+
   // Допоміжна функція для завантаження даних бюджету
   const loadBudgetData = (budget: typeof budgets[string], budgetId: string, allBudgets: Budgets) => {
     if (budget.selectedCurrencies) {
@@ -171,7 +180,10 @@ export function useFirestoreSync(
   };
 
   // Допоміжна функція для ініціалізації порожнього бюджету
-  const initializeEmptyBudget = (statusKey: 'saved' | 'local' | 'error' | 'syncing' = user ? 'saved' : 'local'): Budgets => {
+  const initializeEmptyBudget = (
+    statusKey: 'saved' | 'local' | 'error' | 'syncing' = user ? 'saved' : 'local',
+    unlockWrites: boolean = true
+  ): Budgets => {
     // Створюємо дефолтний бюджет з локалізованою назвою
     const emptyBudget = createEmptyDefaultBudget();
     const defaultBudget = emptyBudget['default'];
@@ -199,9 +211,14 @@ export function useFirestoreSync(
     }
     setCurrentBudgetBookId(DEFAULT_BUDGET_BOOK_ID);
 
-    // 🔒 FETCH-FIRST: Новий користувач без даних, дозволяємо запис
-    setIsDataLoaded(true);
-    console.log('✅ Новий користувач, створено порожній бюджет. Запис розблоковано.');
+    // 🔒 FETCH-FIRST: Новий користувач без даних, дозволяємо запис.
+    // Якщо в хмарі лежать зашифровані дані без пароля — запис лишається заблокованим.
+    setIsDataLoaded(unlockWrites);
+    if (unlockWrites) {
+      console.log('✅ Новий користувач, створено порожній бюджет. Запис розблоковано.');
+    } else {
+      console.log('⛔ Створено порожній локальний бюджет, запис у хмару заблоковано.');
+    }
     return emptyBudget;
   };
 
@@ -430,11 +447,15 @@ export function useFirestoreSync(
           setIsDataLoaded(true);
           console.log('✅ Порожню книгу нового користувача створено та завантажено.');
         } else {
-          initializeEmptyBudget('error');
+          // Помилка доступу до хмари: НЕ розблоковуємо запис, щоб не перезаписати
+          // щойно збережені (або вже наявні) дані порожнім бюджетом.
+          initializeEmptyBudget('error', false);
         }
       } catch (error) {
         console.error('Помилка створення порожньої книги нового користувача:', error);
-        initializeEmptyBudget('error');
+        // Помилка доступу до хмари: НЕ розблоковуємо запис, щоб не перезаписати
+          // щойно збережені (або вже наявні) дані порожнім бюджетом.
+          initializeEmptyBudget('error', false);
       }
       return;
     }
@@ -462,11 +483,15 @@ export function useFirestoreSync(
         console.log('✅ Дані нового користувача збережені та завантажені. Запис розблоковано.');
       } else {
         // Збереження не повернуло валідних даних — не залишаємо UI у "syncing".
-        initializeEmptyBudget('error');
+        // Помилка доступу до хмари: НЕ розблоковуємо запис, щоб не перезаписати
+          // щойно збережені (або вже наявні) дані порожнім бюджетом.
+          initializeEmptyBudget('error', false);
       }
     } catch (error) {
       console.error('Помилка міграції локального бюджету нового користувача:', error);
-      initializeEmptyBudget('error');
+      // Помилка доступу до хмари: НЕ розблоковуємо запис, щоб не перезаписати
+          // щойно збережені (або вже наявні) дані порожнім бюджетом.
+          initializeEmptyBudget('error', false);
     }
   };
 
@@ -619,20 +644,24 @@ export function useFirestoreSync(
           console.error('⚠️ Помилка читання localStorage:', error);
         }
         
-        // 🔒 БЕЗПЕКА: ОДРАЗУ очищаємо localStorage при вході користувача!
-        // Це вирішує ДВІ проблеми:
-        // 1. Безпека: Ніхто не може побачити дані в LocalStorage без правильного пароля
-        // 2. Синхронізація: Старі дані з LocalStorage не конфліктують з актуальними даними з Firebase
-        // Після успішного завантаження з Firebase, дані будуть збережені в LocalStorage знову
+        // ВАЖЛИВО: НЕ очищаємо localStorage ДО успішного читання з Firestore.
+        // Інакше при мережевій помилці/офлайні локальна копія знищується, а дані з хмари
+        // не завантажуються. Очищаємо локальну копію тільки після того, як рішення про
+        // завантаження вже відоме (дані отримано / потрібен пароль / новий користувач).
+        const clearLocalStorageBackup = () => {
+          try {
+            localStorage.removeItem('budgetTrackerData');
+            console.log('🔒 LocalStorage очищено після успішного завантаження з хмари');
+          } catch (error) {
+            console.error('⚠️ Помилка очищення localStorage:', error);
+          }
+        };
+
+        // Чи відкрито модальне вікно пароля (щоб не знімати isInitialLoad завчасно)
+        let passwordRequired = false;
+
         try {
-          localStorage.removeItem('budgetTrackerData');
-          console.log('🔒 LocalStorage очищено при вході користувача (безпека + синхронізація)');
-        } catch (error) {
-          console.error('⚠️ Помилка очищення localStorage:', error);
-        }
-        
-        try {
-          const firestoreData = await loadFromFirestore(user, encryptionPassword);
+          const firestoreData = await loadFromFirestore(user, encryptionPasswordRef.current);
           
           if (!isMounted) return;
           
@@ -643,9 +672,10 @@ export function useFirestoreSync(
             console.warn('🔒 Виявлено зашифровані дані в Firestore. Запис заблоковано до введення пароля.');
             
             // 🔒 БЕЗПЕКА: Показуємо порожній бюджет до введення пароля
-            // LocalStorage вже очищено, створюємо чистий стан
-            initializeEmptyBudget();
-            // ВАЖЛИВО: Скидаємо isDataLoaded = false, щоб запобігти запису порожнього бюджету в Firebase
+            passwordRequired = true;
+            clearLocalStorageBackup();
+            initializeEmptyBudget('local', false);
+            // ВАЖЛИВО: isDataLoaded = false, щоб запобігти запису порожнього бюджету в Firebase
             setIsDataLoaded(false);
             
             // Потрібен пароль - показуємо модальне вікно
@@ -659,30 +689,38 @@ export function useFirestoreSync(
             processFirestoreData(firestoreData);
             // 🔒 FETCH-FIRST: Дані успішно завантажені з Firestore, розблоковуємо запис
             setIsDataLoaded(true);
+            clearLocalStorageBackup();
             console.log('✅ Дані завантажені з Firestore. Запис розблоковано.');
           } else {
             // Новий користувач (книг ще немає) — мігруємо локальні дані або стартуємо чисту книгу.
+            // handleNewUserSignIn використовує передану копію, тому очищення тут безпечне.
             await handleNewUserSignIn(localStorageBackup);
+            clearLocalStorageBackup();
           }
         } catch (error) {
           console.error('Помилка при завантаженні даних з Firestore:', error);
           if (isMounted) {
             if (error instanceof WrongPasswordError) {
               // Невірний пароль - показуємо помилку в модальному вікні
+              passwordRequired = true;
               setPasswordError(translate('encryption.wrongPassword'));
               setShowPasswordModal(true);
               setIsInitialLoad(false);
             } else if (error instanceof UnsupportedEncryptionFormatError) {
               // Дані зашифровані застарілим форматом - жодний пароль не допоможе
+              passwordRequired = true;
               setPasswordError(translate('encryption.unsupportedFormat'));
               setShowPasswordModal(true);
               setIsInitialLoad(false);
             } else {
+              // Помилка читання з хмари: НЕ створюємо порожню книгу і не пишемо нічого.
+              // isDataLoaded лишається false, локальні дані не видаляємо.
+              console.error('⛔ Не вдалося завантажити дані з Firestore — запис у хмару заблоковано.');
               setSyncStatus(getSyncStatusText('error'));
             }
           }
         } finally {
-          if (isMounted && !showPasswordModal) {
+          if (isMounted && !passwordRequired) {
             // ВАЖЛИВО: Затримка перед встановленням isInitialLoad в false,
             // щоб гарантувати, що всі оновлення стану (setBudgets) завершилися
             // Це запобігає збереженню неповних даних через useSyncDebounce
@@ -805,7 +843,7 @@ export function useFirestoreSync(
       isMounted = false;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user, authLoading, encryptionPassword]);
+  }, [user, authLoading]);
 
   // Обробка введення пароля
   const handlePasswordSubmit = async (password: string) => {
@@ -889,9 +927,10 @@ export function useFirestoreSync(
     // 🔒 БЕЗПЕКА: При відміні введення пароля створюємо порожній бюджет
     // LocalStorage вже очищено при вході, тому створюємо чистий стан
     console.log('🔒 Відміна введення пароля - створення порожнього бюджету');
-    initializeEmptyBudget();
-    // 🔒 ЗАПОБІЖНИК: Скидаємо прапорець зашифрованих даних, щоб користувач міг працювати з порожнім бюджетом
-    setIsRemoteDataEncrypted(false);
+    // ВАЖЛИВО: НЕ розблоковуємо запис і НЕ скидаємо isRemoteDataEncrypted.
+    // У хмарі залишаються зашифровані дані, і порожній бюджет не повинен їх перезаписати.
+    initializeEmptyBudget('local', false);
+    setIsRemoteDataEncrypted(true);
   };
 
   return {

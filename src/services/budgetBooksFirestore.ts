@@ -395,14 +395,14 @@ export async function loadUserBudgetFirestoreState(
       currentBudgetBookIsReadOnly
     };
   } catch (error) {
-    if (error instanceof WrongPasswordError) {
-      throw error;
-    }
     handleError(
       error instanceof Error ? error : new Error(String(error)),
       { context: 'budgetBooksFirestore', action: 'loadUserBudgetFirestoreState' }
     );
-    return null;
+    // ВАЖЛИВО: помилку читання не перетворюємо на null.
+    // null — це сигнал "у користувача немає даних", і виклик після нього
+    // створює порожню книгу в Firestore (втрата даних при мережевій помилці).
+    throw error;
   }
 }
 

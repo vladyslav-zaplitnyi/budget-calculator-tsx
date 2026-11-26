@@ -779,7 +779,10 @@ export function useBudgetSettings() {
         getSyncStatusText,
         password,
         setIsEncrypted,
-        { budgetBookId: currentBudgetBookId, isReadOnly: isCurrentBookReadOnly }
+        { budgetBookId: currentBudgetBookId, isReadOnly: isCurrentBookReadOnly },
+        // Без цього прапорця помилка запису ковталась і користувач бачив
+        // "шифрування увімкнено", хоча в хмарі дані лишалися незашифрованими.
+        { throwOnError: true }
       );
       
       setShowEnableEncryptionModal(false);
@@ -848,7 +851,8 @@ export function useBudgetSettings() {
         getSyncStatusText,
         null,
         setIsEncrypted,
-        { budgetBookId: currentBudgetBookId, isReadOnly: isCurrentBookReadOnly }
+        { budgetBookId: currentBudgetBookId, isReadOnly: isCurrentBookReadOnly },
+        { throwOnError: true }
       );
       
       setShowDisableEncryptionModal(false);
@@ -857,6 +861,9 @@ export function useBudgetSettings() {
       setShowAlertModal(true);
     } catch (error) {
       console.error('Помилка при вимкненні шифрування:', error);
+      // Запис не відбувся — у хмарі дані все ще зашифровані, тому повертаємо пароль,
+      // інакше наступне авто-збереження перезаписало б документ у відкритому вигляді.
+      setEncryptionPassword(password);
       setAlertMessage(translate('encryption.disableError'));
       setAlertType('error');
       setShowAlertModal(true);

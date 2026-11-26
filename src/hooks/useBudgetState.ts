@@ -78,8 +78,10 @@ export interface BudgetStateInterface {
 }
 
 export function useBudgetState(): BudgetStateInterface {
-  // Завантажуємо дані з localStorage
-  const loadedData = loadFromLocalStorage();
+  // Завантажуємо дані з localStorage ОДИН раз (lazy init).
+  // Раніше JSON.parse всього бюджету виконувався на КОЖЕН рендер провайдера —
+  // це помітна робота на кожне введення у таблиці днів.
+  const [loadedData] = useState(() => loadFromLocalStorage());
 
   // Ініціалізуємо курси обміну (потрібно зробити це перед створенням початкового стану)
   const initializeExchangeRates = (
