@@ -144,6 +144,35 @@ const sanitizeBudgetsForFirestore = (input: Budgets): Budgets => {
   return deepSanitizeUndefined(sanitized);
 };
 
+const knownContentSignatures = new Map<string, string>();
+
+const buildContentSignature = (activeBudgetId: string, budgets: Budgets): string =>
+  stableStringify({
+    activeBudgetId,
+    budgets: sanitizeBudgetsForFirestore(budgets)
+  });
+
+const rememberContentSignature = (
+  uid: string,
+  bookId: string,
+  activeBudgetId: string,
+  budgets: Budgets
+): void => {
+  knownContentSignatures.set(
+    bookSignatureKey(uid, bookId),
+    buildContentSignature(activeBudgetId, budgets)
+  );
+};
+
+const isKnownContentSignature = (
+  uid: string,
+  bookId: string,
+  activeBudgetId: string,
+  budgets: Budgets
+): boolean =>
+  knownContentSignatures.get(bookSignatureKey(uid, bookId)) ===
+  buildContentSignature(activeBudgetId, budgets);
+
 const syncDisplayCurrencyToLocalStorage = (activeBudget: Budget | undefined) => {
   if (activeBudget?.displayCurrency) {
     try {
@@ -441,6 +470,12 @@ export async function loadUserBudgetFirestoreState(
     // Запам'ятовуємо вміст, який вже застосовано локально, щоб realtime-підписка
     // не перезастосовувала той самий документ одразу після підключення.
     rememberBookSignature(user.uid, currentBudgetBookId, bookRaw);
+    rememberContentSignature(
+      user.uid,
+      currentBudgetBookId,
+      parsed.activeBudgetId || DEFAULT_BUDGET_BOOK_ID,
+      parsed.budgets
+    );
 
     return {
       kind: 'data',
@@ -474,6 +509,12 @@ export async function loadBudgetBookDocumentForUser(
   if (parsed === 'needsPassword') return 'needsPassword';
   if (!parsed.budgets || Object.keys(parsed.budgets).length === 0) return null;
   rememberBookSignature(user.uid, bookId, raw);
+  rememberContentSignature(
+    user.uid,
+    bookId,
+    parsed.activeBudgetId || DEFAULT_BUDGET_BOOK_ID,
+    parsed.budgets
+  );
   return { data: parsed, isReadOnly };
 }
 
@@ -562,6 +603,19 @@ export async function saveBudgetBookToFirestore(params: SaveBudgetBookParams): P
 
   const displayLabel = deriveDisplayLabel(budgets, safeActive);
   const isReadOnlyPersisted = existing?.isReadOnly === true ? true : false;
+  const existingSameEncryption = existing
+    ? (existing.isEncrypted === true) === Boolean(encryptionPassword)
+    : false;
+
+  // No-op guard по розшифрованому вмісту: зупиняє зайве шифрування та пінг-понг між пристроями.
+  if (
+    existing &&
+    existingSameEncryption &&
+    isKnownContentSignature(user.uid, budgetBookId, safeActive, budgetsForFirestore)
+  ) {
+    rememberBookSignature(user.uid, budgetBookId, existing);
+    return;
+  }
 
   const payload: Record<string, unknown> = encryptionPassword
     ? {
@@ -583,15 +637,28 @@ export async function saveBudgetBookToFirestore(params: SaveBudgetBookParams): P
         updatedAt: serverTimestamp()
       };
 
-  // No-op guard: бюджетний вміст у хмарі вже такий самий (наприклад, після
-  // застосування realtime-оновлення з іншого пристрою) — не робимо зайвий запис.
   if (existing && buildBookSignature(existing) === buildBookSignature(payload)) {
     rememberBookSignature(user.uid, budgetBookId, existing);
+    rememberContentSignature(user.uid, budgetBookId, safeActive, budgetsForFirestore);
     return;
   }
 
-  await setDoc(bRef, payload);
+  // Запам'ятовуємо ДО setDoc, щоб локальний onSnapshot не встиг спрацювати раніше за запис у Map.
+  const sigKey = bookSignatureKey(user.uid, budgetBookId);
+  const prevBookSig = knownBookSignatures.get(sigKey);
+  const prevContentSig = knownContentSignatures.get(sigKey);
   rememberBookSignature(user.uid, budgetBookId, payload);
+  rememberContentSignature(user.uid, budgetBookId, safeActive, budgetsForFirestore);
+
+  try {
+    await setDoc(bRef, payload);
+  } catch (err) {
+    if (prevBookSig !== undefined) knownBookSignatures.set(sigKey, prevBookSig);
+    else knownBookSignatures.delete(sigKey);
+    if (prevContentSig !== undefined) knownContentSignatures.set(sigKey, prevContentSig);
+    else knownContentSignatures.delete(sigKey);
+    throw err;
+  }
 
   await setDoc(
     userDocRef(user.uid),
@@ -747,7 +814,19 @@ export function subscribeBudgetBookDocument(
     parseBudgetBookDocument(bookId, raw, encryptionPassword ?? null)
       .then((parsed) => {
         if (cancelled || parsed === 'needsPassword') return;
+        // Повторна перевірка після async decryptData: за цей час локальний стан міг змінитися.
+        if (shouldIgnoreSnapshot?.()) return;
+
+        const parsedActiveId = parsed.activeBudgetId || DEFAULT_BUDGET_BOOK_ID;
+        if (parsed.budgets && isKnownContentSignature(user.uid, bookId, parsedActiveId, parsed.budgets)) {
+          rememberBookSignature(user.uid, bookId, raw);
+          return;
+        }
+
         rememberBookSignature(user.uid, bookId, raw);
+        if (parsed.budgets) {
+          rememberContentSignature(user.uid, bookId, parsedActiveId, parsed.budgets);
+        }
         onData(parsed);
       })
       .catch((error) => {
