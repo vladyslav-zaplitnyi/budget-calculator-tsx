@@ -189,7 +189,7 @@ export function useSyncDebounce({
     saveTimeoutRef.current = setTimeout(() => {
       pendingSaveRef.current = null;
       void saveToCloud();
-    }, 600);
+    }, 1000);
 
     return () => {
       if (saveTimeoutRef.current) {
