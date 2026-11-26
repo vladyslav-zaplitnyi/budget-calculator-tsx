@@ -1,4 +1,4 @@
-import React, { useState, useEffect, FormEvent, useMemo } from 'react';
+import React, { useState, useEffect, useRef, FormEvent, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { translate } from '../i18n/config';
 import { AVAILABLE_CURRENCIES, getCurrencyName } from '../utils/currencies';
@@ -68,9 +68,18 @@ const TransactionModal: React.FC<TransactionModalProps> = ({
     };
   }, [currentBudgetYear, currentBudgetMonth, i18nInstance.language]);
 
+  const wasOpenRef = useRef(false);
+
   useEffect(() => {
-    // Спрацьовує тільки коли модалка відкривається
-    if (!isOpen) return;
+    if (!isOpen) {
+      wasOpenRef.current = false;
+      return;
+    }
+
+    // Ініціалізуємо форму лише при переході закрито → відкрито,
+    // щоб фонові realtime-оновлення (нове посилання selectedCurrencies) не стирали ввід
+    if (wasOpenRef.current) return;
+    wasOpenRef.current = true;
     
     if (transaction) {
       setType(transaction.type || 'expense');
