@@ -4,6 +4,7 @@ import {
   doc,
   getDoc,
   getDocs,
+  onSnapshot,
   serverTimestamp,
   setDoc,
   Timestamp,
@@ -49,6 +50,56 @@ const convertTimestampToString = (value: unknown): string | undefined => {
 };
 
 export const deepSanitizeUndefined = <T,>(data: T): T => JSON.parse(JSON.stringify(data)) as T;
+
+/** Deterministic JSON with sorted keys, so two equal payloads always produce the same string. */
+const stableStringify = (value: unknown): string => {
+  if (value === null || typeof value !== 'object') {
+    return JSON.stringify(value) ?? 'undefined';
+  }
+  if (Array.isArray(value)) {
+    return `[${value.map(stableStringify).join(',')}]`;
+  }
+  const record = value as Record<string, unknown>;
+  return `{${Object.keys(record)
+    .sort()
+    .map((key) => `${JSON.stringify(key)}:${stableStringify(record[key])}`)
+    .join(',')}}`;
+};
+
+/**
+ * Signature of the fields that define a book's budget content.
+ * `updatedAt` / `displayLabel` / `isReadOnly` are intentionally ignored: they change
+ * without the budget content changing (metadata-only writes).
+ */
+const buildBookSignature = (raw: Record<string, unknown> | null | undefined): string => {
+  if (!raw) return '';
+  const isEncrypted = raw.isEncrypted === true;
+  return stableStringify({
+    isEncrypted,
+    encryptedData: isEncrypted ? raw.encryptedData ?? null : null,
+    activeBudgetId: isEncrypted ? null : raw.activeBudgetId ?? null,
+    budgets: isEncrypted ? null : raw.budgets ?? null
+  });
+};
+
+/**
+ * Signatures of the book payloads already present locally (loaded or just written).
+ * Used to (a) skip no-op writes and (b) ignore the realtime echo of our own saves.
+ */
+const knownBookSignatures = new Map<string, string>();
+const bookSignatureKey = (uid: string, bookId: string) => `${uid}:${bookId}`;
+
+const rememberBookSignature = (
+  uid: string,
+  bookId: string,
+  raw: Record<string, unknown> | null | undefined
+): void => {
+  if (!raw) return;
+  knownBookSignatures.set(bookSignatureKey(uid, bookId), buildBookSignature(raw));
+};
+
+const isKnownBookSignature = (uid: string, bookId: string, raw: Record<string, unknown>): boolean =>
+  knownBookSignatures.get(bookSignatureKey(uid, bookId)) === buildBookSignature(raw);
 
 const sanitizeExchangeRatesForFirestore = (rates: Budget['exchangeRates'] | undefined): Budget['exchangeRates'] => {
   const out: Budget['exchangeRates'] = {};
@@ -387,6 +438,10 @@ export async function loadUserBudgetFirestoreState(
 
     const currentBudgetBookIsReadOnly = bookRaw.isReadOnly === true;
 
+    // Запам'ятовуємо вміст, який вже застосовано локально, щоб realtime-підписка
+    // не перезастосовувала той самий документ одразу після підключення.
+    rememberBookSignature(user.uid, currentBudgetBookId, bookRaw);
+
     return {
       kind: 'data',
       data: parsed,
@@ -418,6 +473,7 @@ export async function loadBudgetBookDocumentForUser(
   const parsed = await parseBudgetBookDocument(bookId, raw, encryptionPassword);
   if (parsed === 'needsPassword') return 'needsPassword';
   if (!parsed.budgets || Object.keys(parsed.budgets).length === 0) return null;
+  rememberBookSignature(user.uid, bookId, raw);
   return { data: parsed, isReadOnly };
 }
 
@@ -507,25 +563,35 @@ export async function saveBudgetBookToFirestore(params: SaveBudgetBookParams): P
   const displayLabel = deriveDisplayLabel(budgets, safeActive);
   const isReadOnlyPersisted = existing?.isReadOnly === true ? true : false;
 
-  if (encryptionPassword) {
-    const encryptedData = await encryptData({ activeBudgetId: safeActive, budgets: budgetsForFirestore }, encryptionPassword);
-    await setDoc(bRef, {
-      isReadOnly: isReadOnlyPersisted,
-      isEncrypted: true,
-      encryptedData,
-      displayLabel,
-      updatedAt: serverTimestamp()
-    });
-  } else {
-    await setDoc(bRef, {
-      isReadOnly: isReadOnlyPersisted,
-      isEncrypted: false,
-      activeBudgetId: safeActive,
-      budgets: budgetsForFirestore,
-      displayLabel,
-      updatedAt: serverTimestamp()
-    });
+  const payload: Record<string, unknown> = encryptionPassword
+    ? {
+        isReadOnly: isReadOnlyPersisted,
+        isEncrypted: true,
+        encryptedData: await encryptData(
+          { activeBudgetId: safeActive, budgets: budgetsForFirestore },
+          encryptionPassword
+        ),
+        displayLabel,
+        updatedAt: serverTimestamp()
+      }
+    : {
+        isReadOnly: isReadOnlyPersisted,
+        isEncrypted: false,
+        activeBudgetId: safeActive,
+        budgets: budgetsForFirestore,
+        displayLabel,
+        updatedAt: serverTimestamp()
+      };
+
+  // No-op guard: бюджетний вміст у хмарі вже такий самий (наприклад, після
+  // застосування realtime-оновлення з іншого пристрою) — не робимо зайвий запис.
+  if (existing && buildBookSignature(existing) === buildBookSignature(payload)) {
+    rememberBookSignature(user.uid, budgetBookId, existing);
+    return;
   }
+
+  await setDoc(bRef, payload);
+  rememberBookSignature(user.uid, budgetBookId, payload);
 
   await setDoc(
     userDocRef(user.uid),
@@ -636,6 +702,85 @@ export async function renameBudgetBook(
     },
     { merge: true }
   );
+}
+
+/**
+ * Realtime subscription to a single budget book document.
+ *
+ * Fires only for changes made elsewhere (another device/tab): the echo of our own
+ * writes is recognised by its payload signature and skipped, which prevents a
+ * write → snapshot → write loop.
+ *
+ * Encrypted books are decrypted with the current password; when the password is
+ * missing the snapshot is ignored and the existing password-modal flow stays in charge.
+ */
+export function subscribeBudgetBookDocument(
+  user: User,
+  bookId: string,
+  encryptionPassword: string | null | undefined,
+  onData: (data: LoadedUserData) => void
+): () => void {
+  let cancelled = false;
+  let processing = false;
+  // Останній снапшот, що надійшов під час обробки попереднього (швидкі послідовні зміни).
+  let pendingRaw: Record<string, unknown> | null = null;
+
+  const handleRaw = (raw: Record<string, unknown>) => {
+    if (cancelled) return;
+    if (isKnownBookSignature(user.uid, bookId, raw)) {
+      // Власний запис (або документ, який уже застосовано) — нічого не робимо.
+      return;
+    }
+    if (raw.isEncrypted === true && !encryptionPassword) return;
+
+    if (processing) {
+      pendingRaw = raw;
+      return;
+    }
+    processing = true;
+
+    parseBudgetBookDocument(bookId, raw, encryptionPassword ?? null)
+      .then((parsed) => {
+        if (cancelled || parsed === 'needsPassword') return;
+        rememberBookSignature(user.uid, bookId, raw);
+        onData(parsed);
+      })
+      .catch((error) => {
+        console.error('Помилка обробки realtime-оновлення бюджету:', error);
+      })
+      .finally(() => {
+        processing = false;
+        if (!cancelled && pendingRaw) {
+          const next = pendingRaw;
+          pendingRaw = null;
+          handleRaw(next);
+        }
+      });
+  };
+
+  const unsubscribe = onSnapshot(
+    budgetBookRef(user.uid, bookId),
+    { includeMetadataChanges: true },
+    (snapshot) => {
+      if (cancelled) return;
+
+      // Тільки підтверджені сервером зміни: локальний (optimistic) запис цього ж
+      // клієнта і кеш без мережі не є оновленням з іншого пристрою.
+      if (snapshot.metadata.hasPendingWrites || snapshot.metadata.fromCache) return;
+      if (!snapshot.exists()) return;
+
+      handleRaw(snapshot.data() as Record<string, unknown>);
+    },
+    (error) => {
+      if (cancelled) return;
+      console.warn('⚠️ Realtime-підписка на книгу бюджету недоступна:', error);
+    }
+  );
+
+  return () => {
+    cancelled = true;
+    unsubscribe();
+  };
 }
 
 /** Deletes a budget book. The primary `default` book cannot be deleted. */

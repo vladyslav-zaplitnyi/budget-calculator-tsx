@@ -23,7 +23,8 @@ import {
   renameBudgetBook,
   deleteBudgetBook,
   DEFAULT_BUDGET_BOOK_ID,
-  MAX_USER_BUDGET_BOOKS
+  MAX_USER_BUDGET_BOOKS,
+  subscribeBudgetBookDocument
 } from '../services/budgetBooksFirestore';
 import { applyRollingBootToAllBudgets } from '../utils/balanceWaterfall';
 
@@ -844,6 +845,24 @@ export function useFirestoreSync(
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, authLoading]);
+
+  // 🔄 REALTIME: підписка на активну книгу бюджету.
+  // Зміни з іншого пристрою/вкладки застосовуються без перезавантаження сторінки.
+  // Власні записи відфільтровуються за signature у сервісі, тому циклів запису немає.
+  const processFirestoreDataRef = useRef(processFirestoreData);
+  processFirestoreDataRef.current = processFirestoreData;
+
+  useEffect(() => {
+    if (!user || authLoading || !isDataLoaded) return;
+
+    const bookId = currentBudgetBookId || DEFAULT_BUDGET_BOOK_ID;
+    console.log('🔄 Realtime-підписка на книгу бюджету:', bookId);
+
+    return subscribeBudgetBookDocument(user, bookId, encryptionPassword, (data) => {
+      console.log('🔄 Отримано оновлення з іншого пристрою, застосовуємо...');
+      processFirestoreDataRef.current(data);
+    });
+  }, [user, authLoading, isDataLoaded, currentBudgetBookId, encryptionPassword]);
 
   // Обробка введення пароля
   const handlePasswordSubmit = async (password: string) => {
